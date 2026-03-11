@@ -32,7 +32,7 @@ const fieldMap = {
   risks: 'risks',
 };
 
-test('buildSpecTransmuteResult keeps the current spec result envelope stable while preparing intent IR', () => {
+test('buildSpecTransmuteResult keeps the current spec result envelope stable while preparing a shared runtime handoff', () => {
   const spec = {
     summary: 'Store export report',
     problem_frame: {
@@ -56,7 +56,7 @@ test('buildSpecTransmuteResult keeps the current spec result envelope stable whi
     blocking_issue_count: 0,
   };
 
-  const { result, intentIr } = buildSpecTransmuteResult({
+  const { result, intentIr, sharedRuntimeHandoff } = buildSpecTransmuteResult({
     raw: {
       model: 'demo-model',
       meta: { source: 'raw' },
@@ -85,4 +85,10 @@ test('buildSpecTransmuteResult keeps the current spec result envelope stable whi
   assert.deepEqual(result.glossary, ['glossary']);
   assert.deepEqual(result.meta, { source: 'raw', experiment: 'v1' });
   assert.equal(intentIr.intent.user_job, 'review order volume');
+  assert.equal(sharedRuntimeHandoff.model, 'demo-model');
+  assert.equal(sharedRuntimeHandoff.sourceVibe, 'Need a store report');
+  assert.equal(sharedRuntimeHandoff.normalizedDraft, spec);
+  assert.deepEqual(sharedRuntimeHandoff.validationReport, validationReport);
+  assert.deepEqual(sharedRuntimeHandoff.meta, { source: 'raw', experiment: 'v1' });
+  assert.equal(sharedRuntimeHandoff.intentIr, intentIr);
 });

@@ -3,12 +3,15 @@ import {
   buildPromptSections,
   resolvePromptPolicy,
 } from './promptPolicy.js';
+import {
+  transmuteVibeToSpec as transmuteSpecFacade,
+} from '../facades/spec/transmuteSpecFacade.js';
 import { getCoreChecklistMasterPromptLines } from '../../shared/corePromptChecklist.js';
+import {
+  DEFAULT_PROVIDER,
+  sharedModelRuntime,
+} from '../runtime/modelRuntime.js';
 import { validateStandardOutput } from '../validation/standardOutputValidation.js';
-import { buildSpecTransmuteResult } from '../pipeline/buildSpecTransmuteResult.js';
-import { runSpecTransmutePipeline } from '../pipeline/runSpecTransmutePipeline.js';
-import { SPEC_INTENT_FIELD_MAP } from '../contracts/specIntentFieldMap.js';
-import { createSpecRenderer } from '../renderers/spec/specRenderer.js';
 import { prepareSpecAnalysis } from '../intent/prepareSpecAnalysis.js';
 import { normalizeSpecDraft } from '../intent/normalizeSpecDraft.js';
 import { executeStructuredGeneration } from '../execution/executeStructuredGeneration.js';
@@ -29,31 +32,6 @@ import { collectSemanticRepairIssues as collectStructuredGenerationIssues } from
 // -------------------------------------------------------
 // 모델/프롬프트 설정 영역
 // -------------------------------------------------------
-// Gemini가 제공하는 모델 목록을 조회할 때 쓰는 공식 API 주소입니다.
-export const SUPPORTED_MODEL_PROVIDERS = ['gemini', 'openai', 'anthropic'];
-const DEFAULT_PROVIDER = 'gemini';
-const PROVIDER_DISPLAY_NAMES = {
-  gemini: 'Gemini',
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-};
-const MODELS_ENDPOINT_BY_PROVIDER = {
-  gemini: 'https://generativelanguage.googleapis.com/v1beta/models',
-  openai: 'https://api.openai.com/v1/models',
-  anthropic: 'https://api.anthropic.com/v1/models',
-};
-// 모델 목록 조회가 실패해도 앱이 멈추지 않게 하는 기본 후보 목록입니다.
-const DEFAULT_MODELS = {
-  gemini: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'],
-  openai: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1', 'o4-mini'],
-  anthropic: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
-};
-// 품질/속도 균형을 위해 우선 시도할 모델 순서입니다.
-const PREFERENCE_ORDER = {
-  gemini: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'],
-  openai: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1', 'o4-mini', 'o3-mini'],
-  anthropic: ['claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
-};
 
 // 스키마 키를 한곳에서 관리하기 위한 상수 사전입니다.
 // 예시: K.SUMMARY를 쓰면 오타 없이 "한_줄_요약"을 참조할 수 있습니다.
@@ -108,8 +86,6 @@ const K = {
   OUTPUT: '출력',
   STANDARD_OUTPUT: '표준_출력',
 };
-
-const specRenderer = createSpecRenderer({ schemaKeys: K });
 
 // 모델이 따라야 하는 JSON "형태 계약서"입니다.
 // 이 문자열을 프롬프트에 그대로 넣어 "반드시 이 모양으로 답해"라고 지시합니다.
@@ -227,57 +203,10 @@ function toSafeString(value, fallback = '') {
   return typeof value === 'string' ? value.trim() : fallback;
 }
 
-function getApiKeyFingerprint(apiKey) {
-  const normalized = toSafeString(apiKey);
-  if (!normalized) return 'empty';
-
-  // Cache keys should not store raw API keys.
-  let hash = 0;
-  for (let idx = 0; idx < normalized.length; idx += 1) {
-    hash = (hash * 31 + normalized.charCodeAt(idx)) | 0;
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-function getModelCacheKey(provider, apiKey) {
-  const normalizedProvider = normalizeProvider(provider);
-  const keyFingerprint = getApiKeyFingerprint(apiKey);
-  return `${normalizedProvider}:${keyFingerprint}`;
-}
-
-function getCachedModels(provider, apiKey) {
-  const cacheKey = getModelCacheKey(provider, apiKey);
-  const cached = availableModelsCache.get(cacheKey);
-  return Array.isArray(cached) ? cached : [];
-}
-
-function setCachedModels(provider, apiKey, models) {
-  const sanitized = Array.isArray(models)
-    ? models.map((item) => toSafeString(item)).filter(Boolean)
-    : [];
-  if (!sanitized.length) return;
-  const cacheKey = getModelCacheKey(provider, apiKey);
-  availableModelsCache.set(cacheKey, sanitized);
-}
-
-function normalizeProvider(provider) {
-  const normalized = toSafeString(provider, DEFAULT_PROVIDER).toLowerCase();
-  return SUPPORTED_MODEL_PROVIDERS.includes(normalized) ? normalized : DEFAULT_PROVIDER;
-}
+export { SUPPORTED_MODEL_PROVIDERS } from '../runtime/modelRuntime.js';
 
 export function getProviderDisplayName(provider) {
-  const normalized = normalizeProvider(provider);
-  return PROVIDER_DISPLAY_NAMES[normalized] || PROVIDER_DISPLAY_NAMES[DEFAULT_PROVIDER];
-}
-
-function getDefaultModels(provider) {
-  const normalized = normalizeProvider(provider);
-  return DEFAULT_MODELS[normalized] || DEFAULT_MODELS[DEFAULT_PROVIDER];
-}
-
-function getPreferenceOrder(provider) {
-  const normalized = normalizeProvider(provider);
-  return PREFERENCE_ORDER[normalized] || PREFERENCE_ORDER[DEFAULT_PROVIDER];
+  return sharedModelRuntime.getProviderDisplayName(provider);
 }
 
 /**
@@ -1198,23 +1127,6 @@ function normalizeStandardOutput(raw) {
  * 현재 UI가 기대하는 결과 형태로 묶어 반환합니다.
  * (artifacts/layers/glossary + standard_output 동시 제공)
  */
-// buildSpecTransmuteResult keeps the public result envelope stable.
-// This wrapper only wires normalized data into the existing facade contract.
-function normalizeResult(raw, fallbackModel, promptMeta = null, sourceVibe = '') {
-  const { result } = buildSpecTransmuteResult({
-    raw,
-    fallbackModel,
-    promptMeta,
-    sourceVibe,
-    standardOutputAliasKey: K.STANDARD_OUTPUT,
-    intentFieldMap: SPEC_INTENT_FIELD_MAP,
-    normalizeStandardOutput,
-    renderer: specRenderer,
-  });
-
-  return result;
-}
-
 export function collectSemanticRepairIssues(raw) {
   return collectStructuredGenerationIssues(raw, { schemaKeys: K });
 }
@@ -1402,224 +1314,6 @@ export async function executePromptRepairChain(generateText, promptOptions = {})
   });
 }
 
-async function parseResponseJson(response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-function extractApiErrorMessage(payload, fallback) {
-  if (!payload || typeof payload !== 'object') return fallback;
-  const direct = toSafeString(payload.message);
-  const nested = toSafeString(payload.error?.message);
-  return direct || nested || fallback;
-}
-
-function sortModelsByPreference(models, provider) {
-  const normalizedProvider = normalizeProvider(provider);
-  const order = getPreferenceOrder(normalizedProvider);
-  const orderMap = new Map(order.map((modelName, idx) => [modelName.toLowerCase(), idx]));
-  const unique = Array.from(new Set((Array.isArray(models) ? models : [])
-    .map((item) => toSafeString(item))
-    .filter(Boolean)));
-
-  return unique.sort((a, b) => {
-    const aIdx = orderMap.has(a.toLowerCase()) ? orderMap.get(a.toLowerCase()) : Number.MAX_SAFE_INTEGER;
-    const bIdx = orderMap.has(b.toLowerCase()) ? orderMap.get(b.toLowerCase()) : Number.MAX_SAFE_INTEGER;
-    if (aIdx !== bIdx) return aIdx - bIdx;
-    return a.localeCompare(b);
-  });
-}
-
-async function fetchGeminiModels(apiKey) {
-  const response = await fetch(MODELS_ENDPOINT_BY_PROVIDER.gemini, {
-    headers: {
-      'x-goog-api-key': apiKey,
-    },
-  });
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(data, `Gemini model list request failed (${response.status})`));
-  }
-
-  return (Array.isArray(data?.models) ? data.models : [])
-    .filter((modelItem) => modelItem?.supportedGenerationMethods?.includes('generateContent'))
-    .map((modelItem) => toSafeString(modelItem?.name).split('/').pop())
-    .filter(Boolean);
-}
-
-function isOpenAITextModel(modelName) {
-  const name = toSafeString(modelName).toLowerCase();
-  if (!name) return false;
-  if (['moderation', 'embedding', 'whisper', 'tts', 'audio', 'image', 'dall-e'].some((token) => name.includes(token))) {
-    return false;
-  }
-  return name.startsWith('gpt-') || name.startsWith('o1') || name.startsWith('o3') || name.startsWith('o4');
-}
-
-async function fetchOpenAIModels(apiKey) {
-  const response = await fetch(MODELS_ENDPOINT_BY_PROVIDER.openai, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-  });
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(data, `OpenAI model list request failed (${response.status})`));
-  }
-
-  return (Array.isArray(data?.data) ? data.data : [])
-    .map((modelItem) => toSafeString(modelItem?.id))
-    .filter((modelName) => isOpenAITextModel(modelName));
-}
-
-async function fetchAnthropicModels(apiKey) {
-  const response = await fetch(MODELS_ENDPOINT_BY_PROVIDER.anthropic, {
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-  });
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(data, `Anthropic model list request failed (${response.status})`));
-  }
-
-  return (Array.isArray(data?.data) ? data.data : [])
-    .map((modelItem) => toSafeString(modelItem?.id))
-    .filter((modelName) => modelName.toLowerCase().includes('claude'));
-}
-
-async function generateTextWithGemini(apiKey, modelName, prompt) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2 },
-    }),
-  });
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(data, `Gemini generation failed (${response.status})`));
-  }
-
-  const text = (Array.isArray(data?.candidates) ? data.candidates : [])
-    .flatMap((candidate) => (Array.isArray(candidate?.content?.parts) ? candidate.content.parts : []))
-    .map((part) => toSafeString(part?.text))
-    .filter(Boolean)
-    .join('\n')
-    .trim();
-  if (!text) throw new Error('Gemini generation returned empty text.');
-  return text;
-}
-
-function normalizeOpenAIMessageContent(content) {
-  if (typeof content === 'string') return content.trim();
-  if (!Array.isArray(content)) return '';
-  return content
-    .map((item) => (typeof item === 'string' ? item : toSafeString(item?.text)))
-    .filter(Boolean)
-    .join('\n')
-    .trim();
-}
-
-function extractOpenAIResponsesText(payload) {
-  const direct = toSafeString(payload?.output_text);
-  if (direct) return direct;
-  return (Array.isArray(payload?.output) ? payload.output : [])
-    .flatMap((item) => (Array.isArray(item?.content) ? item.content : []))
-    .map((item) => toSafeString(item?.text))
-    .filter(Boolean)
-    .join('\n')
-    .trim();
-}
-
-async function generateTextWithOpenAI(apiKey, modelName, prompt) {
-  const primaryResponse = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelName,
-      input: prompt,
-    }),
-  });
-  const primaryData = await parseResponseJson(primaryResponse);
-  if (primaryResponse.ok) {
-    const primaryText = extractOpenAIResponsesText(primaryData);
-    if (primaryText) return primaryText;
-  }
-
-  // Fallback: 일부 모델/계정 조합에서 chat.completions 경로만 허용되는 경우를 대비합니다.
-  const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  const fallbackData = await parseResponseJson(fallbackResponse);
-  if (!fallbackResponse.ok) {
-    const fallbackError = extractApiErrorMessage(fallbackData, `OpenAI generation failed (${fallbackResponse.status})`);
-    const primaryError = extractApiErrorMessage(primaryData, '');
-    throw new Error(primaryError || fallbackError);
-  }
-
-  const text = normalizeOpenAIMessageContent(fallbackData?.choices?.[0]?.message?.content);
-  if (!text) throw new Error('OpenAI generation returned empty text.');
-  return text;
-}
-
-async function generateTextWithAnthropic(apiKey, modelName, prompt) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: modelName,
-      temperature: 0.2,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(data, `Anthropic generation failed (${response.status})`));
-  }
-
-  const text = (Array.isArray(data?.content) ? data.content : [])
-    .filter((item) => item?.type === 'text')
-    .map((item) => toSafeString(item?.text))
-    .filter(Boolean)
-    .join('\n')
-    .trim();
-  if (!text) throw new Error('Anthropic generation returned empty text.');
-  return text;
-}
-
-async function generateTextByProvider(provider, apiKey, modelName, prompt) {
-  const normalizedProvider = normalizeProvider(provider);
-  if (normalizedProvider === 'gemini') return generateTextWithGemini(apiKey, modelName, prompt);
-  if (normalizedProvider === 'openai') return generateTextWithOpenAI(apiKey, modelName, prompt);
-  if (normalizedProvider === 'anthropic') return generateTextWithAnthropic(apiKey, modelName, prompt);
-  throw new Error(`Unsupported provider: ${normalizedProvider}`);
-}
-
 // -------------------------------------------------------
 // 외부 공개 함수(export)
 // -------------------------------------------------------
@@ -1627,62 +1321,10 @@ async function generateTextByProvider(provider, apiKey, modelName, prompt) {
 
 /**
  * API 키 기준으로 사용 가능한 생성 모델 목록을 조회합니다.
- * 실패하면 DEFAULT_MODELS를 반환해 앱 사용성을 유지합니다.
+ * 실패하면 runtime fallback 모델 목록을 반환해 앱 사용성을 유지합니다.
  */
 export async function fetchAvailableModels(apiKey, { provider = DEFAULT_PROVIDER } = {}) {
-  const normalizedProvider = normalizeProvider(provider);
-  if (!apiKey) return getDefaultModels(normalizedProvider);
-
-  const cachedModels = getCachedModels(normalizedProvider, apiKey);
-  if (cachedModels.length > 0) return cachedModels;
-
-  try {
-    let models = [];
-    if (normalizedProvider === 'gemini') {
-      models = await fetchGeminiModels(apiKey);
-    } else if (normalizedProvider === 'openai') {
-      models = await fetchOpenAIModels(apiKey);
-    } else if (normalizedProvider === 'anthropic') {
-      models = await fetchAnthropicModels(apiKey);
-    }
-
-    const sortedModels = sortModelsByPreference(models, normalizedProvider);
-    if (sortedModels.length > 0) {
-      setCachedModels(normalizedProvider, apiKey, sortedModels);
-      return sortedModels;
-    }
-  } catch {
-    // Avoid exposing API key details.
-  }
-
-  const fallbackModels = getDefaultModels(normalizedProvider);
-  setCachedModels(normalizedProvider, apiKey, fallbackModels);
-  return fallbackModels;
-}
-
-/**
- * 우선순위(PREFERENCE_ORDER)에 따라 최적 모델 1개를 선택합니다.
- */
-async function getOptimalModel(apiKey, preferredModel = '', provider = DEFAULT_PROVIDER) {
-  const normalizedProvider = normalizeProvider(provider);
-  let availableModels = getCachedModels(normalizedProvider, apiKey);
-  if (availableModels.length === 0) {
-    availableModels = await fetchAvailableModels(apiKey, { provider: normalizedProvider });
-  }
-
-  // UI에서 모델을 직접 선택한 경우 해당 모델을 우선 사용합니다.
-  // 선택값이 목록에 없으면 아래 우선순위 규칙으로 자연스럽게 fallback됩니다.
-  const preferred = toSafeString(preferredModel).toLowerCase();
-  if (preferred) {
-    const matched = availableModels.find((item) => toSafeString(item).toLowerCase() === preferred);
-    if (matched) return matched;
-  }
-
-  for (const candidate of getPreferenceOrder(normalizedProvider)) {
-    if (availableModels.includes(candidate)) return candidate;
-  }
-
-  return availableModels[0] || getDefaultModels(normalizedProvider)[0];
+  return sharedModelRuntime.fetchAvailableModels(apiKey, { provider });
 }
 
 /**
@@ -1692,7 +1334,7 @@ async function getOptimalModel(apiKey, preferredModel = '', provider = DEFAULT_P
  * 비전공자 관점 비유:
  * - vibe: "요청 메모"
  * - 모델 응답: "초안 문서"
- * - normalizeResult: "양식에 맞춘 최종 제출본"
+ * - spec facade: "양식에 맞춘 최종 제출본"
  */
 export async function transmuteVibeToSpec(
   vibe,
@@ -1706,36 +1348,24 @@ export async function transmuteVibeToSpec(
     promptExperimentId = '',
   } = {},
 ) {
-  if (!apiKey) {
-    throw new Error('API key is missing.');
-  }
-
-  const normalizedProvider = normalizeProvider(provider);
-  // modelName 전달 시 우선 사용, 미전달/불일치 시 기존 자동 선택 정책을 사용합니다.
-  const selectedModel = await getOptimalModel(apiKey, modelName, normalizedProvider);
-  const generateText = (prompt) => generateTextByProvider(normalizedProvider, apiKey, selectedModel, prompt);
-  const promptOptions = {
+  return transmuteSpecFacade(
     vibe,
-    showThinking,
-    persona,
-    policyMode: promptPolicyMode,
-    promptExperimentId,
-  };
-
-  try {
-    return await runSpecTransmutePipeline({
-      generateText,
-      promptOptions,
-      selectedModel,
-      normalizedProvider,
-      sourceVibe: vibe,
+    apiKey,
+    {
+      provider,
+      showThinking,
+      modelName,
+      persona,
+      promptPolicyMode,
+      promptExperimentId,
+    },
+    {
+      runtime: sharedModelRuntime,
       executePromptRepairChain,
-      normalizeResult,
-    });
-  } catch (error) {
-    console.error('Transmutation failed:', error);
-    throw new Error('Transmutation interrupted by model or JSON parsing failure.');
-  }
+      schemaKeys: K,
+      normalizeStandardOutput,
+    },
+  );
 }
 
 function normalizeHybridStackGuide(raw, fallbackModel) {
@@ -1866,10 +1496,10 @@ export async function recommendHybridStacks(
     throw new Error('API key is missing.');
   }
 
-  const normalizedProvider = normalizeProvider(provider);
+  const normalizedProvider = sharedModelRuntime.normalizeProvider(provider);
   // 하이브리드 스택 추천 호출도 메인 생성과 같은 모델 선택 정책을 공유합니다.
-  const selectedModel = await getOptimalModel(apiKey, modelName, normalizedProvider);
-  const generateText = (promptText) => generateTextByProvider(normalizedProvider, apiKey, selectedModel, promptText);
+  const selectedModel = await sharedModelRuntime.getOptimalModel(apiKey, modelName, normalizedProvider);
+  const generateText = (promptText) => sharedModelRuntime.generateTextByProvider(normalizedProvider, apiKey, selectedModel, promptText);
   const prompt = buildHybridStackPrompt(vibe, standardOutput);
 
   try {

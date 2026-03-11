@@ -1,4 +1,4 @@
-import { buildIntentIrFromSpec } from '../intent/deriveIntentIr.js';
+import { buildRendererRuntimeHandoff } from '../runtime/buildRendererRuntimeHandoff.js';
 
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
@@ -21,43 +21,41 @@ export function buildSpecTransmuteResult({
     throw new Error('renderer.buildResultSections is required.');
   }
 
-  const safe = isPlainObject(raw) ? raw : {};
-  const { spec, validationReport } = normalizeStandardOutput(safe);
-  const rawThinking = isPlainObject(safe.layers?.L1_thinking)
-    ? safe.layers.L1_thinking
-    : (isPlainObject(safe.L1_thinking) ? safe.L1_thinking : null);
-  const rendered = renderer.buildResultSections(spec, rawThinking);
-  const mergedMeta = {
-    ...(isPlainObject(safe.meta) ? safe.meta : {}),
-    ...(isPlainObject(promptMeta) ? promptMeta : {}),
-  };
-
-  const intentIr = buildIntentIrFromSpec({
+  const sharedRuntimeHandoff = buildRendererRuntimeHandoff({
+    raw,
+    fallbackModel,
+    promptMeta,
     sourceVibe,
-    spec,
-    validationReport,
-    fields: intentFieldMap,
+    intentFieldMap,
+    normalizeStandardOutput,
   });
+  const rawThinking = isPlainObject(sharedRuntimeHandoff.parsedOutput.layers?.L1_thinking)
+    ? sharedRuntimeHandoff.parsedOutput.layers.L1_thinking
+    : (isPlainObject(sharedRuntimeHandoff.parsedOutput.L1_thinking)
+      ? sharedRuntimeHandoff.parsedOutput.L1_thinking
+      : null);
+  const rendered = renderer.buildResultSections(sharedRuntimeHandoff.normalizedDraft, rawThinking);
 
   const result = {
-    model: typeof safe.model === 'string' && safe.model.trim() ? safe.model : fallbackModel,
-    standard_output: spec,
-    validation_report: validationReport,
+    model: sharedRuntimeHandoff.model,
+    standard_output: sharedRuntimeHandoff.normalizedDraft,
+    validation_report: sharedRuntimeHandoff.validationReport,
     artifacts: rendered.artifacts,
     layers: rendered.layers,
     glossary: rendered.glossary,
   };
 
   if (standardOutputAliasKey) {
-    result[standardOutputAliasKey] = spec;
+    result[standardOutputAliasKey] = sharedRuntimeHandoff.normalizedDraft;
   }
 
-  if (Object.keys(mergedMeta).length > 0) {
-    result.meta = mergedMeta;
+  if (isPlainObject(sharedRuntimeHandoff.meta)) {
+    result.meta = sharedRuntimeHandoff.meta;
   }
 
   return {
     result,
-    intentIr,
+    intentIr: sharedRuntimeHandoff.intentIr,
+    sharedRuntimeHandoff,
   };
 }
