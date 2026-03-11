@@ -173,7 +173,7 @@ Before making changes, read these files first:
 - docs/engine-refactor-plan.md
 - docs/intent-ir.md
 - docs/handoff/latest.md
-- docs/handoff/next-engine-thread.md
+- docs/mode-comparison-scenarios.md
 
 Current product/engine reality:
 - The reusable engine refactor lane is paused by default.
@@ -198,4 +198,3 @@ At the end, summarize:
 - which cleanup items are safe next moves
 - whether any concrete engine blocker was found
 ```
-

@@ -1,4 +1,8 @@
-# Next Thread Instructions
+﻿# Next Thread Instructions
+
+> Historical handoff snapshot.
+> Do not use this file as the current source of truth.
+> Prefer docs/handoff/latest.md plus the current core docs instead.
 
 ## Thread Goal
 Continue the product-validation lane with only the smallest useful cleanup that improves clarity.
@@ -166,3 +170,4 @@ At the end, summarize:
 - 다음 최소 고가치 개선
 - 별도 엔진 스레드가 필요한지 여부
 ```
+
