@@ -104,6 +104,81 @@ function selectRewriteMode(selectionSignals) {
   return 'light_refine';
 }
 
+function buildRewriteRationale(sharedRuntimeHandoff, selectionSignals, rewriteMode) {
+  const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
+  const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
+  const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
+    ? sharedRuntimeHandoff.validationReport
+    : {};
+  const missingInformation = toStringArray(analysis.missing_information);
+  const reasonCodes = [];
+
+  if (rewriteMode === 'pass_through') {
+    reasonCodes.push('goal_clear');
+
+    if (selectionSignals.output_format_clarity !== 'low' || selectionSignals.constraint_clarity !== 'low') {
+      reasonCodes.push('constraints_or_format_clear');
+    }
+
+    if (selectionSignals.source_structure === 'high') {
+      reasonCodes.push('source_already_structured');
+    }
+
+    if (selectionSignals.ambiguity_level === 'low') {
+      reasonCodes.push('low_ambiguity');
+    }
+
+    return {
+      summary_code: 'pass_through_clear_enough',
+      reason_codes: reasonCodes,
+    };
+  }
+
+  if (rewriteMode === 'structured_refine') {
+    if (selectionSignals.goal_clarity === 'low') {
+      reasonCodes.push('goal_needs_clarification');
+    }
+
+    if (selectionSignals.ambiguity_level === 'high') {
+      reasonCodes.push('high_ambiguity');
+    }
+
+    if (missingInformation.length > 0) {
+      reasonCodes.push('missing_information');
+    }
+
+    if (Number(validationReport.warning_count || 0) > 0 || Number(validationReport.blocking_issue_count || 0) > 0) {
+      reasonCodes.push('validation_flags');
+    }
+
+    return {
+      summary_code: 'structured_refine_reduce_risk',
+      reason_codes: reasonCodes,
+    };
+  }
+
+  if (selectionSignals.goal_clarity !== 'high') {
+    reasonCodes.push('goal_partially_clear');
+  }
+
+  if (selectionSignals.constraint_clarity === 'low' || selectionSignals.output_format_clarity === 'low') {
+    reasonCodes.push('structure_would_help');
+  }
+
+  if (selectionSignals.ambiguity_level === 'medium') {
+    reasonCodes.push('some_ambiguity');
+  }
+
+  if (reasonCodes.length === 0) {
+    reasonCodes.push('light_touch_enough');
+  }
+
+  return {
+    summary_code: 'light_refine_add_structure',
+    reason_codes: reasonCodes,
+  };
+}
+
 function selectTechniques(sharedRuntimeHandoff, selectionSignals, rewriteMode) {
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
   const intent = isPlainObject(intentIr.intent) ? intentIr.intent : {};
@@ -238,8 +313,9 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   return sections.join('\n');
 }
 
-function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, appliedTechniques }) {
+export function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, appliedTechniques }) {
   const warnings = [];
+  const reasonCodes = [];
   const normalizedSource = toText(sourceVibe);
   const normalizedPrompt = toText(finalPrompt);
   const preservesSourceVibe = rewriteMode === 'pass_through'
@@ -247,19 +323,36 @@ function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, appliedTe
     : normalizedPrompt.includes('Original request:');
 
   if (!normalizedPrompt) {
-    warnings.push('Final prompt is empty.');
+    warnings.push('\uCD5C\uC885 \uD504\uB86C\uD504\uD2B8\uAC00 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.');
+    reasonCodes.push('empty_prompt');
   }
   if (!preservesSourceVibe) {
-    warnings.push('Final prompt no longer clearly preserves the original vibe.');
+    warnings.push('\uC815\uB9AC \uACFC\uC815\uC5D0\uC11C \uC6D0\uBB38 \uC758\uB3C4\uAC00 \uD750\uB824\uC84C\uC2B5\uB2C8\uB2E4.');
+    reasonCodes.push('loses_source_vibe');
   }
   if (rewriteMode !== 'pass_through' && appliedTechniques.length === 0) {
-    warnings.push('A refined prompt should record at least one applied technique.');
+    warnings.push('\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
+    reasonCodes.push('missing_technique_trace');
+  }
+
+  if (warnings.length === 0) {
+    if (preservesSourceVibe) {
+      reasonCodes.push('preserves_source_vibe');
+    }
+
+    if (rewriteMode === 'pass_through') {
+      reasonCodes.push('ready_for_direct_use');
+    } else if (appliedTechniques.length > 0) {
+      reasonCodes.push('rewrite_trace_recorded');
+    }
   }
 
   return {
     status: warnings.length > 0 ? 'review' : 'ready',
+    summary_code: warnings.length > 0 ? 'review_before_use' : 'ready_to_use',
     warning_count: warnings.length,
     warnings,
+    reason_codes: reasonCodes,
     preserves_source_vibe: preservesSourceVibe,
   };
 }
@@ -268,6 +361,7 @@ export function createPromptRenderer() {
   function buildPromptOutput(sharedRuntimeHandoff) {
     const selectionSignals = buildSelectionSignals(sharedRuntimeHandoff);
     const rewriteMode = selectRewriteMode(selectionSignals);
+    const rewriteRationale = buildRewriteRationale(sharedRuntimeHandoff, selectionSignals, rewriteMode);
     const appliedTechniques = selectTechniques(sharedRuntimeHandoff, selectionSignals, rewriteMode);
     const skippedTechniques = PROMPT_TECHNIQUE_REGISTRY
       .filter((technique) => !appliedTechniques.some((item) => item.id === technique.id))
@@ -292,6 +386,7 @@ export function createPromptRenderer() {
       renderer: 'prompt',
       source_vibe: toText(sharedRuntimeHandoff?.sourceVibe),
       rewrite_mode: rewriteMode,
+      rewrite_rationale: rewriteRationale,
       final_prompt: finalPrompt,
       applied_techniques: appliedTechniques,
       skipped_techniques: skippedTechniques,

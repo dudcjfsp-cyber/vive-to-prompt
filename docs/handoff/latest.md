@@ -38,6 +38,9 @@ This repo no longer needs to protect every old spec-era surface.
   - skipped techniques when present
   - validation notes
   - human-readable selection-signal rationale
+  - rewrite rationale summary with supporting reasons
+  - validation-readiness summary with supporting reasons
+- `review_before_use` state now surfaces a dedicated trust card with immediate review actions and clarification cues
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -51,7 +54,9 @@ This repo no longer needs to protect every old spec-era surface.
 - prompt runtime handoff exists
 - model runtime exists
 - prompt-first app shell exists
-- prompt rationale is visible in the main UI
+- rewrite rationale and validation-readiness rationale are visible in the main UI
+- prompt validation now carries summary/reason metadata and user-facing warning language
+- the main result UI now distinguishes review-needed output with a dedicated trust card instead of leaving the signal buried in warning lists
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -62,7 +67,7 @@ This repo no longer needs to protect every old spec-era surface.
 
 ### What is no longer the main blocker
 - adding a prompt renderer from scratch
-- exposing prompt rationale in the UI
+- exposing rewrite and readiness rationale in the UI
 - separating provider/model runtime from the old spec facade
 
 ### What is now the main loop risk
@@ -72,6 +77,8 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - renderer reuse
 - removal of a real remaining engine blocker
 
+The other rising loop risk is polishing the same prompt-result surface repeatedly after rewrite rationale and validation-readiness summaries are already visible.
+
 ## Current Product Surface Summary
 The app should now be understood as:
 - prompt-first by default
@@ -79,12 +86,12 @@ The app should now be understood as:
 - still carrying hidden compatibility paths for spec-oriented internals
 
 The main user-facing promise is now:
-- "Give one natural-language input and receive a final prompt plus the reason it was structured that way."
+- "Give one natural-language input and receive a final prompt plus the reason it was structured that way, and whether it is ready to use or needs review first."
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
 1. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-2. improve prompt-output validation or rationale quality in a user-visible way
+2. improve prompt-output warning language or review-state trust signals in a user-visible way
 3. intentionally remove or quarantine one compatibility path after checking its blast radius
 
 ## Work To Avoid In The Immediate Next Thread
@@ -97,9 +104,9 @@ Avoid choosing a new thread for:
 
 ## Suggested Start Prompt For The Next Thread
 ```text
-작업 시작 전에 아래 문서만 읽고 기준으로 삼아라.
+Before starting work, read only these docs and use them as the current source of truth.
 
-현재 기준 문서:
+Current docs:
 - docs/long-term-context.md
 - docs/engine-refactor-plan.md
 - docs/intent-ir.md
@@ -107,20 +114,26 @@ Avoid choosing a new thread for:
 - docs/refactor-stop-checklist.md
 - docs/vibe-to-prompt-context.md
 
-현재 작업 전제:
-- 이 레포는 이미 prompt-first 전환이 진행된 Vibe-to-Prompt 작업 레포다.
-- 원본 Vibe-to-Spec V2 제품 레포는 별도로 안전하게 보관되어 있다.
-- 현재 앱의 주 UX는 한 개 입력창 + 한 개 프롬프트 결과 surface + 구조화 이유 설명이다.
-- spec renderer와 spec-shaped normalization은 아직 일부 compatibility path로 남아 있다.
+Current repo assumptions:
+- This repo is a Vibe-to-Prompt workspace and a reusable engine-extraction workspace.
+- The original Vibe-to-Spec V2 product repo is preserved elsewhere.
+- The active UX is one natural-language input, one final prompt result, and an explanation of why it was structured that way.
+- Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
+- The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 
-이번 스레드 목표:
-- 현재 남은 작업이 사용자에게 보이는 prompt-first 가치가 있는지 먼저 판단하라.
-- 단순 내부 cleanup이면 멈추고 알려라.
-- 실제 engine blocker 또는 prompt-first UX blocker 하나만 골라 해결하라.
+Thread entry rule:
+- First judge the current candidate work against these three questions:
+  - Does it make the product more prompt-first?
+  - Does it create visible user value?
+  - Does it reduce a real remaining engine blocker?
+- If it is mostly internal cleanup, stop and explain why.
+- Pick exactly one real engine blocker or one real prompt-first UX improvement.
 
-마지막에는 다음을 정리하라:
-- 이번 스레드가 왜 루프가 아니었는지
-- 무엇이 실제로 더 prompt-first 해졌는지
-- 무엇이 아직 transitional compatibility path인지
-- 다음 스레드를 열어야 한다면 정확한 이유
+At the end, always summarize:
+- why this thread was not a loop
+- what became more prompt-first
+- what is still transitional compatibility
+- why another thread is or is not needed
 ```
+
+

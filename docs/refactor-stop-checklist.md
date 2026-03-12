@@ -32,6 +32,7 @@ The thread may be looping if:
 - future renderer onboarding would still touch the same number of engine areas
 - tests mostly track renames instead of proving a clearer boundary
 - the work no longer changes prompt-first UX or real engine reuse
+- the same prompt-result surface keeps receiving copy-level polish after rewrite and validation rationale are already visible
 
 ## Current Loop-Risk Signal In This Repo
 As of 2026-03-12, loop risk is higher than before because:
@@ -71,8 +72,8 @@ At the end of a refactor thread, confirm:
 ## Recommended Pace From The Current State
 From the current repo state, the best next work is usually one of:
 1. a user-visible prompt-first improvement
-2. one remaining real engine blocker removal
-3. prompt-output validation quality improvement
+2. prompt-output validation quality or trust-signal improvement
+3. one remaining real engine blocker removal
 
 Avoid defaulting to:
 - internal naming cleanup only

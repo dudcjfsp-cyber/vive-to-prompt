@@ -46,6 +46,119 @@ function getSignalLabel(key, value) {
   return label + ': ' + getSignalValueLabel(value);
 }
 
+function getRewriteRationaleSummary(summaryCode, rewriteMode) {
+  const labels = {
+    pass_through_clear_enough: '입력이 이미 충분히 분명해서, 불필요한 재작성 없이 거의 그대로 통과했습니다.',
+    light_refine_add_structure: '핵심 요청은 살아 있었지만, 바로 쓰기 좋게 약한 구조만 덧붙였습니다.',
+    structured_refine_reduce_risk: '모호함과 누락 정보를 줄이기 위해 더 강한 구조화 정제를 선택했습니다.',
+  };
+
+  const normalizedCode = String(summaryCode || '').trim();
+  if (labels[normalizedCode]) return labels[normalizedCode];
+
+  if (rewriteMode === 'pass_through') return labels.pass_through_clear_enough;
+  if (rewriteMode === 'structured_refine') return labels.structured_refine_reduce_risk;
+  if (rewriteMode === 'light_refine') return labels.light_refine_add_structure;
+  return '이번 프롬프트는 현재 입력 신호를 기준으로 가장 안정적인 구조화 방식을 선택했습니다.';
+}
+
+function getRewriteRationaleReason(reasonCode) {
+  const labels = {
+    goal_clear: '사용자 요청의 목표가 이미 비교적 분명했습니다.',
+    constraints_or_format_clear: '제약 조건이나 원하는 출력 형식 힌트가 이미 포함되어 있었습니다.',
+    source_already_structured: '입력 자체가 문장 구조나 목록 형태로 어느 정도 정리되어 있었습니다.',
+    low_ambiguity: '검증 단계에서 큰 모호성 신호가 거의 없었습니다.',
+    goal_needs_clarification: '목표나 성공 조건을 더 선명하게 드러낼 필요가 있었습니다.',
+    high_ambiguity: '모호성 신호가 높아서 그대로 쓰면 결과 편차가 커질 수 있었습니다.',
+    missing_information: '누락된 정보가 보여서 질문이나 안전장치가 필요했습니다.',
+    validation_flags: '검증 경고 또는 차단 신호가 있어 더 안전한 구조가 필요했습니다.',
+    goal_partially_clear: '핵심 요청은 보였지만 바로 실행하기에는 목표 설명이 조금 부족했습니다.',
+    structure_would_help: '출력 형식이나 제약 조건을 더 분명히 적는 편이 안정적이었습니다.',
+    some_ambiguity: '약간의 모호성이 있어 가벼운 정제가 도움이 됐습니다.',
+    light_touch_enough: '큰 재작성 없이도 짧은 정리만으로 충분했습니다.',
+  };
+
+  return labels[String(reasonCode || '').trim()] || '';
+}
+
+function getPromptValidationSummary(summaryCode, status) {
+  const labels = {
+    ready_to_use: '현재 프롬프트는 바로 쓸 수 있는 상태로 정리됐습니다.',
+    review_before_use: '현재 프롬프트는 한 번 검토하고 쓰는 편이 안전합니다.',
+  };
+
+  const normalizedCode = String(summaryCode || '').trim();
+  if (labels[normalizedCode]) return labels[normalizedCode];
+  if (status === 'review') return labels.review_before_use;
+  return labels.ready_to_use;
+}
+
+function getPromptValidationReason(reasonCode) {
+  const labels = {
+    preserves_source_vibe: '원문 의도가 최종 프롬프트에 그대로 남아 있습니다.',
+    ready_for_direct_use: '추가 수정 없이 거의 바로 복사해 쓸 수 있습니다.',
+    rewrite_trace_recorded: '적용된 정제 기법이 기록돼 있어 이유를 따라가기 쉽습니다.',
+    empty_prompt: '최종 프롬프트가 비어 있습니다.',
+    loses_source_vibe: '정리 과정에서 원문 의도가 흐려졌습니다.',
+    missing_technique_trace: '정제된 프롬프트인데 기록된 기법이 없습니다.',
+  };
+
+  return labels[String(reasonCode || '').trim()] || '';
+}
+
+function getPromptValidationTrustTitle(status) {
+  if (status === 'review') return '바로 복사하기 전에 한 번만 검토하세요';
+  return '이 프롬프트는 바로 사용해도 됩니다';
+}
+
+function getPromptValidationTrustLead(status, warningCount, questionCount) {
+  if (status === 'review') {
+    if (questionCount > 0) return '검토가 필요한 이유와 함께, 먼저 보완하면 좋은 질문을 바로 확인할 수 있습니다.';
+    if (warningCount > 0) return '검토가 필요한 이유를 먼저 확인한 뒤, 아래 메모를 보고 원문 의도가 유지됐는지 점검하세요.';
+    return '큰 오류는 아니지만, 복사하기 전에 아래 포인트를 한 번 확인하는 편이 안전합니다.';
+  }
+
+  return '검증 신호상 큰 문제 없이 바로 사용할 수 있는 상태입니다.';
+}
+
+function getPromptValidationTrustAction(reasonCode) {
+  const labels = {
+    empty_prompt: '최종 프롬프트가 비어 있지 않은지 먼저 확인하세요.',
+    loses_source_vibe: '원문 입력과 최종 프롬프트를 비교해 의도가 흐려지지 않았는지 확인하세요.',
+    missing_technique_trace: '왜 이렇게 정리됐는지 설명이 비어 있으니 구조화 판단 요약과 적용 기법을 함께 확인하세요.',
+    preserves_source_vibe: '원문 의도는 유지됐으니 바로 복사해 사용해도 괜찮습니다.',
+    ready_for_direct_use: '추가 수정 없이 바로 붙여 넣어도 될 가능성이 높습니다.',
+    rewrite_trace_recorded: '적용된 기법과 검증 메모가 함께 남아 있어 추적 가능한 상태입니다.',
+  };
+
+  return labels[String(reasonCode || '').trim()] || '';
+}
+
+function buildPromptValidationTrustChecklist({ status, reasonCodes, warnings, questions }) {
+  const checklist = [];
+
+  reasonCodes.forEach((code) => {
+    const action = getPromptValidationTrustAction(code);
+    if (action && !checklist.includes(action)) {
+      checklist.push(action);
+    }
+  });
+
+  if (status === 'review' && questions.length > 0) {
+    checklist.push('아래 추가 확인 질문에 답하면 다음 결과가 더 안정적으로 정리됩니다.');
+  }
+
+  if (status === 'review' && checklist.length === 0 && warnings.length > 0) {
+    checklist.push('아래 검증 메모를 위에서부터 확인하면서 바로 복사해도 되는지 점검하세요.');
+  }
+
+  if (status !== 'review' && checklist.length === 0) {
+    checklist.push('현재 검증 기준에서는 별도 재작성 없이 그대로 사용 가능한 상태입니다.');
+  }
+
+  return checklist.slice(0, 3);
+}
+
 const PROMPT_WORKFLOW_STEPS = [
   {
     title: '1. 자연어 입력',
@@ -126,8 +239,26 @@ export default function ExperiencedWorkspace({
   const selectionSignals = promptOutput.selection_signals && typeof promptOutput.selection_signals === 'object'
     ? promptOutput.selection_signals
     : {};
+  const rewriteRationale = promptOutput.rewrite_rationale && typeof promptOutput.rewrite_rationale === 'object'
+    ? promptOutput.rewrite_rationale
+    : {};
   const promptValidation = promptOutput.validation && typeof promptOutput.validation === 'object' ? promptOutput.validation : {};
   const validationWarnings = Array.isArray(promptValidation.warnings) ? promptValidation.warnings : [];
+  const validationReasonCodes = Array.isArray(promptValidation.reason_codes) ? promptValidation.reason_codes : [];
+  const validationSummary = getPromptValidationSummary(promptValidation.summary_code, promptValidation.status);
+  const validationReasons = validationReasonCodes
+    .map((code) => getPromptValidationReason(code))
+    .filter(Boolean);
+  const validationTrustChecklist = buildPromptValidationTrustChecklist({
+    status: promptValidation.status,
+    reasonCodes: validationReasonCodes,
+    warnings: validationWarnings,
+    questions: validationQuestions,
+  });
+  const rewriteRationaleSummary = getRewriteRationaleSummary(rewriteRationale.summary_code, rewriteMode);
+  const rewriteRationaleReasons = (Array.isArray(rewriteRationale.reason_codes) ? rewriteRationale.reason_codes : [])
+    .map((code) => getRewriteRationaleReason(code))
+    .filter(Boolean);
   const signalEntries = Object.entries(selectionSignals)
     .map(([key, value]) => getSignalLabel(key, value))
     .filter(Boolean);
@@ -269,6 +400,30 @@ export default function ExperiencedWorkspace({
               </section>
 
               <section className="experienced-summary-card experienced-priority-card">
+                <h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>
+                <div className="signal-pills">
+                  <span className="pill">현재 상태: {getPromptValidationStatusLabel(promptValidation.status)}</span>
+                  {promptValidation.status === 'review' && (
+                    <span className="pill">검토 메모 {validationWarnings.length || validationReasons.length}개</span>
+                  )}
+                  {validationQuestions.length > 0 && (
+                    <span className="pill">추가 질문 {validationQuestions.length}개</span>
+                  )}
+                </div>
+                <p className="small-muted">
+                  {getPromptValidationTrustLead(
+                    promptValidation.status,
+                    validationWarnings.length,
+                    validationQuestions.length,
+                  )}
+                </p>
+                <p>{validationSummary}</p>
+                <ul className="experienced-summary-list">
+                  {validationTrustChecklist.map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                </ul>
+              </section>
+
+              <section className="experienced-summary-card experienced-priority-card">
                 <h3>적용된 기법</h3>
                 {appliedTechniques.length > 0 ? (
                   <ul className="experienced-summary-list">
@@ -285,6 +440,18 @@ export default function ExperiencedWorkspace({
               </section>
 
               <section className="experienced-summary-card experienced-priority-card">
+                <h3>이번 구조화 판단 요약</h3>
+                <p>{rewriteRationaleSummary}</p>
+                <ul className="experienced-summary-list">
+                  {(rewriteRationaleReasons.length > 0
+                    ? rewriteRationaleReasons
+                    : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
+                    .slice(0, 4)
+                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                </ul>
+              </section>
+
+              <section className="experienced-summary-card experienced-priority-card">
                 <h3>구조화 판단 근거</h3>
                 <ul className="experienced-summary-list">
                   {(signalEntries.length > 0 ? signalEntries : ['현재 기록된 구조화 판단 신호는 없습니다.'])
@@ -292,16 +459,28 @@ export default function ExperiencedWorkspace({
                     .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
                 </ul>
               </section>
-
               <section className="experienced-summary-card experienced-priority-card">
-                <h3>검증 메모</h3>
+                <h3>{"\uAC80\uC99D \uC694\uC57D"}</h3>
+                <p className="small-muted">{"\uC9C0\uAE08 \uBC14\uB85C \uC368\uB3C4 \uB418\uB294\uC9C0\uB97C \uD55C \uC904\uB85C \uBA3C\uC800 \uC54C\uB824\uC90D\uB2C8\uB2E4."}</p>
+                <p>{validationSummary}</p>
                 <ul className="experienced-summary-list">
-                  {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ['현재 기록된 검토 메모는 없습니다.'])
+                  {(validationReasons.length > 0
+                    ? validationReasons
+                    : ["\uD2B9\uBCC4\uD55C \uAC80\uD1A0 \uC2E0\uD638\uB294 \uC5C6\uC9C0\uB9CC, \uC544\uB798 \uBA54\uBAA8\uB97C \uD55C \uBC88 \uB354 \uD655\uC778\uD558\uBA74 \uC88B\uC2B5\uB2C8\uB2E4."])
                     .slice(0, 3)
                     .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
                 </ul>
               </section>
 
+              <section className="experienced-summary-card experienced-priority-card">
+                <h3>{"\uAC80\uC99D \uBA54\uBAA8"}</h3>
+                <p className="small-muted">{"\uACBD\uACE0\uB098 \uBCF4\uC644 \uD3EC\uC778\uD2B8\uB97C \uADF8\uB300\uB85C \uD655\uC778\uD558\uB294 \uCE78\uC785\uB2C8\uB2E4."}</p>
+                <ul className="experienced-summary-list">
+                  {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ["\uD604\uC7AC \uAE30\uB85D\uB41C \uAC80\uD1A0 \uBA54\uBAA8\uB294 \uC5C6\uC2B5\uB2C8\uB2E4."])
+                    .slice(0, 3)
+                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                </ul>
+              </section>
               {skippedTechniques.length > 0 && (
                 <section className="experienced-summary-card experienced-priority-card">
                   <h3>이번엔 쓰지 않은 기법</h3>
@@ -384,3 +563,4 @@ export default function ExperiencedWorkspace({
     </section>
   );
 }
+

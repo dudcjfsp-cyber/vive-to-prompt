@@ -52,6 +52,8 @@ The product should visibly answer:
 - whether the engine used pass-through or refinement
 - which techniques were applied
 - how many techniques were applied
+- why that rewrite mode was chosen in plain language
+- whether the prompt looks ready to use or needs review first
 - what validation or warning signals influenced the result
 
 The product should no longer be organized primarily around:
@@ -82,6 +84,8 @@ As of 2026-03-12 in this repo:
 - a prompt facade and prompt renderer exist
 - the app shell now uses a prompt-first single surface
 - prompt metadata is visible in the UI by default
+- rewrite rationale and validation rationale are now exposed on the active prompt-first surface
+- `review_before_use` trust signals are now called out more explicitly on the active prompt-first surface
 
 What is still transitional:
 - intent IR is still derived after spec-shaped normalization
@@ -124,6 +128,9 @@ The value is also the visible rationale:
 - skipped techniques when useful
 - validation notes
 - short explanation of selection signals
+- short rewrite rationale summary with supporting reasons
+- short validation-readiness summary with supporting reasons
+- user-readable warning language when the prompt needs review
 
 ### 3. Transitional compatibility is allowed
 It is acceptable for the engine to keep using spec-shaped normalization internally for now.
@@ -182,5 +189,11 @@ As of 2026-03-12:
 - model runtime extraction exists and is tested
 - prompt-first app shell exists
 - prompt rationale is visible in the main result surface
+- rewrite rationale summary and validation summary are visible in the main result surface
+- prompt validation now carries summary/reason metadata instead of only raw warnings
+- prompt validation warnings are being pushed toward more user-readable prompt-output messaging
+- `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
 - compatibility spec paths still exist beneath the surface
-- the next risk area is internal cleanup looping rather than missing prompt-first UI
+- the next risk area is overextending the same surface-polish thread rather than missing prompt-first UI basics
+
+

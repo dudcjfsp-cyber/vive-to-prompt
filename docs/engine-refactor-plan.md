@@ -104,6 +104,7 @@ What it achieved:
   - `applied_techniques`
   - `skipped_techniques`
   - `selection_signals`
+  - `rewrite_rationale`
   - `validation`
 
 ## Phase 6: Prompt-First App Contract Migration
@@ -114,12 +115,15 @@ Delivered:
 - prompt-first runtime config
 - prompt metadata exposed in the main result surface
 - prompt output derived or consumed as the primary displayed result
+- rewrite rationale summary and validation summary exposed in the main result surface
+- prompt readiness now explained through summary/reason metadata instead of raw warnings alone
 
 Current visible state:
 - one active prompt-first app surface
 - one natural-language input
 - one prompt-oriented result surface
 - visible rationale for why the prompt was shaped that way
+- clearer review-state trust signaling when the prompt should be checked before use
 
 What remains transitional:
 - internal compatibility helpers still mention spec-era concepts
@@ -157,6 +161,8 @@ Prefer product-side work when it improves:
 - prompt-first surface clarity
 - user-visible rationale
 - prompt-output trust and readability
+- user understanding of why a prompt is ready to use or needs review first
+- review-state trust signals or warning language in the result surface
 
 ## What To Avoid Next
 Do not default to these in the next thread:
@@ -178,6 +184,9 @@ That stop signal is now much closer than it was before the prompt renderer exist
 ## Suggested Next Thread Boundary
 Choose only one of these in a new thread:
 1. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-2. validate the prompt-first product surface further and leave deep engine cleanup alone
+2. improve prompt-output warning language or review-state trust signals in a user-visible way
+3. validate the prompt-first product surface further and leave deep engine cleanup alone
 
 Do not mix both unless there is a direct blocker.
+
+

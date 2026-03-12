@@ -28,6 +28,7 @@ The product should answer:
 - which techniques were applied
 - how many techniques were applied
 - why pass-through or refinement was chosen
+- whether the prompt looks ready to use or needs review first
 - what validation or warning signals influenced the result
 
 ## UX Direction
@@ -47,6 +48,7 @@ The educational value should come from:
 - applied techniques
 - skipped techniques when useful
 - validation or warning notes
+- short explanation of whether the prompt is ready to use or needs review first
 - short rationale for the produced prompt shape
 - human-readable selection-signal summaries
 
@@ -86,6 +88,8 @@ As of 2026-03-12:
 - prompt-first controller branching exists
 - the active app shell is prompt-first
 - the active app surface no longer depends on persona selection
+- rewrite rationale summary and validation summary are visible in the main result UI
+- `review_before_use` is surfaced with a dedicated trust card and immediate review guidance in the main result UI
 - prompt metadata is visible in the main result UI
 - human-readable selection-signal rationale is visible in the main result UI
 - spec compatibility paths still remain internally
@@ -101,7 +105,7 @@ These remain valid in the same thread if they directly support the current produ
 2. Reduce visible dependence on spec-first naming in active UI paths.
 3. Improve prompt-output validation messages shown to users.
 4. Remove one remaining compatibility path only when its blast radius is understood.
-5. Strengthen prompt-first app wording and result trust signals.
+5. Strengthen review-state trust signals without reopening large architecture work.
 
 ## Current Thread: Work To Avoid
 These should not be pushed further in the same thread unless they become a direct blocker.
@@ -112,6 +116,7 @@ These should not be pushed further in the same thread unless they become a direc
 4. Major design-system rewrite unrelated to prompt-first validation.
 5. Internal cleanup that mostly renames spec-era helpers without changing user-visible behavior.
 6. Reintroducing deployment, managed API, or product-ops cleanup as priority work.
+7. Repeated micro-copy polish on the same prompt surface after rewrite and validation rationale are already visible.
 
 ## Next-Thread Boundary
 Move to a new thread when the work changes from:
@@ -142,9 +147,9 @@ If a task mainly makes the engine internally prettier without reducing spec-firs
 
 ## Suggested Start Prompt For The Next Thread
 ```text
-작업 시작 전에 아래 문서만 읽고 기준으로 삼아라.
+Before starting work, read only these docs and use them as the current source of truth.
 
-현재 기준 문서:
+Current docs:
 - docs/long-term-context.md
 - docs/engine-refactor-plan.md
 - docs/intent-ir.md
@@ -152,20 +157,26 @@ If a task mainly makes the engine internally prettier without reducing spec-firs
 - docs/refactor-stop-checklist.md
 - docs/vibe-to-prompt-context.md
 
-현재 작업 전제:
-- 이 레포는 Vibe-to-Prompt 작업 레포이자 재사용 가능한 엔진 추출 작업 공간이다.
-- 원본 Vibe-to-Spec V2 레포는 별도로 안전하게 보관되어 있다.
-- 현재 제품 목표는 한 개 입력창 + 한 개 프롬프트 결과 + 구조화 이유 설명이다.
-- spec-shaped normalization과 일부 compatibility path는 아직 내부에 남아 있다.
+Current repo assumptions:
+- This repo is a Vibe-to-Prompt workspace and a reusable engine-extraction workspace.
+- The original Vibe-to-Spec V2 repo is preserved elsewhere.
+- The current product goal is one input, one final prompt result, and one explanation layer.
+- Spec-shaped normalization and some compatibility paths still remain internally.
+- The previous thread already surfaced rewrite rationale summary and validation summary in the main UI.
 
-이번 스레드 목표:
-- 사용자에게 보이는 prompt-first 가치가 있는 작업인지 먼저 판단하라.
-- 단순 내부 cleanup이면 멈추고 그 이유를 말하라.
-- engine blocker 또는 prompt-first UX blocker 하나만 골라 해결하라.
+Thread goal:
+- First judge the candidate against these three questions:
+  - Does it make the product more prompt-first?
+  - Does it create visible user value?
+  - Does it reduce a real remaining engine blocker?
+- If it is mostly internal cleanup, stop and explain why.
+- Pick exactly one real engine blocker or one real prompt-first UX blocker and resolve it.
 
-마지막에는 다음을 정리하라:
-- 이번 작업이 왜 루프가 아니었는지
-- 무엇이 실제로 더 prompt-first 해졌는지
-- 무엇이 아직 transitional compatibility path인지
-- 새 스레드가 필요하다면 그 정확한 이유
+At the end, always summarize:
+- why this work was not a loop
+- what became more prompt-first
+- what is still transitional compatibility
+- why a follow-up thread is or is not needed
 ```
+
+

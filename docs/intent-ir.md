@@ -134,6 +134,9 @@ The prompt renderer currently uses the shared handoff to support:
 - applied-technique selection
 - skipped-technique reporting
 - prompt validation notes
+- rewrite rationale summaries and reason codes
+- validation-readiness summaries and reason codes
+- user-readable warning messages when validation says review is needed
 - prompt explanation metadata in the app
 
 This means intent IR is already valuable beyond spec rendering, even before a deeper analysis rewrite.
@@ -151,6 +154,8 @@ This contract already helps with:
 - refactoring the engine safely
 - building prompt-renderer output contracts
 - explaining prompt decisions in the UI
+- explaining prompt readiness and review signals in the UI
+- moving validation warnings closer to prompt-output language instead of spec-era wording
 - making validation more intent-aware
 - preparing future renderers without hardcoding spec artifacts
 

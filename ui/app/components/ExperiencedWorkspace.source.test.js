@@ -22,6 +22,7 @@ test('ExperiencedWorkspace shows prompt workflow guidance instead of spec-orient
 
 test('ExperiencedWorkspace centers prompt rationale instead of advanced spec diagnostics', () => {
   assert.match(source, /적용된 기법/);
+  assert.match(source, /이번 구조화 판단 요약/);
   assert.match(source, /구조화 판단 근거/);
   assert.match(source, /검증 메모/);
   assert.match(source, /이번엔 쓰지 않은 기법/);
@@ -36,6 +37,9 @@ test('ExperiencedWorkspace exposes prompt-engine metadata in the result surface'
   assert.match(source, /구조화 방식: \{getRewriteModeLabel\(rewriteMode\)\}/);
   assert.match(source, /사용 기법: \{appliedTechniqueCount\}개/);
   assert.match(source, /검증 상태: \{getPromptValidationStatusLabel\(promptValidation\.status\)\}/);
+  assert.match(source, /promptOutput\.rewrite_rationale/);
+  assert.match(source, /getRewriteRationaleSummary/);
+  assert.match(source, /getRewriteRationaleReason/);
   assert.match(source, /Object\.entries\(selectionSignals\)/);
   assert.match(source, /skippedTechniques\.slice\(0, 4\)/);
   assert.match(source, /appliedTechniques\.map/);
@@ -45,3 +49,21 @@ test('ExperiencedWorkspace exposes prompt-engine metadata in the result surface'
   assert.doesNotMatch(source, /validationSeverity/);
   assert.doesNotMatch(source, /hasValidationReport/);
 });
+
+
+test('ExperiencedWorkspace exposes prompt validation summary helpers', () => {
+  assert.match(source, /getPromptValidationSummary/);
+  assert.match(source, /getPromptValidationReason/);
+  assert.match(source, /getPromptValidationTrustTitle/);
+  assert.match(source, /buildPromptValidationTrustChecklist/);
+  assert.match(source, /promptValidation\.summary_code/);
+  assert.match(source, /promptValidation\.reason_codes/);
+  assert.match(source, /validationSummary/);
+  assert.match(source, /validationReasons/);
+  assert.match(source, /validationTrustChecklist/);
+  assert.match(source, /바로 복사하기 전에 한 번만 검토하세요/);
+  assert.match(source, /현재 상태: \{getPromptValidationStatusLabel\(promptValidation\.status\)\}/);
+  assert.match(source, /검토 메모 \{validationWarnings\.length \|\| validationReasons\.length\}개/);
+  assert.match(source, /아래 추가 확인 질문에 답하면 다음 결과가 더 안정적으로 정리됩니다/);
+});
+
