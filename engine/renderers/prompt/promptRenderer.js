@@ -1,4 +1,4 @@
-﻿import { PROMPT_TECHNIQUE_MAP, PROMPT_TECHNIQUE_REGISTRY } from './promptTechniqueRegistry.js';
+import { PROMPT_TECHNIQUE_MAP, PROMPT_TECHNIQUE_REGISTRY } from './promptTechniqueRegistry.js';
 
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
@@ -313,7 +313,44 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   return sections.join('\n');
 }
 
-export function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, appliedTechniques }) {
+function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }) {
+  const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
+  const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
+  const clarificationQuestions = toStringArray(analysis.clarification_questions);
+  const missingInformation = toStringArray(analysis.missing_information);
+  const suggestions = [];
+
+  clarificationQuestions.slice(0, 3).forEach((question) => {
+    if (!suggestions.includes(question)) {
+      suggestions.push(question);
+    }
+  });
+
+  if (reasonCodes.includes('loses_source_vibe')) {
+    suggestions.push('최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.');
+  }
+
+  if (reasonCodes.includes('empty_prompt')) {
+    suggestions.push('이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.');
+  }
+
+  missingInformation.slice(0, 2).forEach((item) => {
+    const question = `${item} 부분을 확정해 주세요.`;
+    if (!suggestions.includes(question)) {
+      suggestions.push(question);
+    }
+  });
+
+  return suggestions.slice(0, 3);
+}
+
+export function buildPromptValidation({
+  sourceVibe,
+  finalPrompt,
+  rewriteMode,
+  appliedTechniques,
+  sharedRuntimeHandoff = null,
+}) {
   const warnings = [];
   const reasonCodes = [];
   const normalizedSource = toText(sourceVibe);
@@ -347,6 +384,10 @@ export function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, ap
     }
   }
 
+  const suggestedQuestions = warnings.length > 0
+    ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes })
+    : [];
+
   return {
     status: warnings.length > 0 ? 'review' : 'ready',
     summary_code: warnings.length > 0 ? 'review_before_use' : 'ready_to_use',
@@ -354,6 +395,8 @@ export function buildPromptValidation({ sourceVibe, finalPrompt, rewriteMode, ap
     warnings,
     reason_codes: reasonCodes,
     preserves_source_vibe: preservesSourceVibe,
+    needs_clarification: suggestedQuestions.length > 0,
+    suggested_questions: suggestedQuestions,
   };
 }
 
@@ -380,6 +423,7 @@ export function createPromptRenderer() {
       finalPrompt,
       rewriteMode,
       appliedTechniques,
+      sharedRuntimeHandoff,
     });
 
     return {

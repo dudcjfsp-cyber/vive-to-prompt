@@ -1,4 +1,4 @@
-﻿# Long-Term Context
+# Long-Term Context
 
 ## Why This Document Exists
 This document captures the stable long-term intent behind the project so new AI threads do not need the same background explanation every time.
@@ -85,7 +85,7 @@ As of 2026-03-12 in this repo:
 - the app shell now uses a prompt-first single surface
 - prompt metadata is visible in the UI by default
 - rewrite rationale and validation rationale are now exposed on the active prompt-first surface
-- `review_before_use` trust signals are now called out more explicitly on the active prompt-first surface
+- `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
 
 What is still transitional:
 - intent IR is still derived after spec-shaped normalization
@@ -193,7 +193,7 @@ As of 2026-03-12:
 - prompt validation now carries summary/reason metadata instead of only raw warnings
 - prompt validation warnings are being pushed toward more user-readable prompt-output messaging
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
+- prompt-first controller mode now requires actual `prompt_output` instead of silently synthesizing it from spec fallback results
+- prompt review-needed output can now surface prompt-native clarification questions that feed the clarify loop
 - compatibility spec paths still exist beneath the surface
 - the next risk area is overextending the same surface-polish thread rather than missing prompt-first UI basics
-
-

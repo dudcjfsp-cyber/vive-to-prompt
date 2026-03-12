@@ -34,6 +34,29 @@ test('buildGeneratedResultPlan limits questions when loop is disabled', () => {
   assert.match(plan.nextGenerationId, /^exp_baseline_v1_/);
 });
 
+test('buildGeneratedResultPlan uses prompt validation questions when prompt output needs review', () => {
+  const plan = buildGeneratedResultPlan({
+    generated: {
+      validation_report: {
+        needs_clarification: false,
+        suggested_questions: [],
+      },
+      prompt_output: {
+        validation: {
+          needs_clarification: true,
+          suggested_questions: ['Who is the audience?', 'What format is required?'],
+        },
+      },
+    },
+    loopMode: 'guided_once',
+    maxClarifyTurns: 1,
+    nextLoopTurn: 0,
+    promptExperimentId: 'exp_baseline_v1',
+  });
+
+  assert.deepEqual(plan.nextQuestions, ['Who is the audience?', 'What format is required?']);
+});
+
 test('buildTransmuteSuccessShadowPayload switches event type for regenerate flow', () => {
   const payload = buildTransmuteSuccessShadowPayload({
     generated: {

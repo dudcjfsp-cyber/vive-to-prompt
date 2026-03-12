@@ -1,4 +1,4 @@
-﻿# Session Handoff (Latest)
+# Session Handoff (Latest)
 
 - Updated: 2026-03-12
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
@@ -41,6 +41,9 @@ This repo no longer needs to protect every old spec-era surface.
   - rewrite rationale summary with supporting reasons
   - validation-readiness summary with supporting reasons
 - `review_before_use` state now surfaces a dedicated trust card with immediate review actions and clarification cues
+- prompt-first controller mode now requires real `prompt_output` from the prompt renderer instead of silently deriving it from spec-shaped fallback data
+- prompt review-needed output can now carry prompt-native clarification questions through `prompt_output.validation.suggested_questions`
+- the guided clarify loop can now consume prompt validation questions, not only `validation_report.suggested_questions`
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -57,6 +60,8 @@ This repo no longer needs to protect every old spec-era surface.
 - rewrite rationale and validation-readiness rationale are visible in the main UI
 - prompt validation now carries summary/reason metadata and user-facing warning language
 - the main result UI now distinguishes review-needed output with a dedicated trust card instead of leaving the signal buried in warning lists
+- prompt-first app control flow now rejects missing prompt-renderer output instead of masking it with spec fallback assembly
+- prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -64,6 +69,7 @@ This repo no longer needs to protect every old spec-era surface.
 - `normalizeStandardOutput` is still spec-shaped
 - some internal helpers and compatibility state still use spec-era naming
 - spec compatibility paths still exist behind the prompt-first product surface
+- clarify/shadow flows still keep `validation_report` as the main persisted validation object even when prompt validation metadata is also present
 
 ### What is no longer the main blocker
 - adding a prompt renderer from scratch
@@ -91,7 +97,7 @@ The main user-facing promise is now:
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
 1. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-2. improve prompt-output warning language or review-state trust signals in a user-visible way
+2. remove one remaining prompt-first UI dependency on spec-shaped fallback state
 3. intentionally remove or quarantine one compatibility path after checking its blast radius
 
 ## Work To Avoid In The Immediate Next Thread
@@ -135,5 +141,3 @@ At the end, always summarize:
 - what is still transitional compatibility
 - why another thread is or is not needed
 ```
-
-

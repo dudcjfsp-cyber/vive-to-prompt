@@ -164,3 +164,47 @@ test('prompt validation marks refined prompt without technique trace as review_b
   assert.deepEqual(result.warnings, ['\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.']);
   assert.deepEqual(result.reason_codes, ['missing_technique_trace']);
 });
+
+
+test('prompt validation exposes prompt-first clarification questions for review-needed output', () => {
+  const result = buildPromptValidation({
+    sourceVibe: 'Need something for launch',
+    finalPrompt: 'Original request:\nNeed something for launch',
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [],
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      intentIr: {
+        summary: 'Need something for launch',
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: ['launch date'],
+          clarification_questions: ['Who is the email for?'],
+        },
+        signals: {
+          confidence: 'low',
+          needs_clarification: true,
+          severity: 'medium',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.needs_clarification, true);
+  assert.deepEqual(result.suggested_questions, [
+    'Who is the email for?',
+    'launch date 부분을 확정해 주세요.',
+  ]);
+});

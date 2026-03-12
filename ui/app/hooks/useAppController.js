@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   fetchAvailableModels,
   getProviderDisplayName,
@@ -349,14 +349,21 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
       promptExperimentId,
     });
 
+    const promptFirstMode = String(resolvedRuntime.capabilities.transmuteTarget || 'spec') === 'prompt';
+    const promptOutput = isPlainObject(generated?.prompt_output)
+      ? generated.prompt_output
+      : (!promptFirstMode ? buildPromptOutputFromSpecResult({
+        sourceVibe,
+        result: generated,
+      }) : null);
+
+    if (promptFirstMode && !isPlainObject(promptOutput)) {
+      throw new Error('Prompt-first mode requires prompt_output from the prompt renderer.');
+    }
+
     const nextResult = generated && typeof generated === 'object' ? {
       ...generated,
-      prompt_output: isPlainObject(generated.prompt_output)
-        ? generated.prompt_output
-        : buildPromptOutputFromSpecResult({
-          sourceVibe,
-          result: generated,
-        }),
+      prompt_output: promptOutput,
     } : generated;
 
     setResult(nextResult);
@@ -403,7 +410,15 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
       setHybridStackGuide(null);
       setHybridStackGuideStatus('idle');
     }
-  }, [apiProvider, applyClarifyQuestionSet, requestHybridStackGuide, resolvedRuntime.capabilities.loopMode, resolvedRuntime.capabilities.maxClarifyTurns, selectedModel]);
+  }, [
+    apiProvider,
+    applyClarifyQuestionSet,
+    requestHybridStackGuide,
+    resolvedRuntime.capabilities.loopMode,
+    resolvedRuntime.capabilities.maxClarifyTurns,
+    resolvedRuntime.capabilities.transmuteTarget,
+    selectedModel,
+  ]);
 
   const handleSaveKey = useCallback(() => {
     if (!requiresUserApiKey) {
@@ -668,4 +683,3 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     },
   };
 }
-

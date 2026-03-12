@@ -1,4 +1,4 @@
-﻿# Vibe-to-Prompt Context
+# Vibe-to-Prompt Context
 
 ## Why This File Exists
 This file captures the current product-direction reset for this copied repository.
@@ -92,6 +92,8 @@ As of 2026-03-12:
 - `review_before_use` is surfaced with a dedicated trust card and immediate review guidance in the main result UI
 - prompt metadata is visible in the main result UI
 - human-readable selection-signal rationale is visible in the main result UI
+- prompt-first mode now requires renderer-provided prompt_output instead of silently backfilling it from spec output
+- prompt validation can now provide prompt-native clarification questions for review-needed results
 - spec compatibility paths still remain internally
 
 So the repository is currently best described as:
@@ -178,5 +180,3 @@ At the end, always summarize:
 - what is still transitional compatibility
 - why a follow-up thread is or is not needed
 ```
-
-

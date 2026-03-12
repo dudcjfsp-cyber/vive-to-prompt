@@ -29,12 +29,25 @@ export function buildGeneratedResultPlan({
   promptExperimentId = '',
 } = {}) {
   const validationReport = isPlainObject(generated?.validation_report) ? generated.validation_report : null;
-  const suggestedQuestions = toStringArray(validationReport?.suggested_questions);
+  const promptValidation = isPlainObject(generated?.prompt_output?.validation)
+    ? generated.prompt_output.validation
+    : null;
+  const suggestedQuestions = Array.from(new Set([
+    ...toStringArray(validationReport?.suggested_questions),
+    ...toStringArray(promptValidation?.suggested_questions),
+  ])).slice(0, 3);
+  const loopValidation = (isPlainObject(validationReport) || isPlainObject(promptValidation))
+    ? {
+      ...(isPlainObject(validationReport) ? validationReport : {}),
+      needs_clarification: Boolean(validationReport?.needs_clarification || promptValidation?.needs_clarification),
+      suggested_questions: suggestedQuestions,
+    }
+    : null;
   const shouldOfferLoop = shouldOfferClarificationLoop({
     loopMode,
     maxClarifyTurns,
     loopTurn: nextLoopTurn,
-    validationReport,
+    validationReport: loopValidation,
   });
 
   return {
@@ -123,5 +136,3 @@ export function buildClarifyAnsweredShadowPayload({
     },
   };
 }
-
-
