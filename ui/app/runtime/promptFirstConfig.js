@@ -1,0 +1,23 @@
+﻿export const PROMPT_FIRST_APP_CONFIG = Object.freeze({
+  id: 'prompt-first',
+  label: 'Prompt Engine',
+  subtitle: '한 개 입력창으로 프롬프트를 구조화합니다.',
+  selectionHint: '',
+  tone: 'prompt-first',
+  workspaceKind: 'advanced',
+  advancedWorkspaceVariant: 'experienced',
+  promptPolicyMode: 'baseline',
+  promptExperimentScope: 'prompt_first',
+  capabilities: Object.freeze({
+    showAdvancedPromptPolicyMeta: false,
+    showLayerPanels: false,
+    showCtaHistory: false,
+    showIntegrityWarningsExpanded: false,
+    loopMode: 'guided_once',
+    maxClarifyTurns: 1,
+    showLoopControls: true,
+    showValidationMeta: true,
+    showCompactDeliveryPanel: true,
+    transmuteTarget: 'prompt',
+  }),
+});

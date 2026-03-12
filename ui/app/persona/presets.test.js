@@ -31,6 +31,7 @@ test('persona presets expose runtime config in one place', () => {
   assert.equal(experienced?.capabilities.loopMode, 'guided_once');
   assert.equal(experienced?.capabilities.maxClarifyTurns, 1);
   assert.equal(experienced?.capabilities.showLoopControls, true);
+  assert.equal(experienced?.capabilities.transmuteTarget, 'prompt');
   assert.equal(major?.workspaceKind, 'advanced');
   assert.equal(major?.advancedWorkspaceVariant, 'major');
   assert.equal(major?.promptPolicyMode, 'baseline');
@@ -56,6 +57,7 @@ test('resolvePersonaRuntimeConfig falls back to a safe default', () => {
   assert.equal(fallback.capabilities.showAdvancedPromptPolicyMeta, false);
   assert.equal(fallback.capabilities.loopMode, 'off');
   assert.equal(fallback.capabilities.maxClarifyTurns, 0);
+  assert.equal(fallback.capabilities.transmuteTarget, 'spec');
 });
 
 test('resolvePersonaCapabilities returns normalized capability flags', () => {
@@ -69,4 +71,5 @@ test('resolvePersonaCapabilities returns normalized capability flags', () => {
   assert.equal(fallbackCapabilities.showLoopControls, false);
   assert.equal(fallbackCapabilities.showValidationMeta, false);
   assert.equal(fallbackCapabilities.showCompactDeliveryPanel, false);
+  assert.equal(fallbackCapabilities.transmuteTarget, 'spec');
 });

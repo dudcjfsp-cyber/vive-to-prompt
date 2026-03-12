@@ -1,25 +1,22 @@
 ﻿# Intent IR Draft
 
 ## Purpose
-This document defines the first draft of the engine-level intermediate representation for intent analysis.
+This document defines the current engine-level intermediate representation for reusable intent analysis.
 
-The goal is to make the engine reusable across:
+The goal is to keep the engine reusable across:
 - `Vibe-to-Spec`
 - `Vibe-to-Prompt`
 - `Vibe-to-Architecture`
 - future `Vibe Studio` renderers
 
-This is not the final public API yet.
-It is the internal contract that should sit between:
-- user input understanding
-- output-specific rendering
+This is still an internal contract, not the final public API.
 
 ## Core Rule
-The engine should move toward this shape:
+The engine should keep moving toward:
 - `natural language -> intent IR -> renderer output`
 
-Not this shape:
-- `natural language -> final spec only`
+Not toward:
+- `natural language -> spec-only output forever`
 
 ## Draft Shape
 ```js
@@ -57,17 +54,16 @@ Not this shape:
 }
 ```
 
-## Design Notes
-### Why this shape
-This structure keeps the engine focused on reusable understanding instead of output formatting.
+## Why This Shape Still Matters
+This structure keeps the reusable layer focused on semantic understanding instead of presentation.
 
-It is intentionally:
-- more abstract than `standard_output`
+It is:
+- more reusable than `standard_output`
 - more structured than raw natural language
-- easier to reuse than a renderer-specific markdown artifact
+- easier to share across renderers than markdown artifacts
 
-### What belongs here
-Put only information that other renderers may need.
+## What Belongs Here
+Keep only information that other renderers may reasonably reuse.
 
 Good candidates:
 - user goal
@@ -76,55 +72,91 @@ Good candidates:
 - constraints and risks
 - missing information
 - clarification signals
-- confidence and validation signals
+- confidence and validation-related signals
 
-### What does not belong here
-Do not place renderer-specific formatting or product-specific UI state here.
+## What Does Not Belong Here
+Do not place renderer-specific or UI-specific details here.
 
 Avoid putting in:
-- markdown presentation decisions
-- panel open/close state
-- persona-specific display text
-- renderer-only naming hacks
+- markdown layout decisions
+- result-panel open state
+- spec-only artifact names
+- persona-specific UI framing copy
+- renderer-only compatibility hacks
 
-## Current Mapping In Vibe-to-Spec
-For now, this IR is derived from normalized spec data and validation output.
-That means it is not yet a fully independent analysis stage.
+## Current Mapping In This Repo
+The current implementation still derives intent IR from spec-shaped normalized data and validation output.
+That means it is still a transitional architecture, not the final upstream analysis stage.
 
-Current transition stage:
-- `natural language -> model JSON -> structured generation -> spec draft normalization -> analysis preparation -> derived intent IR -> spec renderer sections`
+Current stage:
+- `natural language -> model JSON -> shared runtime handoff -> intent IR -> renderer output`
 
-Current code-level status:
-- `engine/intent/normalizeSpecDraft.js` now performs raw provider JSON -> spec draft normalization
-- `engine/graph/transmuteEngine.js` still composes that draft normalization inside `normalizeStandardOutput`
-- `engine/intent/prepareSpecAnalysis.js` performs post-normalization analysis-preparation derivation before validation is finalized
-- `engine/pipeline/buildSpecTransmuteResult.js` still derives intent IR after spec normalization
-- `engine/renderers/spec/specRenderer.js` still builds spec-only result sections after that point
-- prompt construction, repair-chain execution, semantic issue detection, and provider transport are still upstream concerns inside `engine/graph/transmuteEngine.js`
-- this is a better boundary than before, but intent IR is still downstream of spec normalization and not yet an earlier explicit analysis artifact
+Where the handoff is currently built:
+- `engine/runtime/buildRendererRuntimeHandoff.js`
 
-Target long-term stage:
-- `natural language -> explicit intent analysis -> intent IR -> plan -> renderer sections`
+What currently feeds it:
+- parsed model output
+- normalized spec-shaped draft
+- validation report
+- field alias mapping
+- source vibe
 
-## Near-Term Uses
-Even before full engine separation, this contract can already help with:
-- refactoring the engine safely
-- defining reusable tests
-- comparing prompt policy experiments
-- preparing future prompt and architecture renderers
-- making validation more intent-aware
+## Important Current Truth
+The first prompt renderer already consumes this IR indirectly through an explicit shared handoff.
+That is a major step forward.
+
+Today the prompt renderer no longer needs to depend on:
+- `artifacts.dev_spec_md`
+- `artifacts.nondev_spec_md`
+- `artifacts.master_prompt`
+
+Instead, it relies on the renderer-runtime handoff and builds prompt-specific output from there.
+
+## Prompt Renderer Transition Rule
+For the current `Vibe-to-Prompt` implementation:
+- it is acceptable that intent IR still comes after spec-shaped normalization
+- it is not acceptable to hide that IR only inside spec result assembly
+
+The current minimum acceptable handoff is:
+- `sourceVibe`
+- `parsedOutput`
+- `normalizedDraft`
+- `validationReport`
+- `intentIr`
+- `meta`
+- `model`
+
+That contract is now explicit.
+
+## Current Prompt-Renderer Uses
+The prompt renderer currently uses the shared handoff to support:
+- rewrite-mode selection
+- applied-technique selection
+- skipped-technique reporting
+- prompt validation notes
+- prompt explanation metadata in the app
+
+This means intent IR is already valuable beyond spec rendering, even before a deeper analysis rewrite.
 
 ## Near-Term Boundary Rule
-Until analysis is split out properly:
-- let renderers consume spec-shaped or intent-shaped data through explicit module boundaries
-- let post-normalization helpers such as `prepareSpecAnalysis` exist as transitional stages, but do not treat them as the final analysis architecture
-- let structured generation and repair stay separate from intent IR design decisions
-- do not let renderer formatting requirements redefine the intent IR shape
-- do not move renderer-only UI compatibility state into the intent IR
+Until analysis is split out earlier:
+- let renderers consume intent-shaped data through explicit handoffs
+- let transitional spec-shaped normalization remain internal
+- keep generation/runtime concerns separate from intent contract design
+- do not let renderer formatting needs redefine the IR shape
+- do not move UI compatibility state into the IR
+
+## Near-Term Uses
+This contract already helps with:
+- refactoring the engine safely
+- building prompt-renderer output contracts
+- explaining prompt decisions in the UI
+- making validation more intent-aware
+- preparing future renderers without hardcoding spec artifacts
 
 ## Next Steps
-1. Keep this contract stable while refactoring internals.
-2. Keep `normalizeSpecDraft` and `prepareSpecAnalysis` boundaries explicit.
-3. Separate generation/execution concerns from the current facade before moving intent derivation earlier.
-4. Make validation operate on both intent IR and renderer output.
-5. Allow future renderers to consume intent IR directly.
+1. Keep the current IR stable while prompt-first product work continues.
+2. Keep using explicit runtime handoffs instead of hidden spec-only assembly paths.
+3. Improve validation against both intent IR and prompt output.
+4. Move intent derivation earlier only when the prompt renderer proves a concrete need.
+5. Avoid letting spec compatibility concerns redefine the shared contract.

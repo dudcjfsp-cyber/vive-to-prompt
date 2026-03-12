@@ -1,200 +1,183 @@
-# Engine Refactor Plan
+﻿# Engine Refactor Plan
 
 ## Goal
-Refactor the engine without changing current product behavior.
+Refactor the engine only as far as needed to support a real `Vibe-to-Prompt` product direction without breaking the remaining compatibility harnesses.
 
-The immediate purpose is to prepare `Vibe-to-Spec V2` to become the first product on top of a reusable core engine.
+## Workspace Definition
+This copied repository is no longer tracking the original `Vibe-to-Spec V2` product-validation lane.
+It is now tracking two linked goals:
+- prompt-first product transition
+- reusable engine extraction for future renderers
+
+The spec renderer and spec app remain useful here, but only as:
+- compatibility wrappers
+- regression harnesses
+- source assets for tests and comparison
 
 ## Refactor Policy
 During this phase:
-- preserve current external behavior
-- preserve current public result shape for the spec app
+- preserve the current spec app public result shape where compatibility still matters
+- preserve prompt-first app behavior
 - prefer extraction and delegation over rewrites
-- avoid UI-driven engine changes unless required
+- prefer explicit handoffs over hidden coupling
+- stop when the next step becomes mostly internal neatness
 
-## Phase 1: Lock The Contract
-Status: foundational contract in place
+## Phase 1: Intent Contract Foundation
+Status: complete enough for current work
 
-Deliverables:
+Delivered:
 - `docs/intent-ir.md`
 - `engine/contracts/intentIr.js`
 - `engine/contracts/specIntentFieldMap.js`
 - `engine/intent/deriveIntentIr.js`
 
-Purpose:
-- define the engine-centered intermediate representation
-- make spec-specific field aliases explicit in one place
-- stop treating spec output as the only meaningful engine result
-- create a stable place for future prompt and architecture work to connect
+What it achieved:
+- intent IR became explicit
+- spec aliases became explicit
+- future prompt or architecture work has a shared semantic contract
 
-Progress snapshot:
-- intent IR contract exists
-- spec field alias mapping exists
-- intent IR derivation exists
-- intent IR is still derived from normalized spec output, so this is not yet an independent analysis stage
+What still remains true:
+- intent IR is still derived after spec-shaped normalization
 
-## Phase 2: Thin Pipeline Extraction
-Status: completed enough for the current transition stage
-
-Deliverables:
-- `engine/pipeline/buildSpecTransmuteResult.js`
-- `engine/pipeline/runSpecTransmutePipeline.js`
-- smaller orchestration role for `engine/graph/transmuteEngine.js`
-
-Purpose:
-- separate orchestration from normalization and rendering details
-- prepare the existing transmute flow to evolve into explicit stages
-- reduce monolith pressure without changing the current app contract
-
-Progress snapshot:
-- `runSpecTransmutePipeline.js` exists and keeps the public result envelope stable
-- `buildSpecTransmuteResult.js` exists and accepts a renderer object instead of scattered spec-specific callbacks
-- `engine/renderers/spec/specRenderer.js` exists and owns spec-specific result section generation
-- `transmuteEngine.js` still owns prompt construction, prompt-attempt execution, provider execution, and public facade wiring
-
-## Phase 3: Normalization / Analysis Boundary Extraction
-Status: stabilized for the current transition stage
-
-Deliverables:
-- `engine/intent/prepareSpecAnalysis.js`
-- `engine/intent/normalizeSpecDraft.js`
-- focused tests in:
-  - `engine/intent/prepareSpecAnalysis.test.js`
-  - `engine/intent/normalizeSpecDraft.test.js`
-- thinner composition inside `normalizeStandardOutput`
-
-Purpose:
-- define where spec-shaped normalization ends
-- define where analysis-preparation derivation begins
-- reduce pressure inside `normalizeStandardOutput` without changing returned app behavior
-
-Progress snapshot:
-- `normalizeSpecDraft.js` owns raw provider JSON -> spec draft normalization
-- `prepareSpecAnalysis.js` owns normalized-spec-afterward derivation for:
-  - interview question fallback/derivation
-  - request converter fallback/derivation
-  - impact preview fallback/derivation
-  - completeness input passed to validation
-- `normalizeStandardOutput` mainly composes draft normalization, analysis preparation, and validation
-- the public app contract remains stable because `transmuteEngine.js` still delegates the final result envelope to `buildSpecTransmuteResult`
-
-## Phase 4: Generation / Execution Boundary Extraction
-Status: completed enough to pause by default
+## Phase 2: Spec Facade Separation
+Status: completed
 
 Delivered:
-- `engine/validation/semanticRepairIssues.js`
-- `engine/execution/executeStructuredGeneration.js`
-- thinner `executePromptRepairChain` wrapper inside `engine/graph/transmuteEngine.js`
+- `engine/facades/spec/transmuteSpecFacade.js`
+- thinner public wrapper usage in `engine/graph/transmuteEngine.js`
 
-Purpose:
-- make semantic issue collection renderer-neutral and validation-adjacent
-- make structured generation retry orchestration reusable across future renderers
-- reduce the amount of retry/repair policy embedded directly in the facade
+What it achieved:
+- spec-only result assembly moved behind an explicit spec facade
+- the spec app public result shape stayed stable
+- `transmuteEngine.js` no longer had to directly own all spec result assembly concerns
 
-Progress snapshot:
-- semantic repair issue collection now lives outside the facade
-- structured generation retry orchestration now lives in a reusable execution-stage helper
-- the handoff between semantic issue detection and repair orchestration is clearer
-- public result behavior remains unchanged
+## Phase 3: Provider / Model Runtime Separation
+Status: completed
 
-What intentionally remains:
-- prompt construction
-- prompt-policy wiring
-- single-attempt parse/repair logic
-- provider/model selection
-- provider transport and remote execution
-- public facade wiring
+Delivered:
+- `engine/runtime/modelRuntime.js`
+
+What it achieved:
+- provider normalization
+- model discovery
+- optimal-model selection
+- provider transport / text generation
+
+These are now shared runtime concerns instead of being embedded in the same spec-shaped facade.
+
+## Phase 4: Shared Renderer Runtime Handoff
+Status: completed
+
+Delivered:
+- `engine/runtime/buildRendererRuntimeHandoff.js`
+- shared usage inside result-building paths
+
+What it achieved:
+- explicit handoff containing:
+  - `sourceVibe`
+  - `parsedOutput`
+  - `normalizedDraft`
+  - `validationReport`
+  - `intentIr`
+  - `meta`
+  - `model`
+- a prompt renderer can now depend on a shared handoff rather than spec markdown artifacts
+
+## Phase 5: Minimum Prompt Renderer Contract
+Status: completed
+
+Delivered:
+- `engine/renderers/prompt/promptTechniqueRegistry.js`
+- `engine/renderers/prompt/promptRenderer.js`
+- `engine/pipeline/buildPromptTransmuteResult.js`
+- `engine/facades/prompt/transmutePromptFacade.js`
+- prompt-facing export from `engine/graph/transmuteEngine.js`
+
+What it achieved:
+- `transmuteVibeToPrompt(...)` now exists
+- rewrite modes exist:
+  - `pass_through`
+  - `light_refine`
+  - `structured_refine`
+- prompt output now carries:
+  - `final_prompt`
+  - `applied_techniques`
+  - `skipped_techniques`
+  - `selection_signals`
+  - `validation`
+
+## Phase 6: Prompt-First App Contract Migration
+Status: in progress, but already usable
+
+Delivered:
+- prompt-first app shell
+- prompt-first runtime config
+- prompt metadata exposed in the main result surface
+- prompt output derived or consumed as the primary displayed result
+
+Current visible state:
+- one active prompt-first app surface
+- one natural-language input
+- one prompt-oriented result surface
+- visible rationale for why the prompt was shaped that way
+
+What remains transitional:
+- internal compatibility helpers still mention spec-era concepts
+- some engine/app helper names still reflect the old repo history
+- spec compatibility state still exists behind the prompt-first surface
+
+## Current Technical Judgment
+The biggest completed boundary work is enough for a real prompt-first prototype.
+The biggest remaining engine coupling is now upstream of the prompt renderer:
+- spec-shaped normalization still feeds the current intent/validation path
+- prompt-policy / experiment wiring still reflects spec-era policy history
+
+The biggest remaining product-cleanup risk is different:
+- continuing to rename internal spec-era helpers without changing user-visible behavior would likely become refactor looping
 
 ## Current Target Shape
-Short-term target:
-- `transmuteEngine.js` remains the public facade
-- extracted modules carry reusable logic
-- spec app behavior stays stable
+### Short-term target
+- `input -> structured generation/runtime -> normalized handoff -> prompt renderer -> prompt-first UI`
+- spec compatibility may remain behind the scenes while this contract stabilizes
 
-Mid-term target:
-- `input -> structured generation -> draft normalization -> analysis prep -> validate -> renderSpec`
+### Mid-term target
+- `input -> explicit analysis -> shared intent/runtime handoff -> renderers(prompt/spec/architecture)`
 
-Long-term target:
-- `input -> intent IR -> plan -> renderers(spec/prompt/architecture) -> validation`
+### Long-term target
+- `input -> intent IR -> planning -> renderer family -> validation`
 
-## What This Phase Should Not Do
-Do not do these next by default:
-- break the current UI result shape
-- introduce multiple new output products in this repo
-- rewrite the full engine in one pass
-- entangle persona/UI concerns deeper into engine core
-- mix product-surface cleanup with another engine refactor lane unless the product work reveals a concrete engine blocker
+## What To Prioritize Next
+Only continue refactoring if the next step clearly improves one of these:
+- removes spec-shaped coupling that still blocks prompt-first execution
+- makes the prompt renderer less dependent on spec normalization
+- improves validation on prompt output itself
+- makes another renderer easier to add
 
-## Success Criteria
-This refactor lane is successful if:
-- the current app still behaves the same
-- the engine has an explicit intent contract
-- orchestration code became easier to split into real stages
-- future work can add renderers without starting from a spec-only design
-- future work can reuse generation/retry infrastructure without inheriting spec-only normalization code
+Prefer product-side work when it improves:
+- prompt-first surface clarity
+- user-visible rationale
+- prompt-output trust and readability
 
-Those criteria are now met well enough that validation work should lead.
+## What To Avoid Next
+Do not default to these in the next thread:
+- broad internal renaming of spec-era leftovers
+- large technique-taxonomy expansion
+- whole-engine redesign
+- full removal of every compatibility path in one pass
+- architecture work that is not yet justified by a prompt-renderer blocker
 
-## Refactor Pause Decision
-Default recommendation: pause engine refactoring here.
+## Stop Signal For This Refactor Lane
+Pause refactoring when the next candidate is mostly about:
+- internal naming cleanup
+- moving already-thin helpers again
+- shrinking files without exposing a clearer handoff
+- changing implementation shape without improving prompt-first UX or renderer reuse
 
-Reason:
-- the next likely extractions improve aesthetics more than engine extensibility
-- the remaining facade responsibilities are now concentrated in provider-facing and prompt-building concerns that have wider blast radius
-- product validation can now test whether the current engine boundaries are sufficient for persona fit and future renderer experiments
+That stop signal is now much closer than it was before the prompt renderer existed.
 
-Reopen this lane only if validation reveals a specific blocker such as:
-- a second renderer cannot reuse the structured-generation path cleanly
-- persona/product improvements require provider/runtime boundaries that are still too coupled
-- output validation cannot be improved without another explicit engine handoff
+## Suggested Next Thread Boundary
+Choose only one of these in a new thread:
+1. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
+2. validate the prompt-first product surface further and leave deep engine cleanup alone
 
-## Recommended Next Work
-The preferred next thread should move to product validation rather than deeper engine cleanup.
-
-Priorities:
-1. validate persona-specific output fit
-2. tighten beginner educational delivery
-3. decide whether `experienced` and `major` need real prompt-policy divergence or a simplified combined advanced lane
-4. verify that reasoning/clarification controls match what the UI actually explains
-5. create a small evaluation set for real user scenarios
-
-## Suggested Thread Boundary
-Start a fresh thread for the next work.
-
-Reason:
-- the engine-refactor lane has reached a natural stop point
-- the next work should be judged by product usefulness, not structural purity
-- mixing persona/UI validation into the same thread would blur the success criteria and context
-
-## Suggested Start Prompt For The Next Thread
-```text
-Before making changes, read these files first:
-- docs/long-term-context.md
-- docs/engine-refactor-plan.md
-- docs/intent-ir.md
-- docs/handoff/latest.md
-- docs/mode-comparison-scenarios.md
-
-Current product/engine reality:
-- The reusable engine refactor lane is paused by default.
-- `engine/renderers/spec/specRenderer.js` remains the spec renderer.
-- `engine/pipeline/buildSpecTransmuteResult.js` and `engine/pipeline/runSpecTransmutePipeline.js` keep the public result envelope stable.
-- `engine/graph/transmuteEngine.js` is still the public facade.
-- `engine/intent/normalizeSpecDraft.js` owns raw provider JSON -> spec draft normalization.
-- `engine/intent/prepareSpecAnalysis.js` owns normalized-spec-afterward analysis preparation.
-- `engine/validation/semanticRepairIssues.js` owns semantic repair issue collection.
-- `engine/execution/executeStructuredGeneration.js` owns structured-generation retry orchestration.
-- UI/server/adapter contracts and the public result shape must stay unchanged.
-
-For this thread, do product-validation work rather than engine refactoring:
-- check whether recent UI/UX cleanup actually removed unnecessary surface area
-- verify whether each persona gets appropriately different output and guidance
-- identify dead config, misleading controls, and overly advanced beginner delivery
-- prefer focused cleanup and validation over structural redesign
-
-At the end, summarize:
-- whether the current product surface is actually simpler
-- where persona output is still too similar or mismatched
-- which cleanup items are safe next moves
-- whether any concrete engine blocker was found
-```
+Do not mix both unless there is a direct blocker.

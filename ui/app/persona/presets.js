@@ -21,6 +21,7 @@ const DEFAULT_PERSONA_CAPABILITIES = Object.freeze({
   showLoopControls: false,
   showValidationMeta: false,
   showCompactDeliveryPanel: false,
+  transmuteTarget: 'spec',
 });
 
 function toText(value, fallback = '') {
@@ -90,6 +91,7 @@ export const PERSONA_PRESETS = [
       loopMode: 'guided_once',
       maxClarifyTurns: 1,
       showLoopControls: true,
+      transmuteTarget: 'prompt',
       showValidationMeta: true,
     },
   },

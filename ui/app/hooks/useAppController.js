@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   fetchAvailableModels,
   getProviderDisplayName,
   recommendHybridStacks,
   SUPPORTED_MODEL_PROVIDERS,
+  transmuteVibeToPrompt,
   transmuteVibeToSpec,
 } from '../../../adapters/LLMAdapter';
 import {
@@ -32,6 +33,7 @@ import {
 import { initializeSpecState, shadowWriteSpecState } from '../services/specStateShadow';
 import { resolvePersonaRuntimeConfig } from '../persona/presets';
 import { REQUIRES_USER_API_KEY } from '../config/runtime.js';
+import { buildPromptOutputFromSpecResult } from '../../../engine/pipeline/buildPromptOutputFromSpecResult.js';
 
 function getSafeModelName(value, fallback = 'OFFLINE') {
   const text = String(value || '').trim();
@@ -53,18 +55,19 @@ function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
-function buildGenerationRequestMeta(resolvedPersona) {
+function buildGenerationRequestMeta(runtimeConfig) {
   return {
-    promptPolicyMode: String(resolvedPersona?.promptPolicyMode || 'baseline'),
-    promptExperimentId: buildPromptExperimentId(resolvedPersona),
-    personaId: String(resolvedPersona?.id === 'default' ? '' : (resolvedPersona?.id || '')),
+    promptPolicyMode: String(runtimeConfig?.promptPolicyMode || 'baseline'),
+    promptExperimentId: buildPromptExperimentId(runtimeConfig),
+    personaId: String(runtimeConfig?.id === 'default' ? '' : (runtimeConfig?.id || '')),
+    transmuteTarget: String(runtimeConfig?.capabilities?.transmuteTarget || 'spec'),
   };
 }
 
-export function useAppController({ personaConfig = null } = {}) {
-  const resolvedPersona = useMemo(
-    () => resolvePersonaRuntimeConfig(personaConfig),
-    [personaConfig],
+export function useAppController({ runtimeConfig = null, personaConfig = null } = {}) {
+  const resolvedRuntime = useMemo(
+    () => resolvePersonaRuntimeConfig(runtimeConfig || personaConfig),
+    [runtimeConfig, personaConfig],
   );
   const [vibe, setVibe] = useState('');
   const [status, setStatus] = useState('idle');
@@ -181,7 +184,12 @@ export function useAppController({ personaConfig = null } = {}) {
 
   const requestHybridStackGuide = useCallback(async (nextResult, nextVibe) => {
     const standardOutput = nextResult?.standard_output;
-    if (!standardOutput || (requiresUserApiKey && !apiKey)) {
+    if (!standardOutput) {
+      setHybridStackGuide(null);
+      setHybridStackGuideStatus('idle');
+      return;
+    }
+    if (requiresUserApiKey && !apiKey) {
       setHybridStackGuide(null);
       setHybridStackGuideStatus('error');
       return;
@@ -278,7 +286,7 @@ export function useAppController({ personaConfig = null } = {}) {
   }, [clarifyLoopTurn, clarifyQuestions]);
 
   const syncWarningToClarifyLoop = useCallback((warningContext = {}) => {
-    if (resolvedPersona.capabilities.loopMode !== 'manual') return [];
+    if (resolvedRuntime.capabilities.loopMode !== 'manual') return [];
 
     const validationReport = isPlainObject(result?.validation_report) ? result.validation_report : null;
     const warningQuestions = buildWarningDrivenQuestions({
@@ -318,7 +326,7 @@ export function useAppController({ personaConfig = null } = {}) {
     applyClarifyQuestionSet,
     clarifyLoopTurn,
     clarifyQuestions,
-    resolvedPersona.capabilities.loopMode,
+    resolvedRuntime.capabilities.loopMode,
     result,
   ]);
 
@@ -335,13 +343,23 @@ export function useAppController({ personaConfig = null } = {}) {
       nextGenerationId,
     } = buildGeneratedResultPlan({
       generated,
-      loopMode: resolvedPersona.capabilities.loopMode,
-      maxClarifyTurns: resolvedPersona.capabilities.maxClarifyTurns,
+      loopMode: resolvedRuntime.capabilities.loopMode,
+      maxClarifyTurns: resolvedRuntime.capabilities.maxClarifyTurns,
       nextLoopTurn,
       promptExperimentId,
     });
 
-    setResult(generated);
+    const nextResult = generated && typeof generated === 'object' ? {
+      ...generated,
+      prompt_output: isPlainObject(generated.prompt_output)
+        ? generated.prompt_output
+        : buildPromptOutputFromSpecResult({
+          sourceVibe,
+          result: generated,
+        }),
+    } : generated;
+
+    setResult(nextResult);
     setStatus('success');
     setActiveModel((previous) => getSafeModelName(generated?.model, previous));
     setClarifyLoopTurn(nextLoopTurn);
@@ -356,7 +374,7 @@ export function useAppController({ personaConfig = null } = {}) {
 
     shadowWriteSpecState({
       ...buildTransmuteSuccessShadowPayload({
-        generated,
+        generated: nextResult,
         apiProvider,
         selectedModel,
         promptPolicyMode,
@@ -379,8 +397,13 @@ export function useAppController({ personaConfig = null } = {}) {
       shadowWriteSpecState(clarifyStartedPayload);
     }
 
-    void requestHybridStackGuide(generated, sourceVibe);
-  }, [apiProvider, applyClarifyQuestionSet, requestHybridStackGuide, resolvedPersona.capabilities.loopMode, resolvedPersona.capabilities.maxClarifyTurns, selectedModel]);
+    if (nextResult?.standard_output) {
+      void requestHybridStackGuide(nextResult, sourceVibe);
+    } else {
+      setHybridStackGuide(null);
+      setHybridStackGuideStatus('idle');
+    }
+  }, [apiProvider, applyClarifyQuestionSet, requestHybridStackGuide, resolvedRuntime.capabilities.loopMode, resolvedRuntime.capabilities.maxClarifyTurns, selectedModel]);
 
   const handleSaveKey = useCallback(() => {
     if (!requiresUserApiKey) {
@@ -421,7 +444,7 @@ export function useAppController({ personaConfig = null } = {}) {
     if (requiresUserApiKey) {
       persistApiKeyToSession(apiKey, apiProvider, SUPPORTED_MODEL_PROVIDERS);
     }
-    const { promptPolicyMode, promptExperimentId, personaId } = buildGenerationRequestMeta(resolvedPersona);
+    const { promptPolicyMode, promptExperimentId, personaId, transmuteTarget } = buildGenerationRequestMeta(resolvedRuntime);
 
     setStatus('processing');
     setErrorMessage('');
@@ -445,11 +468,13 @@ export function useAppController({ personaConfig = null } = {}) {
         show_thinking: showThinking,
         prompt_policy_mode: promptPolicyMode,
         prompt_experiment_id: promptExperimentId,
+        transmute_target: transmuteTarget,
       },
     });
 
     try {
-      const generated = await transmuteVibeToSpec(vibe, apiKey, {
+      const transmute = transmuteTarget === 'prompt' ? transmuteVibeToPrompt : transmuteVibeToSpec;
+      const generated = await transmute(vibe, apiKey, {
         provider: apiProvider,
         showThinking,
         modelName: selectedModel,
@@ -473,6 +498,7 @@ export function useAppController({ personaConfig = null } = {}) {
           model: String(selectedModel || ''),
           prompt_policy_mode: promptPolicyMode,
           prompt_experiment_id: promptExperimentId,
+          transmute_target: transmuteTarget,
         },
       });
     }
@@ -484,7 +510,7 @@ export function useAppController({ personaConfig = null } = {}) {
     ensureApiKeyNotExpired,
     resetClarifyLoop,
     requiresUserApiKey,
-    resolvedPersona,
+    resolvedRuntime,
     selectedModel,
     showThinking,
     vibe,
@@ -611,14 +637,13 @@ export function useAppController({ personaConfig = null } = {}) {
     derived: {
       providerOptions,
       standardOutput: result?.standard_output || result?.표준_출력 || null,
-      nondevSpec: result?.artifacts?.nondev_spec_md || '',
-      devSpec: result?.artifacts?.dev_spec_md || '',
-      masterPrompt: result?.artifacts?.master_prompt || '',
+      promptOutput: isPlainObject(result?.prompt_output) ? result.prompt_output : null,
+      transmuteTarget: String(resolvedRuntime.capabilities.transmuteTarget || 'spec'),
       promptPolicyMeta: result?.meta || null,
       validationReport: isPlainObject(result?.validation_report) ? result.validation_report : null,
       clarifyApplyNotice,
       clarifyLoop: {
-        active: Boolean(resolvedPersona.capabilities.showLoopControls) && clarifyQuestions.length > 0,
+        active: Boolean(resolvedRuntime.capabilities.showLoopControls) && clarifyQuestions.length > 0,
         questions: clarifyQuestions,
         answers: clarifyAnswers,
         canSubmit: clarifyQuestions.some((question) => Boolean(toText(clarifyAnswers[question]))),
@@ -643,3 +668,4 @@ export function useAppController({ personaConfig = null } = {}) {
     },
   };
 }
+

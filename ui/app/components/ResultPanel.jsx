@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   appendLine,
   deepClone,
@@ -64,6 +64,10 @@ export default function ResultPanel({ viewModel }) {
   const workspaceSeed = isObject(viewModel?.workspaceSeed) ? viewModel.workspaceSeed : {};
   const seededHypothesis = isObject(workspaceSeed.hypothesis) ? deepClone(workspaceSeed.hypothesis) : buildProblemFrame({});
   const seededLogicMap = isObject(workspaceSeed.logicMap) ? deepClone(workspaceSeed.logicMap) : buildLogicMap({}, buildProblemFrame({}));
+  const promptOutput = isObject(artifacts.promptOutput) ? artifacts.promptOutput : {};
+  const promptFinal = toText(promptOutput.final_prompt);
+  const promptRewriteMode = toText(promptOutput.rewrite_mode);
+  const promptAppliedTechniques = Array.isArray(promptOutput.applied_techniques) ? promptOutput.applied_techniques : [];
   const nondevSpec = toText(artifacts.nondevSpec);
   const devSpec = toText(artifacts.devSpec);
   const masterPrompt = toText(artifacts.masterPrompt);
@@ -727,22 +731,34 @@ export default function ResultPanel({ viewModel }) {
           </div>
           <div className="compact-delivery-grid">
             <section className="compact-delivery-card">
-              <h3>사람에게 보낼 요청문</h3>
+              <h3>Quick Request</h3>
               <pre className="mono-block compact-delivery-block">
-                {compactRequest || '아직 생성된 요청문이 없습니다.'}
+                {compactRequest || 'No request is available yet.'}
               </pre>
             </section>
             <section className="compact-delivery-card">
-              <h3>AI에 넣을 프롬프트</h3>
-              {selectedImplementationStack && (
+              <h3>Prompt Engine Output</h3>
+              {(promptRewriteMode || promptAppliedTechniques.length > 0) && (
                 <div className="signal-pills compact-delivery-meta">
-                  <span className="pill">선택 스택: {selectedImplementationStack.name}</span>
+                  {promptRewriteMode && <span className="pill">rewrite: {promptRewriteMode}</span>}
+                  {promptAppliedTechniques.length > 0 && <span className="pill">techniques: {promptAppliedTechniques.length}</span>}
                 </div>
               )}
               <pre className="mono-block compact-delivery-block">
-                {contextOutputs.aiCoding || '아직 생성된 프롬프트가 없습니다.'}
+                {promptFinal || 'Prompt output is not available yet.'}
               </pre>
-              <p className="small-muted compact-delivery-status">{exportStatus || '아직 복사 전'}</p>
+            </section>
+            <section className="compact-delivery-card">
+              <h3>AI Coding Prompt</h3>
+              {selectedImplementationStack && (
+                <div className="signal-pills compact-delivery-meta">
+                  <span className="pill">stack: {selectedImplementationStack.name}</span>
+                </div>
+              )}
+              <pre className="mono-block compact-delivery-block">
+                {contextOutputs.aiCoding || 'No coding prompt is available yet.'}
+              </pre>
+              <p className="small-muted compact-delivery-status">{exportStatus || 'Not copied yet.'}</p>
             </section>
           </div>
         </section>
@@ -974,8 +990,6 @@ export default function ResultPanel({ viewModel }) {
     </section>
   );
 }
-
-
 
 
 

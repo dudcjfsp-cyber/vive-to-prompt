@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
@@ -8,6 +8,7 @@ test('buildAdvancedResultViewModel defines a stable UI-facing contract for advan
   assert.match(source, /session:/);
   assert.match(source, /guide:/);
   assert.match(source, /artifacts:/);
+  assert.match(source, /promptOutput: toObjectOrNull\(safeDerived\.promptOutput\)/);
   assert.match(source, /workspaceSeed:/);
   assert.match(source, /delivery:/);
   assert.match(source, /integritySource:/);

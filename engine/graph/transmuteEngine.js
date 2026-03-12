@@ -6,6 +6,9 @@ import {
 import {
   transmuteVibeToSpec as transmuteSpecFacade,
 } from '../facades/spec/transmuteSpecFacade.js';
+import {
+  transmuteVibeToPrompt as transmutePromptFacade,
+} from '../facades/prompt/transmutePromptFacade.js';
 import { getCoreChecklistMasterPromptLines } from '../../shared/corePromptChecklist.js';
 import {
   DEFAULT_PROVIDER,
@@ -1364,6 +1367,42 @@ export async function transmuteVibeToSpec(
       executePromptRepairChain,
       schemaKeys: K,
       normalizeStandardOutput,
+    },
+  );
+}
+
+export async function transmuteVibeToPrompt(
+  vibe,
+  apiKey,
+  {
+    provider = DEFAULT_PROVIDER,
+    showThinking = true,
+    modelName = '',
+    persona = '',
+    promptPolicyMode = '',
+    promptExperimentId = '',
+  } = {},
+  {
+    runtime = sharedModelRuntime,
+    executePromptRepairChain: promptRepairChain = executePromptRepairChain,
+    normalizeStandardOutput: standardOutputNormalizer = normalizeStandardOutput,
+  } = {},
+) {
+  return transmutePromptFacade(
+    vibe,
+    apiKey,
+    {
+      provider,
+      showThinking,
+      modelName,
+      persona,
+      promptPolicyMode,
+      promptExperimentId,
+    },
+    {
+      runtime,
+      executePromptRepairChain: promptRepairChain,
+      normalizeStandardOutput: standardOutputNormalizer,
     },
   );
 }

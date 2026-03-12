@@ -1,271 +1,186 @@
-# Long-Term Context
+﻿# Long-Term Context
 
 ## Why This Document Exists
 This document captures the stable long-term intent behind the project so new AI threads do not need the same background explanation every time.
 
 Use this as the default product context for planning, implementation, review, and refactoring decisions.
 
-## Project Identity
-`Vibe-to-Spec V2` is an education-first product for:
-- non-developers
-- non-CS learners
-- vibe coders
-- AI beginners
-
-The product is not meant to reward "just type anything and let the model do everything" habits.
-It should still provide fast success, but it should also teach users how structured requests are formed and why they work.
-
-The creator is also part of the target audience:
-- non-CS background
-- non-developer background
-- practical vibe-coding experience
-
-That means the product should not assume expert mental models by default.
-It should teach, guide, and reveal structure without overwhelming the user.
-
-## Product Philosophy
-The educational goal is not to block convenience.
-It is to prevent black-box dependence.
-
-So the product should aim for this balance:
-- let beginners get a working result quickly
-- show the structure behind that result
-- help the user improve one thinking slot at a time
-- avoid teaching that vague prompting is always enough
-
-A good outcome is:
-- fast first success
-- visible structure
-- small guided improvement
-- repeated learning through use
-
-A good advanced-mode outcome is also:
-- shared diagnostics can be reused across modes when the framing stays work-style-specific
-- high-density panels should appear only when the result is actually ready
-- when a shared panel fails, the UI should degrade to a safe status card rather than a blank screen
-
-## Long-Term Product Roadmap
-This repository is one step in a larger product family.
-
-Planned sequence:
+## Project Family Identity
+The long-term product family is still:
 1. `Vibe-to-Spec`
-- Convert vague natural language into structured specs.
-- Focus on spec-quality output.
-
 2. `Vibe-to-Prompt`
-- Reuse the same core engine.
-- Apply prompt engineering and context engineering techniques.
-- Output prompt-ready artifacts tuned to user intent.
-
 3. `Vibe-to-Architecture`
-- Reuse the same core engine.
-- Output architecture-oriented artifacts such as system boundaries, components, and technical structure.
-
 4. `Vibe Studio`
-- A unified platform built on one core engine.
-- One input, multiple output modes.
-- Spec, prompt, architecture, and other renderers should all be generated from the same underlying understanding of user intent.
 
-## Strategic Principle
-`Vibe-to-Spec` is a product.
-The real long-term asset is the engine.
+The long-term asset is the reusable engine shared across those products.
 
-So the current project should not become a one-off spec generator with tightly coupled UI and output logic.
-It should become the first production-grade app built on top of a reusable intent engine.
+## Stable Philosophy
+The creator still cares about:
+- non-CS learners
+- non-developer users
+- practical vibe coders
+- users who want fast success without becoming dependent on black-box prompting
 
-## What The Engine Must Eventually Become
-The engine should grow into a reusable pipeline that can support multiple output products.
+That educational philosophy remains stable across the product family.
+The product should reveal structure, not hide it.
 
-Target shape:
-1. Input normalization
-- user vibe
-- persona or learning mode
-- project profile
-- clarification answers
-- session context
+## Important Shift For This Repository
+This repository is no longer the primary `Vibe-to-Spec V2` product repo.
+The original working `Vibe-to-Spec V2` repo is preserved elsewhere.
 
-2. Structured generation
-- renderer-appropriate prompt construction
-- provider execution
-- schema-safe JSON generation
-- repair/retry handling
-- execution metadata capture
+This repo is now being used as:
+- a `Vibe-to-Prompt` product workspace
+- a reusable engine extraction workspace
 
-3. Intent analysis
-- identify who the user is building for
-- identify what job needs to be done
-- identify constraints, risks, assumptions, and ambiguities
-- estimate confidence
-- decide whether clarification is required
+That changes the default decision filter inside this repo.
 
-4. Planning layer
-- translate analyzed intent into a structured plan for output generation
-- keep this layer renderer-neutral when possible
+Inside this workspace, do not optimize for preserving every spec-era product decision.
+Optimize for:
+- prompt-first product clarity
+- reusable engine boundaries
+- visible explanation of prompt-structuring decisions
+- keeping only the compatibility surface that still protects engine validation
 
-5. Renderer layer
-- spec renderer
-- prompt renderer
-- architecture renderer
-- future education or lesson renderer
+## Current Product Intent In This Repo
+The primary user experience in this repo should now be:
+- one natural-language input
+- one prompt-oriented output
+- one explanation surface that shows why the prompt took its final shape
 
-6. Validation and feedback
-- schema safety
-- intent alignment
-- completeness
-- confidence and ambiguity reporting
-- educational feedback for beginners
+The product should visibly answer:
+- what prompt was produced
+- whether the engine used pass-through or refinement
+- which techniques were applied
+- how many techniques were applied
+- what validation or warning signals influenced the result
 
-## Important Architectural Rule
-Do not treat `standard_output` as the true core of the engine.
+The product should no longer be organized primarily around:
+- spec artifacts as the main output
+- beginner / experienced / major as the primary UX architecture
+- multiple user-level workspaces as the main product framing
 
-`standard_output` is the output of the spec renderer.
-The true reusable core should be an intent-centered intermediate representation.
+## Long-Term Engine Direction
+The engine should still grow toward:
+- `natural language -> intent IR -> planning/handoff -> renderer output`
 
-In other words:
-- bad long-term shape: `natural language -> final spec`
-- better long-term shape: `natural language -> intent IR -> renderer output`
+Not toward:
+- `natural language -> spec-only contract forever`
 
-## Current Mission Of Vibe-to-Spec V2
-At this stage, `Vibe-to-Spec V2` should focus on one thing:
-- being the best education-first spec-oriented renderer built on top of the evolving engine
+The reusable target shape is still:
+1. input normalization
+2. structured generation / execution
+3. intent analysis
+4. shared runtime handoff
+5. renderer layer
+6. validation and feedback
 
-That means the current project should optimize for:
-- clearer intent capture
-- better ambiguity detection
-- stronger clarification flow
-- more reliable spec normalization
-- better validation of missing or weak fields
-- better educational feedback for non-technical users
-- UI that teaches structure while preserving fast early momentum
+## Current Engine Reality
+As of 2026-03-12 in this repo:
+- spec-only facade logic has been separated into a spec facade
+- provider/model runtime has been separated into a shared runtime service
+- a shared renderer runtime handoff exists
+- a prompt facade and prompt renderer exist
+- the app shell now uses a prompt-first single surface
+- prompt metadata is visible in the UI by default
 
-It should not over-expand into too many output modes yet.
+What is still transitional:
+- intent IR is still derived after spec-shaped normalization
+- `normalizeStandardOutput` is still spec-shaped upstream of the prompt renderer
+- some internal service/state names still reflect spec-era compatibility concerns
+- the spec renderer and spec app remain as reference harnesses, not the primary product direction
 
-## What To Prioritize Right Now
-### 1. Preserve the education-first beginner path
-Beginner should keep fast success, but avoid becoming a black-box prompt vending flow.
-
-Prioritize:
-- one-sentence start
-- visible prompt structure
-- one-line guided improvement
-- positive reinforcement for what the user already did well
-- soft learning hints instead of intimidating diagnostics
-
-### 2. Make persona differences reflect working style
-Persona separation should not depend on prestige labels or assumed academic identity.
-
-Prefer:
-- beginner = fast success plus structure learning
-- quick execution mode = get to action quickly, inspect only top warnings first
-- review control mode = inspect blocking issues, contract, and impact before finalizing
-
-### 3. Make intent analysis more explicit
-Intent logic should become a first-class engine concern, not just a side effect of prompt generation or UI warnings.
+## Current Mission Of This Workspace
+The current mission is no longer "make the best spec app."
+It is:
+- turn the copied repo into a credible `Vibe-to-Prompt` product workspace
+- keep the engine reusable for later renderers
+- keep spec-era surfaces only where they still provide compatibility or regression value
 
 Prioritize:
-- intent-related fields
-- confidence signals
-- ambiguity markers
-- missing-information reasons
-- structured clarification triggers
+- prompt-first UX clarity
+- explanation-first result surfaces
+- shared runtime contracts that future renderers can consume
+- validation that explains the produced prompt
+- reducing visible dependence on spec-only artifacts in app code
 
-### 4. Separate engine logic from renderer logic
-Anything specific to spec output should be easy to move into a renderer later.
+De-prioritize:
+- preserving persona/workspace splits
+- polishing deploy or managed-API paths
+- spec-era product copy that no longer supports the prompt product
+- deep internal cleanup that does not reduce user-visible spec-first behavior
 
-Prioritize:
-- separating analysis from final markdown or spec artifacts
-- keeping normalization and planning distinct from presentation
-- reducing giant all-in-one engine flows
+## Current Product Rules
+### 1. One input, one result surface
+The product should converge on:
+- one input box
+- one prompt result surface
+- one explanation layer
 
-### 5. Separate generation/execution from interpretation
-Provider calls, JSON repair, retry strategy, and semantic issue detection should not stay entangled with one renderer's normalization path.
+### 2. Explanation must be first-class
+The value is not only the final prompt.
+The value is also the visible rationale:
+- rewrite mode
+- applied techniques
+- skipped techniques when useful
+- validation notes
+- short explanation of selection signals
 
-Prioritize:
-- reusable structured-generation stages
-- provider-neutral retry orchestration
-- validation-oriented semantic issue detection
-- execution metadata that future renderers can share
+### 3. Transitional compatibility is allowed
+It is acceptable for the engine to keep using spec-shaped normalization internally for now.
+But that should remain an implementation detail, not the user-facing contract.
 
-### 6. Strengthen validation beyond field presence
-Validation should not only ask "is a field missing?"
-It should also ask:
-- does the output match the original intent?
-- what was inferred vs explicitly stated?
-- what must be clarified before safe execution?
-- what should a beginner learn from this result?
+### 4. Refactors must remove a real blocker
+If a refactor does not make:
+- future renderer reuse easier
+- prompt-first behavior clearer
+- validation more explainable
+- spec-only coupling smaller
 
-### 7. Keep the engine reusable
-When making design decisions, prefer structures that can later power:
-- spec output
-- prompt output
-- architecture output
-without rewriting the analysis core.
+then it is probably not the best next investment.
 
-## What Not To Over-Optimize Yet
-These are useful, but should not outrank engine separation and product clarity.
-
-Do not over-focus on:
-- polishing too many output formats inside this repo right now
-- product-specific UI complexity that deepens coupling
-- renderer-specific hacks inside the engine core
-- persona logic that becomes inseparable from core analysis
-- automatic model failover behavior that hides provider/account constraints from the user
-
-## Quality Bar For Engine Work
-A change is good if it improves at least one of these without harming reusability:
+## Quality Bar For Work In This Repo
+A change is good if it improves one or more of these without harming reusability:
+- prompt-first product clarity
+- explanation quality
 - intent understanding
 - ambiguity handling
-- clarification quality
 - validation quality
 - renderer separation
-- generation/execution separation
-- beginner-friendly educational value
+- generation/runtime separation
 
 A change is risky if it:
-- hardcodes spec-only assumptions into the core
-- mixes UI concerns into engine logic
-- mixes renderer formatting into analysis logic
-- makes future prompt or architecture outputs harder to add
+- re-centers the product around spec artifacts
+- keeps persona-based UX as the main contract
+- hides prompt-structuring reasons from the user
+- deepens spec-only assumptions inside shared engine paths
+- spends a thread on internal neatness with little user or engine payoff
 
 ## Decision Filter For Future Work
-When evaluating any feature, refactor, or experiment, ask:
-1. Does this improve the reusable engine, or only the current spec app?
-2. If this logic were needed by `Vibe-to-Prompt`, could it be reused cleanly?
-3. If this logic were needed by `Vibe-to-Architecture`, would the current design block that?
-4. Is this generation logic, analysis logic, planning logic, validation logic, or renderer logic?
-5. Are we making the product more educational for beginners, or only more complex?
-6. Does this help users understand structure, or does it hide the real constraint behind more automation?
-
-## Suggested Mental Model For This Repo
-Think of the repository like this:
-- current visible product: `Vibe-to-Spec`
-- hidden long-term platform seed: reusable intent engine
-
-So short-term product work is valid, but should leave the engine cleaner than before.
+When evaluating any feature, refactor, or cleanup in this repo, ask:
+1. Does this make the app feel more like `Vibe-to-Prompt`?
+2. Does this reduce visible dependence on spec-only contracts?
+3. Does this make the explanation layer clearer for users?
+4. Would a future renderer reuse this boundary?
+5. Is this work user-visible or engine-reuse-visible, rather than only internally cleaner?
 
 ## Guidance For Future AI Threads
-When working in this repository, assume the following:
-- the project is education-first
-- the target user is non-technical or early-stage AI learner
-- `Vibe-to-Spec` is only the first renderer/product
-- engine quality matters more than short-term hacks
-- maintainability and future renderer reuse are core requirements
-- the UI should teach structure, not just produce outputs that happen to run
-- shared advanced panels are acceptable, but they should fail safe and never disappear into a blank screen
+Assume the following unless the user says otherwise:
+- the repo is now prompt-first
+- the original `Vibe-to-Spec V2` product is already safe elsewhere
+- the spec renderer/app are reference assets, not the product center
+- prompt metadata and rationale should be visible by default
+- one input and one result surface is the desired UX direction
+- deeper refactoring should stop when it becomes mostly internal cleanup
 
-If a proposed change solves a local problem but makes reuse harder for `Vibe-to-Prompt`, `Vibe-to-Architecture`, or `Vibe Studio`, prefer a more modular design.
+If a proposed change solves a local issue but makes prompt-first direction less clear, do not default to it.
+If a proposed change improves prompt-first clarity or renderer reuse, it is likely aligned.
 
-## Current Refactor Snapshot
-As of the latest refactor thread, the smallest safe generation/execution extraction for the current lane is complete, and the default recommendation is to pause structural refactoring and validate the product.
-
-What is already true:
-- `engine/pipeline/buildSpecTransmuteResult.js` exists as a reusable result-building step.
-- `engine/pipeline/runSpecTransmutePipeline.js` exists as a reusable orchestration step.
-- `engine/renderers/spec/specRenderer.js` owns spec-specific result section generation.
-- the spec renderer currently owns:
-  - `artifacts.dev_spec_md`
-  - `artifacts.nondev_spec_md`
-  - `artifacts.master_prompt`
-  - spec-oriented result sections for the app
-- `engine/graph/transmuteEngine.js` is still the product-facing facade.
-- further engine work should be reopened only if product validation reveals a concrete blocker.
+## Current Snapshot
+As of 2026-03-12:
+- prompt renderer exists and is tested
+- prompt runtime handoff exists and is tested
+- model runtime extraction exists and is tested
+- prompt-first app shell exists
+- prompt rationale is visible in the main result surface
+- compatibility spec paths still exist beneath the surface
+- the next risk area is internal cleanup looping rather than missing prompt-first UI

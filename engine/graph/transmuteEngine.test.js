@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMasterPrompt, buildPrompt, executePromptRepairChain } from './transmuteEngine.js';
+import { buildMasterPrompt, buildPrompt, executePromptRepairChain, transmuteVibeToPrompt } from './transmuteEngine.js';
 
 const EXPECTED_BASELINE_PROMPT = `SYSTEM:
 
@@ -263,4 +263,76 @@ test('executePromptRepairChain keeps beginner mode on the original attempt', asy
   assert.equal(result.validationRetryCount, 0);
   assert.equal(result.semanticIssueCount > 0, true);
   assert.equal(prompts.length, 1);
+});
+
+function createPromptWrapperSpec() {
+  return {
+    '한 줄 요약': 'Write a launch email prompt',
+    '문제정의_5가지': {
+      '누가': 'beta users',
+      '언제': 'before release day',
+      '무엇을': 'draft a reusable launch email prompt',
+      '왜': 'speed up launch communication',
+      '성공기준': 'the prompt is ready to paste into a model',
+    },
+    '사용자역할': [
+      { '역할': 'marketer', '설명': 'owns launch messaging' },
+    ],
+    '핵심_기능': {
+      '필수': ['Include subject', 'Include CTA'],
+      '있으면 좋음': ['Friendly tone'],
+    },
+    '입력_데이터_필드': [],
+    '권한_규칙': [],
+    '남은_모호함': {
+      '부족한_정보': [],
+      '확인_질문_3개': [],
+    },
+    '리스크_주의점_3개': [],
+  };
+}
+
+test('transmuteVibeToPrompt delegates to the prompt facade through the shared runtime wrapper', async () => {
+  const result = await transmuteVibeToPrompt('Write a JSON email prompt for beta users with subject, body, and CTA.', 'demo-key', {
+    provider: 'openai',
+    showThinking: false,
+    modelName: 'gpt-4.1',
+  }, {
+    runtime: {
+      defaultProvider: 'gemini',
+      normalizeProvider(provider) {
+        return provider;
+      },
+      async getOptimalModel(_apiKey, preferredModel) {
+        return preferredModel || 'fallback-model';
+      },
+      async generateTextByProvider() {
+        return '{}';
+      },
+    },
+    executePromptRepairChain: async () => ({
+      parsed: {
+        model: 'wrapper-model',
+        meta: { repair_mode: 'none' },
+      },
+      promptMeta: { validation_retry_count: 0 },
+      repairMode: 'none',
+      fallbackApplied: false,
+      validationRetryCount: 0,
+      semanticIssueCount: 0,
+    }),
+    normalizeStandardOutput: () => ({
+      spec: createPromptWrapperSpec(),
+      validationReport: {
+        severity: 'low',
+        needs_clarification: false,
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    }),
+  });
+
+  assert.equal(result.provider, 'openai');
+  assert.equal(result.model, 'wrapper-model');
+  assert.equal(result.prompt_output.renderer, 'prompt');
 });

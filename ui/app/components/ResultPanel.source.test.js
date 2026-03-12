@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
@@ -22,16 +22,10 @@ test('ResultPanel reads from a shared view-model instead of raw workspace props'
   assert.doesNotMatch(source, /standardOutput/);
 });
 
-test('ResultPanel keeps advanced review metadata in Korean-first labels', () => {
-  assert.match(source, /현재 모델:/);
-  assert.match(source, /구현 가이드 다시 보기/);
-  assert.match(source, /추천 구현 방식/);
-  assert.match(source, /검토 요약/);
-  assert.match(source, /작업 정리판/);
-  assert.match(source, /const gateStatusLabel = GATE_STATUS_META\[gateStatus\]\?\.label \|\| gateStatus;/);
-  assert.doesNotMatch(source, /panel status-only/);
-  assert.doesNotMatch(source, /요구사항을 입력하면 스펙 생성을 시작합니다\./);
-  assert.doesNotMatch(source, /스펙 생성 중\.\.\./);
-  assert.doesNotMatch(source, /Validation Report/);
-  assert.doesNotMatch(source, /하이브리드 스택 가이드 보기/);
+test('ResultPanel exposes prompt-engine metadata in the compact delivery panel', () => {
+  assert.match(source, /Prompt Engine Output/);
+  assert.match(source, /promptRewriteMode/);
+  assert.match(source, /promptAppliedTechniques/);
+  assert.match(source, /Quick Request/);
+  assert.match(source, /AI Coding Prompt/);
 });

@@ -1,4 +1,4 @@
-﻿import {
+import {
   buildLogicMap,
   buildProblemFrame,
 } from './builders';
@@ -62,6 +62,7 @@ export function buildAdvancedResultViewModel({
     },
     artifacts: {
       standardOutput: toObjectOrNull(safeDerived.standardOutput),
+      promptOutput: toObjectOrNull(safeDerived.promptOutput),
       nondevSpec: safeDerived.nondevSpec || '',
       devSpec: safeDerived.devSpec || '',
       masterPrompt: safeDerived.masterPrompt || '',
