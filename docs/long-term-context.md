@@ -7,12 +7,17 @@ Use this as the default product context for planning, implementation, review, an
 
 ## Project Family Identity
 The long-term product family is still:
-1. `Vibe-to-Spec`
-2. `Vibe-to-Prompt`
-3. `Vibe-to-Architecture`
-4. `Vibe Studio`
+1. `Vibe Studio`
+2. `Vibe-to-Spec`
+3. `Vibe-to-Prompt`
+4. `Vibe-to-Architecture`
 
 The long-term asset is the reusable engine shared across those products.
+
+The family should now be interpreted less as a loose list of separate generation tools and more as:
+- `Vibe Studio` as the umbrella learning platform
+- `Vibe-to-Spec`, `Vibe-to-Prompt`, and `Vibe-to-Architecture` as focused learning tracks or modules inside that broader platform
+- future review-oriented tracks or modules if they later become justified
 
 ## Stable Philosophy
 The creator still cares about:
@@ -23,13 +28,15 @@ The creator still cares about:
 
 That educational philosophy remains stable across the product family.
 The product should reveal structure, not hide it.
+The long-term goal is not only to help users get an output faster.
+It is to help them learn how to create better structure themselves without becoming dependent on a black-box generator.
 
 ## Important Shift For This Repository
 This repository is no longer the primary `Vibe-to-Spec V2` product repo.
 The original working `Vibe-to-Spec V2` repo is preserved elsewhere.
 
 This repo is now being used as:
-- a `Vibe-to-Prompt` product workspace
+- a `Vibe-to-Prompt` track workspace inside the broader `Vibe Studio` direction
 - a reusable engine extraction workspace
 
 That changes the default decision filter inside this repo.
@@ -37,6 +44,7 @@ That changes the default decision filter inside this repo.
 Inside this workspace, do not optimize for preserving every spec-era product decision.
 Optimize for:
 - prompt-first product clarity
+- prompt-structuring learning value
 - reusable engine boundaries
 - visible explanation of prompt-structuring decisions
 - keeping only the compatibility surface that still protects engine validation
@@ -47,6 +55,11 @@ The primary user experience in this repo should now be:
 - one prompt-oriented output
 - one explanation surface that shows why the prompt took its final shape
 
+But the longer-term identity of that experience should be:
+- a prompt-structuring training loop, not only a prompt-generation utility
+- a surface that helps users learn when and why structure changes
+- a bridge toward the broader `Vibe Studio` learning platform
+
 The product should visibly answer:
 - what prompt was produced
 - whether the engine used pass-through or refinement
@@ -55,6 +68,11 @@ The product should visibly answer:
 - why that rewrite mode was chosen in plain language
 - whether the prompt looks ready to use or needs review first
 - what validation or warning signals influenced the result
+
+Over time, the product should also make it easier for users to learn:
+- when a technique is appropriate
+- what changed between a raw vibe and a structured prompt
+- how to reuse or adapt those structures themselves later
 
 The product should no longer be organized primarily around:
 - spec artifacts as the main output
@@ -97,12 +115,14 @@ What is still transitional:
 ## Current Mission Of This Workspace
 The current mission is no longer "make the best spec app."
 It is:
-- turn the copied repo into a credible `Vibe-to-Prompt` product workspace
+- turn the copied repo into a credible `Vibe-to-Prompt` learning-track workspace
 - keep the engine reusable for later renderers
 - keep spec-era surfaces only where they still provide compatibility or regression value
+- clarify how this repo could later fit under the broader `Vibe Studio` learning-platform direction
 
 Prioritize:
 - prompt-first UX clarity
+- visible learning value around prompt structuring
 - explanation-first result surfaces
 - shared runtime contracts that future renderers can consume
 - validation that explains the produced prompt
@@ -121,6 +141,8 @@ The product should converge on:
 - one prompt result surface
 - one explanation layer
 
+This should be treated as the current delivery shape for the prompt track, not as proof that the long-term platform must stay a single-output generator product.
+
 ### 2. Explanation must be first-class
 The value is not only the final prompt.
 The value is also the visible rationale:
@@ -132,6 +154,17 @@ The value is also the visible rationale:
 - short rewrite rationale summary with supporting reasons
 - short validation-readiness summary with supporting reasons
 - user-readable warning language when the prompt needs review
+
+That explanation layer should increasingly function as training material, not only as post-hoc justification for engine behavior.
+
+After generation succeeds, the result-stage hierarchy should remain:
+- final prompt first
+- immediate ready-to-use vs review-first judgment next
+- immediate follow-up action near that judgment when review is needed
+- short rewrite-why summary before deeper trace details
+- source input, technique trace, selection signals, and validation notes as secondary context
+
+This should still feel like one explanation surface around one prompt result, not several competing outputs.
 
 ### 3. Transitional compatibility is allowed
 It is acceptable for the engine to keep using spec-shaped normalization internally for now.

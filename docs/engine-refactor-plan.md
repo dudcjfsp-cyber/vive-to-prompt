@@ -1,12 +1,13 @@
 ﻿# Engine Refactor Plan
 
 ## Goal
-Refactor the engine only as far as needed to support a real `Vibe-to-Prompt` product direction without breaking the remaining compatibility harnesses.
+Refactor the engine only as far as needed to support a real `Vibe-to-Prompt` learning-track direction inside the broader `Vibe Studio` vision without breaking the remaining compatibility harnesses.
 
 ## Workspace Definition
 This copied repository is no longer tracking the original `Vibe-to-Spec V2` product-validation lane.
 It is now tracking two linked goals:
 - prompt-first product transition
+- prompt-structuring learning-track clarification
 - reusable engine extraction for future renderers
 
 The spec renderer and spec app remain useful here, but only as:
@@ -191,7 +192,7 @@ That stop signal is now much closer than it was before the prompt renderer exist
 Choose only one of these in a new thread:
 1. make prompt question metadata consumption explicit at one thin UI/controller boundary
 2. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-3. only if a broader product decision is truly needed, redefine the result-stage information architecture in a new thread rather than continuing the same surface-polish lane
+3. only if a genuinely new product misunderstanding appears after the current hierarchy rule, reopen the broader result-stage information architecture boundary
 
 Do not mix both unless there is a direct blocker.
 

@@ -7,11 +7,16 @@
 
 ## Current Working Definition
 This repository is now best understood as:
-- a `Vibe-to-Prompt` product workspace
+- a `Vibe-to-Prompt` learning-track workspace
 - a reusable engine extraction workspace copied from `Vibe-to-Spec V2`
 
 The original working `Vibe-to-Spec V2` repository is already preserved elsewhere.
 This repo no longer needs to protect every old spec-era surface.
+
+The current discussion also clarified a stronger long-term reading:
+- `Vibe Studio` should likely be interpreted as the umbrella learning platform
+- `Vibe-to-Spec`, `Vibe-to-Prompt`, and `Vibe-to-Architecture` are better understood as focused learning tracks or modules inside that platform
+- this repo is therefore not only a prompt-generation workspace; it is a candidate proving ground for the prompt-structuring learning track
 
 ## What Changed In This Session Arc
 ### Engine boundary work completed
@@ -77,6 +82,12 @@ This repo no longer needs to protect every old spec-era surface.
 - prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
 - prompt-first validation consumption is now centralized behind one app-side adapter instead of split between raw `prompt_output.validation` and raw `validation_report` reads
 - the active prompt-first explanation cards now read more naturally in Korean without changing engine behavior
+- the broader success-state result hierarchy is now better defined as:
+  - final prompt first
+  - use/review judgment next
+  - immediate follow-up questions near that judgment when review is needed
+  - rewrite-why summary before lower trace cards
+  - source input, techniques, selection signals, and validation notes as supporting trace
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -107,14 +118,23 @@ The app should now be understood as:
 - explanation-first in its result surface
 - still carrying hidden compatibility paths for spec-oriented internals
 
+But this should now be held alongside an unresolved strategic question:
+- whether the long-term identity is "prompt generator"
+- or "prompt-structuring learning track inside Vibe Studio"
+
+The current discussion leans strongly toward the latter.
+
 The main user-facing promise is now:
 - "Give one natural-language input and receive a final prompt plus the reason it was structured that way, and whether it is ready to use or needs review first."
 
+That promise is still accurate for the current repo state.
+It may no longer be the best long-term top-level product declaration.
+
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. make prompt question metadata consumption explicit at one thin UI/controller boundary using `intent_key` / `source` / `reason_code`
-2. remove one remaining real spec-shaped engine blocker upstream of prompt rendering only if product work does not reveal a bigger blocker
-3. if needed, open a clearly new thread to redefine broader result-stage information architecture rather than continuing the same hierarchy-polish lane
+1. explicitly redefine the long-term product declaration around `Vibe Studio` as a learning platform and `Vibe-to-Prompt` as a learning track
+2. decide whether prompt techniques should become first-class teachable surfaces rather than only result metadata
+3. only after that strategic clarification, choose whether prompt question metadata or one remaining upstream engine blocker is truly the best next boundary
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -152,7 +172,7 @@ Thread goal:
 - Prefer the next boundary candidate in this order:
   1. prompt question metadata consumption boundary
   2. prompt renderer upstream validation-ready handoff boundary
-  3. broader result-stage information architecture only if it is clearly a new decision boundary
+  3. broader result-stage information architecture only if a genuinely new mismatch appears after the current hierarchy rule
 - Choose exactly one boundary.
 - Do not mix both.
 
@@ -166,7 +186,7 @@ Thread entry rule:
 
 Boundary guidance:
 - If you choose the question metadata boundary, keep it thin: the goal is to make the app read question metadata more explicitly, not to do copy polish or broad UI redesign.
-- If you choose a broader result-stage architecture boundary, treat it as a genuinely new product decision thread, not a continuation of the previous hierarchy-polish work.
+- The broader result-stage architecture boundary has now been used to clarify primary output vs immediate action vs supporting trace. Do not reopen it for copy-only polish.
 - If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
 
 At the end, always summarize:

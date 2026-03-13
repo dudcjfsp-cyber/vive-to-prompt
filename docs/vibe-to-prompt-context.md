@@ -12,16 +12,23 @@ It narrows the working interpretation for this repository right now.
 This repository started as a copy of the already-working `Vibe-to-Spec V2` codebase.
 
 It is now being used as:
-- a `Vibe-to-Prompt` product workspace
+- a `Vibe-to-Prompt` learning-track workspace
 - a reusable engine extraction workspace
 
 The original `Vibe-to-Spec V2` repository is already preserved elsewhere and is not the main risk surface here.
+
+Within the broader long-term direction, this repo should now be read as:
+- one track inside the larger `Vibe Studio` learning-platform direction
+- not merely another standalone prompt-generation tool
 
 ## Current Product Intent
 The target experience is now:
 - one natural-language input box
 - one prompt-oriented output as the primary result
 - visible explanation of how and why the prompt was structured
+
+That current shape should be treated as a delivery mechanism for the prompt track, not the final identity of the track itself.
+The deeper goal is to help users learn prompt structuring, not only to hand them a finished prompt.
 
 The product should answer:
 - what prompt was produced
@@ -30,6 +37,11 @@ The product should answer:
 - why pass-through or refinement was chosen
 - whether the prompt looks ready to use or needs review first
 - what validation or warning signals influenced the result
+
+The product should increasingly also answer:
+- what changed from the original vibe
+- when a technique is worth reusing manually
+- how a user can internalize that structure instead of depending on the engine forever
 
 ## UX Direction
 ### Input
@@ -42,6 +54,22 @@ The product should answer:
 - prompt metadata visible by default
 - explanation-oriented UI preferred over spec artifact panels
 
+### Result-Stage Hierarchy
+After generation, the prompt-first surface should answer in this order:
+1. what final prompt the user can actually copy
+2. whether it is ready to use or needs review first
+3. what the user should do immediately next when review is needed
+4. why this rewrite mode was chosen
+5. deeper trace context such as source input, techniques, selection signals, and validation notes
+
+This means the broader result-stage contract is not only "prompt first."
+It is also:
+- one primary output
+- one immediate trust/action layer
+- one supporting explanation layer
+
+Secondary trace information is still valuable, but it should not outrank the prompt itself or the next action the user needs to take.
+
 ### Explanation Layer
 The educational value should come from:
 - rewrite mode
@@ -51,6 +79,8 @@ The educational value should come from:
 - short explanation of whether the prompt is ready to use or needs review first
 - short rationale for the produced prompt shape
 - human-readable selection-signal summaries
+
+Over time, techniques should be teachable objects in the experience, not only hidden engine decisions surfaced after generation.
 
 It should not depend on:
 - spec markdown as the main teaching surface
@@ -62,8 +92,11 @@ The engine is still allowed to use transitional spec-shaped normalization intern
 
 But the product-facing goal is now:
 - prompt-first output
+- prompt-structuring training value
 - renderer-neutral engine handoff underneath
 - shrinking exposure of spec-only contracts in app code
+
+The engine should increasingly be treated as an assistive layer for feedback, comparison, and guided structuring rather than the sole star of the product experience.
 
 Transitional rule:
 - spec outputs may remain as temporary harness or compatibility data
@@ -104,6 +137,19 @@ As of 2026-03-13:
 So the repository is currently best described as:
 - `prompt-first transition substantially in place`
 - not yet fully free of spec-shaped internals
+- still earlier than the broader `Vibe Studio` learning-platform framing
+
+## Emerging Strategic Interpretation
+The current discussion suggests a stronger long-term reading:
+- `Vibe Studio` is the umbrella learning platform
+- `Vibe-to-Prompt` is a prompt-structuring learning track within that platform
+- auto-generated prompt output is useful, but it should not remain the only or final expression of value
+
+This does not yet force an immediate UI rewrite in this repo.
+It does change the interpretation of future work:
+- more weight should go to reusable learning surfaces
+- more weight should go to teachable technique presentation
+- less weight should go to acting like a black-box prompt tool that simply emits a final answer
 
 ## Current Thread: Good Work To Continue
 These remain valid in the same thread if they directly support the current product intent.
@@ -171,6 +217,7 @@ Current repo assumptions:
 - The current product goal is one input, one final prompt result, and one explanation layer.
 - Spec-shaped normalization and some compatibility paths still remain internally.
 - The previous thread already surfaced rewrite rationale summary and validation summary in the main UI.
+- The current result-stage hierarchy already treats final prompt, use/review judgment, immediate follow-up action, and rewrite-why as the primary reading path.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
@@ -180,13 +227,13 @@ Thread goal:
   - Does it reduce a real remaining engine blocker?
 - If it is mostly internal cleanup, stop and explain why.
 - Prefer the next boundary candidate in this order:
-  1. result-stage primary information hierarchy
-  2. prompt question metadata consumption boundary
-  3. prompt renderer upstream validation-ready handoff boundary
+  1. prompt question metadata consumption boundary
+  2. prompt renderer upstream validation-ready handoff boundary
+  3. broader result-stage information architecture only if a genuinely new mismatch appears after the current hierarchy rule
 - Pick exactly one boundary and resolve only that.
 
 Boundary rule:
-- If you choose the result-stage hierarchy boundary, keep it focused on primary vs secondary information after generation. Do not redesign the whole panel.
+- Do not reopen the result-stage hierarchy boundary for copy-only polish once prompt, trust/action, and rewrite-why are already the primary reading order.
 - If you choose the question metadata boundary, keep it thin: make the app read `intent_key` / `source` / `reason_code` more explicitly without turning the thread into copy polish or broad UI redesign.
 - Only inspect the upstream validation-ready handoff if the metadata boundary does not pass the entry rule.
 
