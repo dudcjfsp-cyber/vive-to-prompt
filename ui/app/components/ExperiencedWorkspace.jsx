@@ -249,8 +249,8 @@ export default function ExperiencedWorkspace({
     : (state.selectedModel || state.modelOptions[0] || state.activeModel || '선택 안 됨');
 
   const summaryModel = useMemo(
-    () => buildExperiencedSummaryModel({ derived }),
-    [derived.clarifyLoop, derived.promptOutput, derived.standardOutput],
+    () => buildExperiencedSummaryModel({ derived, stateVibe: state.vibe }),
+    [derived.clarifyLoop, derived.promptOutput, state.vibe],
   );
   const {
     topWarnings,

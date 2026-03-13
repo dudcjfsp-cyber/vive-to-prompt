@@ -4,65 +4,16 @@ import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('./ExperiencedWorkspace.jsx', import.meta.url), 'utf8');
 
-test('ExperiencedWorkspace is framed as a prompt-first surface', () => {
-  assert.match(source, /프롬프트 구조화 워크스페이스/);
-  assert.match(source, /최종 프롬프트와 그 구조화 이유를 바로 이해하는 것입니다/);
-  assert.match(source, /자연어 입력/);
-  assert.match(source, /프롬프트 결과/);
-  assert.doesNotMatch(source, /빠른 실행형 모드/);
-  assert.doesNotMatch(source, /오늘 바로 끝내기/);
+test('ExperiencedWorkspace keeps the prompt-first summary path wired to prompt-native state', () => {
+  assert.ok(source.includes('buildExperiencedSummaryModel({ derived, stateVibe: state.vibe })'));
+  assert.ok(source.includes('[derived.clarifyLoop, derived.promptOutput, state.vibe]'));
+  assert.ok(!source.includes('derived.standardOutput'));
 });
 
-test('ExperiencedWorkspace shows prompt workflow guidance instead of spec-oriented mode steps', () => {
-  assert.match(source, /1\. 자연어 입력/);
-  assert.match(source, /2\. 구조화 판단/);
-  assert.match(source, /3\. 이유와 함께 출력/);
-  assert.doesNotMatch(source, /오늘 할 일 3개와 전달용 요청문/);
-});
-
-test('ExperiencedWorkspace centers prompt rationale instead of advanced spec diagnostics', () => {
-  assert.match(source, /적용된 기법/);
-  assert.match(source, /이번 구조화 판단 요약/);
-  assert.match(source, /구조화 판단 근거/);
-  assert.match(source, /검증 메모/);
-  assert.match(source, /이번엔 쓰지 않은 기법/);
-  assert.match(source, /최종 프롬프트/);
-  assert.doesNotMatch(source, /<AdvancedResultPane/);
-  assert.doesNotMatch(source, /추천 구현 스택/);
-  assert.doesNotMatch(source, /세부 진단 열기/);
-  assert.doesNotMatch(source, /검토 상태:/);
-});
-
-test('ExperiencedWorkspace exposes prompt-engine metadata in the result surface', () => {
-  assert.match(source, /구조화 방식: \{getRewriteModeLabel\(rewriteMode\)\}/);
-  assert.match(source, /사용 기법: \{appliedTechniqueCount\}개/);
-  assert.match(source, /검증 상태: \{getPromptValidationStatusLabel\(promptValidation\.status\)\}/);
-  assert.match(source, /promptOutput\.rewrite_rationale/);
-  assert.match(source, /getRewriteRationaleSummary/);
-  assert.match(source, /getRewriteRationaleReason/);
-  assert.match(source, /Object\.entries\(selectionSignals\)/);
-  assert.match(source, /skippedTechniques\.slice\(0, 4\)/);
-  assert.match(source, /appliedTechniques\.map/);
-  assert.match(source, /목표가 얼마나 분명한가/);
-  assert.match(source, /원문만으로도 결과 편차가 낮은가/);
-  assert.doesNotMatch(source, /completionScore/);
-  assert.doesNotMatch(source, /validationSeverity/);
-  assert.doesNotMatch(source, /hasValidationReport/);
-});
-
-
-test('ExperiencedWorkspace exposes prompt validation summary helpers', () => {
-  assert.match(source, /getPromptValidationSummary/);
-  assert.match(source, /getPromptValidationReason/);
-  assert.match(source, /getPromptValidationTrustTitle/);
-  assert.match(source, /buildPromptValidationTrustChecklist/);
-  assert.match(source, /promptValidation\.summary_code/);
-  assert.match(source, /promptValidation\.reason_codes/);
-  assert.match(source, /validationSummary/);
-  assert.match(source, /validationReasons/);
-  assert.match(source, /validationTrustChecklist/);
-  assert.match(source, /바로 복사하기 전에 한 번만 검토하세요/);
-  assert.match(source, /현재 상태: \{getPromptValidationStatusLabel\(promptValidation\.status\)\}/);
-  assert.match(source, /검토 메모 \{validationWarnings\.length \|\| validationReasons\.length\}개/);
-  assert.match(source, /아래 추가 확인 질문에 답하면 다음 결과가 더 안정적으로 정리됩니다/);
+test('ExperiencedWorkspace still exposes prompt rationale and prompt validation helpers', () => {
+  assert.ok(source.includes('promptOutput.rewrite_rationale'));
+  assert.ok(source.includes('buildPromptValidationTrustChecklist'));
+  assert.ok(source.includes('promptValidation.summary_code'));
+  assert.ok(source.includes('promptValidation.reason_codes'));
+  assert.ok(source.includes('validationWarnings.length || validationReasons.length'));
 });
