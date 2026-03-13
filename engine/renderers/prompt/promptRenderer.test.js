@@ -191,6 +191,20 @@ test('prompt validation marks empty prompt as review_before_use', () => {
     '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.',
     '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
   ]);
+  assert.deepEqual(result.suggested_question_details, [
+    {
+      question: '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.',
+      intent_key: 'deliverable',
+      source: 'prompt_validation',
+      reason_code: 'empty_prompt',
+    },
+    {
+      question: '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
+      intent_key: 'source_vibe',
+      source: 'prompt_validation',
+      reason_code: 'loses_source_vibe',
+    },
+  ]);
 });
 
 test('prompt validation marks refined prompt without technique trace as review_before_use', () => {
@@ -258,6 +272,25 @@ test('prompt validation exposes prompt-first clarification questions for review-
     'Who is the email for?',
     '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
     '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
+  ]);
+  assert.deepEqual(result.suggested_question_details, [
+    {
+      question: 'Who is the email for?',
+      intent_key: 'audience',
+      source: 'intent_ir',
+    },
+    {
+      question: '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+      intent_key: 'schedule',
+      source: 'missing_information',
+      missing_information: 'launch date',
+    },
+    {
+      question: '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
+      intent_key: 'structure',
+      source: 'prompt_validation',
+      reason_code: 'missing_technique_trace',
+    },
   ]);
   assert.equal(
     result.summary,
@@ -343,5 +376,24 @@ test('prompt validation translates upstream validation blockers into prompt-nati
     '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
     '역할별 권한이나 허용 범위를 이 프롬프트에 반영해야 하나요?',
     '완료를 어떻게 판단할지 성공 기준을 알려주세요.',
+  ]);
+  assert.deepEqual(result.suggested_question_details, [
+    {
+      question: '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+      intent_key: 'success_criteria',
+      source: 'prompt_validation_signal',
+      reason_code: 'validation_missing_success_criteria',
+    },
+    {
+      question: '역할별 권한이나 허용 범위를 이 프롬프트에 반영해야 하나요?',
+      intent_key: 'permissions',
+      source: 'prompt_validation_signal',
+      reason_code: 'validation_missing_permissions',
+    },
+    {
+      question: '완료를 어떻게 판단할지 성공 기준을 알려주세요.',
+      intent_key: 'success_criteria',
+      source: 'validation_report',
+    },
   ]);
 });

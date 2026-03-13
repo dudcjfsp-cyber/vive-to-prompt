@@ -80,3 +80,92 @@ test('buildPromptTransmuteResult returns prompt output on top of the shared runt
   assert.equal(sharedRuntimeHandoff.model, 'prompt-model');
   assert.equal(sharedRuntimeHandoff.intentIr, intentIr);
 });
+
+test('buildPromptTransmuteResult preserves prompt-native review validation metadata through the pipeline handoff', () => {
+  const spec = {
+    summary: 'Prepare a reusable launch rollout prompt',
+    problem_frame: {
+      who: '',
+      when: 'before launch week',
+      what: 'prepare a reusable launch rollout prompt',
+      why: 'align launch execution',
+      success: '',
+    },
+    roles: [],
+    features: { must: [], nice: [] },
+    input_fields: [],
+    permissions: [],
+    ambiguities: {
+      missing: ['launch date'],
+      questions: ['Who is responsible for the launch?'],
+    },
+    risks: ['Avoid unclear ownership'],
+  };
+  const validationReport = {
+    severity: 'high',
+    needs_clarification: true,
+    warning_count: 3,
+    blocking_issue_count: 2,
+    blocking_issues: [
+      { id: 'missing_problem_who', message: '문제정의 5칸: 누가가 비어 있습니다.' },
+      { id: 'missing_problem_success', message: '문제정의 5칸: 성공기준이 비어 있습니다.' },
+    ],
+    warnings: [
+      '문제정의 5칸: 누가가 비어 있습니다.',
+      '문제정의 5칸: 성공기준이 비어 있습니다.',
+      '권한 규칙이 비어 있습니다.',
+    ],
+    suggested_questions: [
+      '누가 이 기능을 가장 자주 사용하는지 알려주세요.',
+      '완료를 어떻게 판단할지 성공 기준을 알려주세요.',
+      '역할별로 조회, 생성, 수정, 삭제 권한 차이가 필요한지 알려주세요.',
+    ],
+  };
+
+  const { result } = buildPromptTransmuteResult({
+    raw: {
+      model: 'prompt-model',
+    },
+    fallbackModel: 'fallback-model',
+    sourceVibe: 'Need a launch rollout prompt for the team.',
+    intentFieldMap: fieldMap,
+    normalizeStandardOutput: () => ({ spec, validationReport }),
+    renderer: createPromptRenderer(),
+  });
+
+  assert.equal(result.prompt_output.validation.status, 'review');
+  assert.equal(result.prompt_output.validation.summary_code, 'review_before_use');
+  assert.equal(
+    result.prompt_output.validation.summary,
+    '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.',
+  );
+  assert.deepEqual(result.prompt_output.validation.reason_codes, [
+    'validation_missing_audience_or_role',
+    'validation_missing_success_criteria',
+    'validation_missing_permissions',
+  ]);
+  assert.deepEqual(result.prompt_output.validation.suggested_questions, [
+    'Who is responsible for the launch?',
+    '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+    '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+  ]);
+  assert.deepEqual(result.prompt_output.validation.suggested_question_details, [
+    {
+      question: 'Who is responsible for the launch?',
+      intent_key: 'audience',
+      source: 'intent_ir',
+    },
+    {
+      question: '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+      intent_key: 'schedule',
+      source: 'missing_information',
+      missing_information: 'launch date',
+    },
+    {
+      question: '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+      intent_key: 'success_criteria',
+      source: 'prompt_validation_signal',
+      reason_code: 'validation_missing_success_criteria',
+    },
+  ]);
+});

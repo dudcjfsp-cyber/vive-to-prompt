@@ -47,6 +47,10 @@ test('buildGeneratedResultPlan uses prompt validation questions when prompt outp
         validation: {
           needs_clarification: true,
           suggested_questions: ['Who is the audience?', 'What format is required?'],
+          suggested_question_details: [
+            { question: 'Who is the audience?', intent_key: 'audience', source: 'prompt_validation' },
+            { question: 'What format is required?', intent_key: 'output_format', source: 'prompt_validation' },
+          ],
         },
       },
     },
@@ -60,6 +64,10 @@ test('buildGeneratedResultPlan uses prompt validation questions when prompt outp
   assert.equal(plan.validationReport?.source, 'prompt_output.validation');
   assert.equal(plan.validationReport?.needs_clarification, true);
   assert.deepEqual(plan.validationReport?.suggested_questions, ['Who is the audience?', 'What format is required?']);
+  assert.deepEqual(plan.validationReport?.suggested_question_details, [
+    { question: 'Who is the audience?', intent_key: 'audience', source: 'prompt_validation' },
+    { question: 'What format is required?', intent_key: 'output_format', source: 'prompt_validation' },
+  ]);
 });
 
 test('buildGeneratedResultPlan prioritizes prompt-native clarification questions over spec fallback questions', () => {
@@ -134,6 +142,10 @@ test('buildGeneratedResultPlan persists prompt-native validation as the main loo
           reason_details: ['핵심 요구사항이 아직 덜 고정돼 있습니다.'],
           needs_clarification: true,
           suggested_questions: ['Prompt question 1', 'Prompt question 2'],
+          suggested_question_details: [
+            { question: 'Prompt question 1', intent_key: 'requirements', source: 'prompt_output.validation', reason_code: 'validation_missing_requirements' },
+            { question: 'Prompt question 2', intent_key: 'audience', source: 'prompt_output.validation' },
+          ],
         },
       },
     },
@@ -152,6 +164,11 @@ test('buildGeneratedResultPlan persists prompt-native validation as the main loo
     'Prompt question 1',
     'Prompt question 2',
     'Spec question 1',
+  ]);
+  assert.deepEqual(plan.validationReport?.suggested_question_details, [
+    { question: 'Prompt question 1', intent_key: 'requirements', source: 'prompt_output.validation', reason_code: 'validation_missing_requirements' },
+    { question: 'Prompt question 2', intent_key: 'audience', source: 'prompt_output.validation' },
+    { question: 'Spec question 1', intent_key: 'general', source: 'validation_report' },
   ]);
   assert.deepEqual(plan.validationReport?.upstream_validation, {
     severity: 'high',

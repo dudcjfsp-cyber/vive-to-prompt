@@ -20,10 +20,64 @@ function toPositiveNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function normalizeSuggestedQuestionDetails(value, fallbackSource = 'prompt_validation') {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => isPlainObject(item))
+    .map((item) => {
+      const question = toText(item.question);
+      if (!question) return null;
+      const normalized = {
+        question,
+        intent_key: toText(item.intent_key, 'general'),
+        source: toText(item.source, fallbackSource),
+      };
+      const reasonCode = toText(item.reason_code);
+      if (reasonCode) normalized.reason_code = reasonCode;
+      const missingInformation = toText(item.missing_information);
+      if (missingInformation) normalized.missing_information = missingInformation;
+      return normalized;
+    })
+    .filter(Boolean);
+}
+
+function mergeSuggestedQuestionDetails({
+  promptQuestionDetails = [],
+  validationQuestionDetails = [],
+  suggestedQuestions = [],
+} = {}) {
+  const merged = [];
+  const pushDetail = (detail) => {
+    if (!isPlainObject(detail)) return;
+    const question = toText(detail.question);
+    if (!question || merged.some((item) => item.question === question)) return;
+    merged.push(detail);
+  };
+
+  normalizeSuggestedQuestionDetails(promptQuestionDetails, 'prompt_output.validation').forEach(pushDetail);
+  normalizeSuggestedQuestionDetails(validationQuestionDetails, 'validation_report').forEach(pushDetail);
+
+  toStringArray(suggestedQuestions).forEach((question) => {
+    if (merged.some((item) => item.question === question)) return;
+    merged.push({
+      question,
+      intent_key: 'general',
+      source: merged.length === 0 ? 'prompt_output.validation' : 'validation_report',
+    });
+  });
+
+  return merged.slice(0, 3);
+}
+
 function buildLoopValidationContract({ promptValidation = null, validationReport = null, suggestedQuestions = [] } = {}) {
   const safePromptValidation = isPlainObject(promptValidation) ? promptValidation : null;
   const safeValidationReport = isPlainObject(validationReport) ? validationReport : null;
   const normalizedQuestions = toStringArray(suggestedQuestions).slice(0, 3);
+  const mergedQuestionDetails = mergeSuggestedQuestionDetails({
+    promptQuestionDetails: safePromptValidation?.suggested_question_details,
+    validationQuestionDetails: safeValidationReport?.suggested_question_details,
+    suggestedQuestions: normalizedQuestions,
+  });
 
   if (safePromptValidation) {
     const promptStatus = toText(safePromptValidation.status, 'ready');
@@ -43,6 +97,7 @@ function buildLoopValidationContract({ promptValidation = null, validationReport
       ),
       blocking_issue_count: toPositiveNumber(safeValidationReport?.blocking_issue_count),
       suggested_questions: normalizedQuestions,
+      suggested_question_details: mergedQuestionDetails,
       needs_clarification: typeof safePromptValidation.needs_clarification === 'boolean'
         ? safePromptValidation.needs_clarification
         : normalizedQuestions.length > 0,
@@ -65,6 +120,7 @@ function buildLoopValidationContract({ promptValidation = null, validationReport
     ...safeValidationReport,
     source: 'validation_report',
     suggested_questions: normalizedQuestions,
+    suggested_question_details: mergedQuestionDetails,
     needs_clarification: typeof safeValidationReport.needs_clarification === 'boolean'
       ? safeValidationReport.needs_clarification
       : normalizedQuestions.length > 0,

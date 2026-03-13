@@ -34,6 +34,7 @@ const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
     warning: '이 프롬프트가 맞춰야 하는 대상이나 역할 정보가 아직 덜 고정돼 있습니다.',
     reason_detail: '누구를 위한 프롬프트인지, 어떤 역할을 기준으로 답해야 하는지가 아직 충분히 분명하지 않습니다.',
     question: '이 프롬프트가 가장 먼저 맞춰야 하는 대상이나 역할은 누구인가요?',
+    intent_key: 'audience',
     question_matcher: /(who|audience|target|user|reader|customer|recipient|role|persona|누구|대상|사용자|독자|고객|수신자|역할)/i,
   },
   task_definition_missing: {
@@ -43,6 +44,7 @@ const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
     warning: '이 프롬프트가 정확히 시켜야 할 작업이 아직 덜 구체적입니다.',
     reason_detail: '최종 프롬프트가 수행해야 할 핵심 작업이나 요청 문장이 아직 충분히 선명하지 않습니다.',
     question: '이 프롬프트로 정확히 어떤 작업을 수행하게 하고 싶나요?',
+    intent_key: 'task_definition',
     question_matcher: /(task|job|work|request|what|무엇|작업|요청|기능)/i,
   },
   success_or_quality_bar_missing: {
@@ -52,6 +54,7 @@ const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
     warning: '좋은 결과를 판단할 성공 기준이 아직 약합니다.',
     reason_detail: '이 프롬프트의 결과가 충분히 좋은지 판단할 기준이나 확인 포인트가 아직 부족합니다.',
     question: '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+    intent_key: 'success_criteria',
     question_matcher: /(success|quality|criteria|check|test|검증|성공|기준|확인|테스트)/i,
   },
   requirements_or_input_missing: {
@@ -61,6 +64,7 @@ const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
     warning: '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건이 아직 덜 드러나 있습니다.',
     reason_detail: '결과 품질을 좌우하는 필수 요구사항이나 입력 조건이 아직 충분히 고정되지 않았습니다.',
     question: '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건은 무엇인가요?',
+    intent_key: 'requirements',
     question_matcher: /(must|required|requirement|input|field|constraint|필수|요구|입력|조건|제약)/i,
   },
   permission_rules_missing: {
@@ -70,9 +74,67 @@ const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
     warning: '역할별 권한이나 허용 범위를 반영해야 하는지 아직 분명하지 않습니다.',
     reason_detail: '이 프롬프트가 역할별 허용 범위나 권한 차이를 반영해야 하는지 아직 고정되지 않았습니다.',
     question: '역할별 권한이나 허용 범위를 이 프롬프트에 반영해야 하나요?',
+    intent_key: 'permissions',
     question_matcher: /(permission|access|approve|delete|role|권한|허용|승인|삭제|역할)/i,
   },
 });
+
+function inferPromptQuestionIntentKey(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return 'general';
+  if (/(who|audience|target user|user|reader|customer|recipient|persona|누구|대상|사용자|독자|고객|수신자|역할)/i.test(normalized)) return 'audience';
+  if (/(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i.test(normalized)) return 'schedule';
+  if (/(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i.test(normalized)) return 'output_format';
+  if (/(tone|style|voice|톤|말투|문체)/i.test(normalized)) return 'tone';
+  if (/(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i.test(normalized)) return 'length';
+  if (/(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i.test(normalized)) return 'next_action';
+  if (/(context|background|problem|situation|배경|맥락|문제|상황)/i.test(normalized)) return 'context';
+  if (/(goal|success|outcome|objective|성공|기준|목표|결과)/i.test(normalized)) return 'success_criteria';
+  if (/(task|job|work|request|what|무엇|작업|요청|기능)/i.test(normalized)) return 'task_definition';
+  if (/(must|required|requirement|input|field|constraint|필수|요구|입력|조건|제약)/i.test(normalized)) return 'requirements';
+  if (/(permission|access|approve|delete|권한|허용|승인|삭제)/i.test(normalized)) return 'permissions';
+  if (/(original request|source vibe|원문|의도)/i.test(normalized)) return 'source_vibe';
+  if (/(structure|format|형식|구조)/i.test(normalized)) return 'structure';
+  return 'general';
+}
+
+function buildSuggestedQuestionDetail({
+  question,
+  intentKey = '',
+  source = '',
+  reasonCode = '',
+  missingInformation = '',
+} = {}) {
+  const normalizedQuestion = toText(question);
+  if (!normalizedQuestion) return null;
+
+  const detail = {
+    question: normalizedQuestion,
+    intent_key: toText(intentKey) || inferPromptQuestionIntentKey(normalizedQuestion),
+    source: toText(source) || 'prompt_validation',
+  };
+
+  const normalizedReasonCode = toText(reasonCode);
+  if (normalizedReasonCode) {
+    detail.reason_code = normalizedReasonCode;
+  }
+
+  const normalizedMissingInformation = toText(missingInformation);
+  if (normalizedMissingInformation) {
+    detail.missing_information = normalizedMissingInformation;
+  }
+
+  return detail;
+}
+
+function pushSuggestedQuestionDetail(list, detail, matcher = null) {
+  const safeDetail = isPlainObject(detail) ? detail : null;
+  const question = toText(safeDetail?.question);
+  if (!question) return;
+  if (matcher && list.some((item) => matcher.test(toText(item?.question)))) return;
+  if (list.some((item) => toText(item?.question) === question)) return;
+  list.push(safeDetail);
+}
 
 function toLevel(score) {
   if (score >= 2) return 'high';
@@ -405,6 +467,14 @@ function collectPromptNativeValidationSignals(validationReport = {}) {
     warnings: signals.map((signal) => signal.warning),
     reason_details: signals.map((signal) => signal.reason_detail),
     questions: signals.map((signal) => signal.question),
+    question_details: signals
+      .map((signal) => buildSuggestedQuestionDetail({
+        question: signal.question,
+        intentKey: signal.intent_key,
+        source: 'prompt_validation_signal',
+        reasonCode: signal.reason_code,
+      }))
+      .filter(Boolean),
   };
 }
 
@@ -421,19 +491,34 @@ function buildPromptClarificationQuestions({
   const clarificationQuestions = toStringArray(analysis.clarification_questions);
   const missingInformation = toStringArray(analysis.missing_information);
   const fallbackQuestions = toStringArray(validationReport.suggested_questions);
-  const translatedValidationQuestions = toStringArray(promptNativeValidationSignals?.questions);
-  const suggestions = [];
+  const translatedValidationQuestionDetails = Array.isArray(promptNativeValidationSignals?.question_details)
+    ? promptNativeValidationSignals.question_details
+    : [];
+  const suggestionDetails = [];
 
   if (reasonCodes.includes('empty_prompt')) {
-    pushUniqueText(suggestions, '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.');
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question: '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.',
+      intentKey: 'deliverable',
+      source: 'prompt_validation',
+      reasonCode: 'empty_prompt',
+    }));
   }
 
   if (reasonCodes.includes('loses_source_vibe')) {
-    pushUniqueText(suggestions, '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.');
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question: '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
+      intentKey: 'source_vibe',
+      source: 'prompt_validation',
+      reasonCode: 'loses_source_vibe',
+    }));
   }
 
   clarificationQuestions.slice(0, 3).forEach((question) => {
-    pushUniqueText(suggestions, question);
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question,
+      source: 'intent_ir',
+    }));
   });
 
   missingInformation.slice(0, 3).forEach((item) => {
@@ -441,99 +526,151 @@ function buildPromptClarificationQuestions({
     if (!normalized) return;
 
     if (/(audience|target user|user|reader|customer|recipient|persona|사용자|대상|독자|고객|수신자|역할)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '이 프롬프트가 가장 먼저 맞춰야 하는 대상은 누구인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '이 프롬프트가 가장 먼저 맞춰야 하는 대상은 누구인가요?',
+          intentKey: 'audience',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(who|audience|target|user|reader|customer|recipient|role|persona|누구|대상|사용자|독자|고객|수신자|역할)/i,
       );
       return;
     }
 
     if (/(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+          intentKey: 'schedule',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i,
       );
       return;
     }
 
     if (/(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '최종 응답 형식은 무엇으로 고정하면 될까요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '최종 응답 형식은 무엇으로 고정하면 될까요?',
+          intentKey: 'output_format',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i,
       );
       return;
     }
 
     if (/(tone|style|voice|톤|말투|문체)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '원하는 톤이나 말투는 무엇인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '원하는 톤이나 말투는 무엇인가요?',
+          intentKey: 'tone',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(tone|style|voice|톤|말투|문체)/i,
       );
       return;
     }
 
     if (/(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '분량이나 길이 제한은 어느 정도인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '분량이나 길이 제한은 어느 정도인가요?',
+          intentKey: 'length',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i,
       );
       return;
     }
 
     if (/(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '이 프롬프트가 유도해야 하는 다음 행동은 무엇인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '이 프롬프트가 유도해야 하는 다음 행동은 무엇인가요?',
+          intentKey: 'next_action',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i,
       );
       return;
     }
 
     if (/(context|background|problem|situation|배경|맥락|문제|상황)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '이 프롬프트가 전제로 삼아야 하는 핵심 맥락은 무엇인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '이 프롬프트가 전제로 삼아야 하는 핵심 맥락은 무엇인가요?',
+          intentKey: 'context',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(context|background|problem|situation|배경|맥락|문제|상황)/i,
       );
       return;
     }
 
     if (/(goal|success|outcome|objective|목표|성공|결과)/i.test(normalized)) {
-      pushQuestionForTopic(
-        suggestions,
-        '이 프롬프트가 만족해야 하는 성공 기준은 무엇인가요?',
+      pushSuggestedQuestionDetail(
+        suggestionDetails,
+        buildSuggestedQuestionDetail({
+          question: '이 프롬프트가 만족해야 하는 성공 기준은 무엇인가요?',
+          intentKey: 'success_criteria',
+          source: 'missing_information',
+          missingInformation: normalized,
+        }),
         /(goal|success|outcome|objective|목표|성공|결과)/i,
       );
       return;
     }
 
-    pushUniqueText(suggestions, `'${normalized}'를 이 프롬프트에서 어떻게 확정하면 될까요?`);
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question: `'${normalized}'를 이 프롬프트에서 어떻게 확정하면 될까요?`,
+      source: 'missing_information',
+      missingInformation: normalized,
+    }));
   });
 
   if (reasonCodes.includes('missing_technique_trace')) {
-    pushUniqueText(suggestions, '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?');
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question: '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
+      intentKey: 'structure',
+      source: 'prompt_validation',
+      reasonCode: 'missing_technique_trace',
+    }));
   }
 
-  translatedValidationQuestions.slice(0, 3).forEach((question) => {
+  translatedValidationQuestionDetails.slice(0, 3).forEach((detail) => {
     const matchedSignalConfig = Object.values(PROMPT_NATIVE_VALIDATION_SIGNAL_MAP)
-      .find((signal) => signal.question === question);
-    pushQuestionForTopic(
-      suggestions,
-      question,
+      .find((signal) => signal.question === detail.question);
+    pushSuggestedQuestionDetail(
+      suggestionDetails,
+      detail,
       matchedSignalConfig?.question_matcher || null,
     );
   });
 
   fallbackQuestions.slice(0, 3).forEach((question) => {
-    pushUniqueText(suggestions, question);
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question,
+      source: 'validation_report',
+    }));
   });
 
-  return suggestions.slice(0, 3);
+  return suggestionDetails.slice(0, 3);
 }
 
 function buildPromptValidationNarrative({
@@ -682,9 +819,10 @@ export function buildPromptValidation({
     }
   }
 
-  const suggestedQuestions = warnings.length > 0
+  const suggestedQuestionDetails = warnings.length > 0
     ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes, promptNativeValidationSignals })
     : [];
+  const suggestedQuestions = suggestedQuestionDetails.map((detail) => detail.question);
   const narrative = buildPromptValidationNarrative({
     rewriteMode,
     appliedTechniques,
@@ -706,6 +844,7 @@ export function buildPromptValidation({
     preserves_source_vibe: preservesSourceVibe,
     needs_clarification: suggestedQuestions.length > 0,
     suggested_questions: suggestedQuestions,
+    suggested_question_details: suggestedQuestionDetails,
   };
 }
 
