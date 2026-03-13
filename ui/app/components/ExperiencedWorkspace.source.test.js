@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
@@ -44,7 +44,7 @@ test('ExperiencedWorkspace exposes prompt-engine metadata in the result surface'
   assert.match(source, /skippedTechniques\.slice\(0, 4\)/);
   assert.match(source, /appliedTechniques\.map/);
   assert.match(source, /목표가 얼마나 분명한가/);
-  assert.match(source, /원문을 거의 그대로 써도 되는가/);
+  assert.match(source, /원문만으로도 결과 편차가 낮은가/);
   assert.doesNotMatch(source, /completionScore/);
   assert.doesNotMatch(source, /validationSeverity/);
   assert.doesNotMatch(source, /hasValidationReport/);
@@ -66,4 +66,3 @@ test('ExperiencedWorkspace exposes prompt validation summary helpers', () => {
   assert.match(source, /검토 메모 \{validationWarnings\.length \|\| validationReasons\.length\}개/);
   assert.match(source, /아래 추가 확인 질문에 답하면 다음 결과가 더 안정적으로 정리됩니다/);
 });
-

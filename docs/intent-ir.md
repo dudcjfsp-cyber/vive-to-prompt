@@ -141,6 +141,9 @@ The prompt renderer currently uses the shared handoff to support:
 
 This means intent IR is already valuable beyond spec rendering, even before a deeper analysis rewrite.
 
+Renderer-level clarification guidance may also be derived from this handoff.
+For example, `prompt_output.validation.suggested_questions` can now be built from intent/analysis signals without moving that UI-facing metadata into the IR itself.
+
 ## Near-Term Boundary Rule
 Until analysis is split out earlier:
 - let renderers consume intent-shaped data through explicit handoffs

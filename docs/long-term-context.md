@@ -77,7 +77,7 @@ The reusable target shape is still:
 6. validation and feedback
 
 ## Current Engine Reality
-As of 2026-03-12 in this repo:
+As of 2026-03-13 in this repo:
 - spec-only facade logic has been separated into a spec facade
 - provider/model runtime has been separated into a shared runtime service
 - a shared renderer runtime handoff exists
@@ -183,7 +183,7 @@ If a proposed change solves a local issue but makes prompt-first direction less 
 If a proposed change improves prompt-first clarity or renderer reuse, it is likely aligned.
 
 ## Current Snapshot
-As of 2026-03-12:
+As of 2026-03-13:
 - prompt renderer exists and is tested
 - prompt runtime handoff exists and is tested
 - model runtime extraction exists and is tested
@@ -195,5 +195,7 @@ As of 2026-03-12:
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
 - prompt-first controller mode now requires actual `prompt_output` instead of silently synthesizing it from spec fallback results
 - prompt review-needed output can now surface prompt-native clarification questions that feed the clarify loop
+- technique names and technique explanations shown on the active prompt-first surface now read in Korean
+- the pass-through safety signal is now labeled in a way that better matches "result stability" rather than "the model can probably handle it"
 - compatibility spec paths still exist beneath the surface
 - the next risk area is overextending the same surface-polish thread rather than missing prompt-first UI basics

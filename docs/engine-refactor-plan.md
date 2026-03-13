@@ -124,6 +124,8 @@ Current visible state:
 - one prompt-oriented result surface
 - visible rationale for why the prompt was shaped that way
 - clearer review-state trust signaling when the prompt should be checked before use
+- prompt-first mode now rejects missing prompt-renderer output instead of silently rebuilding it from spec compatibility data
+- prompt review-needed output can now seed the clarify loop through renderer-side validation question metadata
 
 What remains transitional:
 - internal compatibility helpers still mention spec-era concepts
@@ -163,6 +165,7 @@ Prefer product-side work when it improves:
 - prompt-output trust and readability
 - user understanding of why a prompt is ready to use or needs review first
 - review-state trust signals or warning language in the result surface
+- explanation labels that would otherwise mislead users about what the engine signal actually means
 
 ## What To Avoid Next
 Do not default to these in the next thread:

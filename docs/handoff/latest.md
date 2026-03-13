@@ -1,6 +1,6 @@
 # Session Handoff (Latest)
 
-- Updated: 2026-03-12
+- Updated: 2026-03-13
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
 - Branch: `main`
 - Scope: prompt-first product transition, reusable engine extraction, compatibility-harness cleanup
@@ -44,6 +44,8 @@ This repo no longer needs to protect every old spec-era surface.
 - prompt-first controller mode now requires real `prompt_output` from the prompt renderer instead of silently deriving it from spec-shaped fallback data
 - prompt review-needed output can now carry prompt-native clarification questions through `prompt_output.validation.suggested_questions`
 - the guided clarify loop can now consume prompt validation questions, not only `validation_report.suggested_questions`
+- the active prompt-first result surface now localizes technique labels and technique explanations into Korean
+- the `safe_to_pass_through` signal is now presented as "원문만으로도 결과 편차가 낮은가" to match the product's conservative judgment more honestly
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -62,6 +64,7 @@ This repo no longer needs to protect every old spec-era surface.
 - the main result UI now distinguishes review-needed output with a dedicated trust card instead of leaving the signal buried in warning lists
 - prompt-first app control flow now rejects missing prompt-renderer output instead of masking it with spec fallback assembly
 - prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
+- the active prompt-first explanation cards now read more naturally in Korean without changing engine behavior
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -107,6 +110,7 @@ Avoid choosing a new thread for:
 - 25+ technique taxonomy expansion
 - full intent-analysis redesign
 - multi-renderer studio architecture work
+- relitigating prompt-signal thresholds through copy-only tweaks unless a real product misunderstanding persists
 
 ## Suggested Start Prompt For The Next Thread
 ```text

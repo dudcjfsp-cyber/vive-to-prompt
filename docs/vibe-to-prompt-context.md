@@ -83,7 +83,7 @@ Transitional rule:
 - treating spec artifacts as the main output users come for
 
 ## Current State Snapshot
-As of 2026-03-12:
+As of 2026-03-13:
 - prompt renderer exists
 - prompt-first controller branching exists
 - the active app shell is prompt-first
@@ -94,6 +94,8 @@ As of 2026-03-12:
 - human-readable selection-signal rationale is visible in the main result UI
 - prompt-first mode now requires renderer-provided prompt_output instead of silently backfilling it from spec output
 - prompt validation can now provide prompt-native clarification questions for review-needed results
+- applied / skipped technique cards on the active prompt-first surface now read in Korean
+- the pass-through safety signal label now describes likely result stability instead of implying "just paste the original input"
 - spec compatibility paths still remain internally
 
 So the repository is currently best described as:

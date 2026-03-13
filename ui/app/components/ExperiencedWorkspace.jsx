@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import WorkspaceStatusCard from './WorkspaceStatusCard.jsx';
 import { useExperiencedSummary } from './hooks/useExperiencedSummary.js';
 import { buildExperiencedSummaryModel } from './experienced-workspace/buildExperiencedSummaryModel.js';
@@ -36,7 +36,7 @@ function getSignalLabel(key, value) {
     output_format_clarity: '원하는 출력 형식이 얼마나 분명한가',
     ambiguity_level: '입력의 모호성이 어느 정도인가',
     source_structure: '입력 자체가 어느 정도 구조화되어 있는가',
-    safe_to_pass_through: '원문을 거의 그대로 써도 되는가',
+    safe_to_pass_through: '원문만으로도 결과 편차가 낮은가',
     has_audience_hint: '대상 독자 힌트가 포함되어 있는가',
   };
   const label = labels[key] || key;
@@ -44,6 +44,41 @@ function getSignalLabel(key, value) {
   if (value === true) return label + ': 예';
   if (value === false) return label + ': 아니오';
   return label + ': ' + getSignalValueLabel(value);
+}
+
+function getTechniqueLabel(label) {
+  const labels = {
+    'Zero-shot pass-through': '제로샷 그대로 통과',
+    'Goal clarification': '목표 명확화',
+    'Role assignment': '역할 부여',
+    'Constraint expansion': '제약 조건 확장',
+    'Output format lock': '출력 형식 고정',
+    'Context structuring': '맥락 구조화',
+    'Step decomposition': '단계 분해',
+    'Quality checklist injection': '품질 체크리스트 주입',
+  };
+
+  const normalized = String(label || '').trim();
+  return labels[normalized] || normalized;
+}
+
+function getTechniqueWhy(why) {
+  const labels = {
+    'The source vibe is already explicit enough for direct zero-shot use.': '원문 요청이 이미 충분히 분명해서 거의 그대로 사용해도 됩니다.',
+    'The task or success condition needs a clearer headline before prompting.': '프롬프트를 만들기 전에 작업 목표나 성공 조건을 더 선명하게 드러낼 필요가 있었습니다.',
+    'The request does not clearly frame who the answer should serve.': '이 요청이 누구를 위한 답인지 분명하지 않아 대상 프레임을 보강했습니다.',
+    'Must-have requirements and limits should be surfaced explicitly.': '필수 요구사항과 제한 조건을 더 분명하게 꺼내 적는 편이 안전했습니다.',
+    'The vibe does not reliably lock the response shape yet.': '원문만으로는 원하는 응답 형식이 충분히 고정되지 않았습니다.',
+    'The request benefits from a stable context block before execution.': '실행 전에 안정적인 맥락 블록으로 정리하는 편이 도움이 됐습니다.',
+    'Breaking the task into a short workflow reduces ambiguity.': '작업을 짧은 단계로 나누면 모호함을 줄일 수 있었습니다.',
+    'The output should explicitly guard against hidden assumptions and missing constraints.': '숨은 가정이나 빠진 제약을 놓치지 않도록 마지막 점검 장치를 넣었습니다.',
+    'A light rewrite still needs a stable task headline.': '가벼운 정제만 하더라도 안정적인 작업 한 줄 요약은 필요했습니다.',
+    'Pass-through mode avoids unnecessary rewriting.': '이번 결과에서는 불필요한 재작성을 피하기 위해 이 기법을 쓰지 않았습니다.',
+    'This technique was not necessary for the current intent signals.': '현재 입력 신호 기준으로는 이 기법이 꼭 필요하지 않았습니다.',
+  };
+
+  const normalized = String(why || '').trim();
+  return labels[normalized] || normalized;
 }
 
 function getRewriteRationaleSummary(summaryCode, rewriteMode) {
@@ -429,8 +464,8 @@ export default function ExperiencedWorkspace({
                   <ul className="experienced-summary-list">
                     {appliedTechniques.map((technique) => (
                       <li key={technique.id}>
-                        <strong>{technique.label}</strong>
-                        {technique.why ? ': ' + technique.why : ''}
+                        <strong>{getTechniqueLabel(technique.label)}</strong>
+                        {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
                       </li>
                     ))}
                   </ul>
@@ -487,8 +522,8 @@ export default function ExperiencedWorkspace({
                   <ul className="experienced-summary-list">
                     {skippedTechniques.slice(0, 4).map((technique) => (
                       <li key={technique.id}>
-                        <strong>{technique.label}</strong>
-                        {technique.why ? ': ' + technique.why : ''}
+                        <strong>{getTechniqueLabel(technique.label)}</strong>
+                        {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
                       </li>
                     ))}
                   </ul>
@@ -563,4 +598,3 @@ export default function ExperiencedWorkspace({
     </section>
   );
 }
-
