@@ -13,6 +13,12 @@ function toStringArray(value) {
   return value.map((item) => toText(item)).filter(Boolean);
 }
 
+function pushUniqueText(list, value) {
+  const text = toText(value);
+  if (!text || list.includes(text)) return;
+  list.push(text);
+}
+
 function toLevel(score) {
   if (score >= 2) return 'high';
   if (score >= 1) return 'medium';
@@ -316,32 +322,169 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
 function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }) {
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
   const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
+  const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
+    ? sharedRuntimeHandoff.validationReport
+    : {};
   const clarificationQuestions = toStringArray(analysis.clarification_questions);
   const missingInformation = toStringArray(analysis.missing_information);
+  const fallbackQuestions = toStringArray(validationReport.suggested_questions);
   const suggestions = [];
 
-  clarificationQuestions.slice(0, 3).forEach((question) => {
-    if (!suggestions.includes(question)) {
-      suggestions.push(question);
-    }
-  });
+  if (reasonCodes.includes('empty_prompt')) {
+    pushUniqueText(suggestions, '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.');
+  }
 
   if (reasonCodes.includes('loses_source_vibe')) {
-    suggestions.push('최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.');
+    pushUniqueText(suggestions, '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.');
   }
 
-  if (reasonCodes.includes('empty_prompt')) {
-    suggestions.push('이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.');
-  }
+  clarificationQuestions.slice(0, 3).forEach((question) => {
+    pushUniqueText(suggestions, question);
+  });
 
-  missingInformation.slice(0, 2).forEach((item) => {
-    const question = `${item} 부분을 확정해 주세요.`;
-    if (!suggestions.includes(question)) {
-      suggestions.push(question);
+  missingInformation.slice(0, 3).forEach((item) => {
+    const normalized = toText(item);
+    if (!normalized) return;
+    const lower = normalized.toLowerCase();
+
+    if (/(audience|target user|user|reader|customer|recipient|persona|사용자|대상|독자|고객|수신자|역할)/i.test(normalized)) {
+      pushUniqueText(suggestions, '이 프롬프트가 가장 먼저 맞춰야 하는 대상은 누구인가요?');
+      return;
     }
+
+    if (/(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i.test(normalized)) {
+      pushUniqueText(suggestions, '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?');
+      return;
+    }
+
+    if (/(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i.test(normalized)) {
+      pushUniqueText(suggestions, '최종 응답 형식은 무엇으로 고정하면 될까요?');
+      return;
+    }
+
+    if (/(tone|style|voice|톤|말투|문체)/i.test(normalized)) {
+      pushUniqueText(suggestions, '원하는 톤이나 말투는 무엇인가요?');
+      return;
+    }
+
+    if (/(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i.test(normalized)) {
+      pushUniqueText(suggestions, '분량이나 길이 제한은 어느 정도인가요?');
+      return;
+    }
+
+    if (/(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i.test(normalized)) {
+      pushUniqueText(suggestions, '이 프롬프트가 유도해야 하는 다음 행동은 무엇인가요?');
+      return;
+    }
+
+    if (/(context|background|problem|situation|배경|맥락|문제|상황)/i.test(normalized)) {
+      pushUniqueText(suggestions, '이 프롬프트가 전제로 삼아야 하는 핵심 맥락은 무엇인가요?');
+      return;
+    }
+
+    if (/(goal|success|outcome|objective|목표|성공|결과)/i.test(normalized)) {
+      pushUniqueText(suggestions, '이 프롬프트가 만족해야 하는 성공 기준은 무엇인가요?');
+      return;
+    }
+
+    pushUniqueText(suggestions, `'${normalized}'를 이 프롬프트에서 어떻게 확정하면 될까요?`);
+  });
+
+  if (reasonCodes.includes('missing_technique_trace')) {
+    pushUniqueText(suggestions, '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?');
+  }
+
+  fallbackQuestions.slice(0, 3).forEach((question) => {
+    pushUniqueText(suggestions, question);
   });
 
   return suggestions.slice(0, 3);
+}
+
+function buildPromptValidationNarrative({
+  rewriteMode,
+  appliedTechniques,
+  warnings,
+  reasonCodes,
+  suggestedQuestions,
+  sharedRuntimeHandoff,
+}) {
+  const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
+  const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
+  const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
+    ? sharedRuntimeHandoff.validationReport
+    : {};
+  const missingInformation = toStringArray(analysis.missing_information);
+  const reasonDetails = [];
+  let summary = '';
+
+  if (warnings.length > 0) {
+    if (reasonCodes.includes('empty_prompt')) {
+      summary = '최종 프롬프트가 비어 있어 바로 사용할 수 없습니다.';
+    } else if (reasonCodes.includes('loses_source_vibe') && reasonCodes.includes('missing_technique_trace')) {
+      summary = '현재 프롬프트는 원문 의도 유지와 구조화 근거를 함께 다시 확인해야 합니다.';
+    } else if (reasonCodes.includes('loses_source_vibe')) {
+      summary = '현재 프롬프트는 정리 과정에서 원문 의도가 흐려져 한 번 검토하고 쓰는 편이 안전합니다.';
+    } else if (reasonCodes.includes('missing_technique_trace')) {
+      summary = '현재 프롬프트는 정제 이유가 충분히 남지 않아 한 번 검토하고 쓰는 편이 안전합니다.';
+    } else {
+      summary = '현재 프롬프트는 바로 사용하기 전에 핵심 입력과 정리 근거를 한 번 확인하는 편이 안전합니다.';
+    }
+
+    if (reasonCodes.includes('empty_prompt')) {
+      pushUniqueText(reasonDetails, '실제로 복사해 사용할 최종 프롬프트 문장이 아직 비어 있습니다.');
+    }
+    if (reasonCodes.includes('loses_source_vibe')) {
+      pushUniqueText(reasonDetails, '원문 요청의 핵심 의도가 최종 프롬프트 안에서 약해졌을 수 있습니다.');
+    }
+    if (reasonCodes.includes('missing_technique_trace')) {
+      pushUniqueText(reasonDetails, '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.');
+    }
+    if (missingInformation.length > 0) {
+      pushUniqueText(
+        reasonDetails,
+        `아직 확정되지 않은 정보가 있어 결과 편차가 남을 수 있습니다: ${missingInformation.slice(0, 2).join(', ')}.`,
+      );
+    }
+    if (suggestedQuestions.length > 0) {
+      pushUniqueText(reasonDetails, '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.');
+    }
+    if (Number(validationReport.warning_count || 0) > 0 || Number(validationReport.blocking_issue_count || 0) > 0) {
+      pushUniqueText(reasonDetails, '상위 검증 단계에서도 보완 신호가 남아 있어 한 번 더 확인하는 편이 안전합니다.');
+    }
+
+    return {
+      summary,
+      reason_details: reasonDetails.slice(0, 3),
+    };
+  }
+
+  if (rewriteMode === 'pass_through') {
+    summary = '원문 의도와 요청 형식이 충분히 살아 있어 지금 바로 사용할 수 있습니다.';
+  } else {
+    summary = '원문 의도를 유지한 채 바로 사용할 수 있는 실행용 프롬프트로 정리됐습니다.';
+  }
+
+  if (reasonCodes.includes('preserves_source_vibe')) {
+    pushUniqueText(reasonDetails, '원문 요청의 핵심 의도가 최종 프롬프트 안에 그대로 남아 있습니다.');
+  }
+  if (reasonCodes.includes('ready_for_direct_use')) {
+    pushUniqueText(reasonDetails, '입력이 이미 분명해 불필요한 재작성 없이 바로 복사해 사용할 수 있습니다.');
+  }
+  if (reasonCodes.includes('rewrite_trace_recorded')) {
+    pushUniqueText(reasonDetails, '적용된 구조화 기법과 이유가 함께 남아 있어 결과를 추적하기 쉽습니다.');
+  }
+  if (rewriteMode !== 'pass_through' && appliedTechniques.length > 0) {
+    pushUniqueText(reasonDetails, `적용된 구조화 기법 ${appliedTechniques.length}개가 함께 기록돼 있습니다.`);
+  }
+  if (missingInformation.length === 0 && suggestedQuestions.length === 0) {
+    pushUniqueText(reasonDetails, '추가 확인 질문 없이 바로 사용할 수 있는 상태입니다.');
+  }
+
+  return {
+    summary,
+    reason_details: reasonDetails.slice(0, 3),
+  };
 }
 
 export function buildPromptValidation({
@@ -387,13 +530,23 @@ export function buildPromptValidation({
   const suggestedQuestions = warnings.length > 0
     ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes })
     : [];
+  const narrative = buildPromptValidationNarrative({
+    rewriteMode,
+    appliedTechniques,
+    warnings,
+    reasonCodes,
+    suggestedQuestions,
+    sharedRuntimeHandoff,
+  });
 
   return {
     status: warnings.length > 0 ? 'review' : 'ready',
     summary_code: warnings.length > 0 ? 'review_before_use' : 'ready_to_use',
+    summary: narrative.summary,
     warning_count: warnings.length,
     warnings,
     reason_codes: reasonCodes,
+    reason_details: narrative.reason_details,
     preserves_source_vibe: preservesSourceVibe,
     needs_clarification: suggestedQuestions.length > 0,
     suggested_questions: suggestedQuestions,

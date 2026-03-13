@@ -64,9 +64,15 @@ test('prompt renderer keeps explicit zero-shot-ready vibes in pass-through mode'
   ]);
   assert.equal(result.validation.status, 'ready');
   assert.equal(result.validation.summary_code, 'ready_to_use');
+  assert.equal(result.validation.summary, '원문 의도와 요청 형식이 충분히 살아 있어 지금 바로 사용할 수 있습니다.');
   assert.deepEqual(result.validation.reason_codes, [
     'preserves_source_vibe',
     'ready_for_direct_use',
+  ]);
+  assert.deepEqual(result.validation.reason_details, [
+    '원문 요청의 핵심 의도가 최종 프롬프트 안에 그대로 남아 있습니다.',
+    '입력이 이미 분명해 불필요한 재작성 없이 바로 복사해 사용할 수 있습니다.',
+    '추가 확인 질문 없이 바로 사용할 수 있는 상태입니다.',
   ]);
 });
 
@@ -127,9 +133,15 @@ test('prompt renderer escalates to structured refine when intent is vague and am
   ]);
   assert.equal(result.validation.status, 'ready');
   assert.equal(result.validation.summary_code, 'ready_to_use');
+  assert.equal(result.validation.summary, '원문 의도를 유지한 채 바로 사용할 수 있는 실행용 프롬프트로 정리됐습니다.');
   assert.deepEqual(result.validation.reason_codes, [
     'preserves_source_vibe',
     'rewrite_trace_recorded',
+  ]);
+  assert.deepEqual(result.validation.reason_details, [
+    '원문 요청의 핵심 의도가 최종 프롬프트 안에 그대로 남아 있습니다.',
+    '적용된 구조화 기법과 이유가 함께 남아 있어 결과를 추적하기 쉽습니다.',
+    '적용된 구조화 기법 6개가 함께 기록돼 있습니다.',
   ]);
 });
 
@@ -144,11 +156,21 @@ test('prompt validation marks empty prompt as review_before_use', () => {
 
   assert.equal(result.status, 'review');
   assert.equal(result.summary_code, 'review_before_use');
+  assert.equal(result.summary, '최종 프롬프트가 비어 있어 바로 사용할 수 없습니다.');
   assert.deepEqual(result.warnings, [
     '\uCD5C\uC885 \uD504\uB86C\uD504\uD2B8\uAC00 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
     '\uC815\uB9AC \uACFC\uC815\uC5D0\uC11C \uC6D0\uBB38 \uC758\uB3C4\uAC00 \uD750\uB824\uC84C\uC2B5\uB2C8\uB2E4.',
   ]);
   assert.deepEqual(result.reason_codes, ['empty_prompt', 'loses_source_vibe']);
+  assert.deepEqual(result.reason_details, [
+    '실제로 복사해 사용할 최종 프롬프트 문장이 아직 비어 있습니다.',
+    '원문 요청의 핵심 의도가 최종 프롬프트 안에서 약해졌을 수 있습니다.',
+    '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.',
+  ]);
+  assert.deepEqual(result.suggested_questions, [
+    '이번에 실제로 만들고 싶은 최종 산출물을 한 문장으로 다시 적어 주세요.',
+    '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
+  ]);
 });
 
 test('prompt validation marks refined prompt without technique trace as review_before_use', () => {
@@ -161,8 +183,17 @@ test('prompt validation marks refined prompt without technique trace as review_b
 
   assert.equal(result.status, 'review');
   assert.equal(result.summary_code, 'review_before_use');
+  assert.equal(result.summary, '현재 프롬프트는 정제 이유가 충분히 남지 않아 한 번 검토하고 쓰는 편이 안전합니다.');
   assert.deepEqual(result.warnings, ['\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.']);
   assert.deepEqual(result.reason_codes, ['missing_technique_trace']);
+  assert.deepEqual(result.reason_details, [
+    '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.',
+    '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.',
+  ]);
+  assert.equal(result.needs_clarification, true);
+  assert.deepEqual(result.suggested_questions, [
+    '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
+  ]);
 });
 
 
@@ -205,6 +236,16 @@ test('prompt validation exposes prompt-first clarification questions for review-
   assert.equal(result.needs_clarification, true);
   assert.deepEqual(result.suggested_questions, [
     'Who is the email for?',
-    'launch date 부분을 확정해 주세요.',
+    '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+    '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
+  ]);
+  assert.equal(
+    result.summary,
+    '현재 프롬프트는 정제 이유가 충분히 남지 않아 한 번 검토하고 쓰는 편이 안전합니다.',
+  );
+  assert.deepEqual(result.reason_details, [
+    '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.',
+    '아직 확정되지 않은 정보가 있어 결과 편차가 남을 수 있습니다: launch date.',
+    '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.',
   ]);
 });

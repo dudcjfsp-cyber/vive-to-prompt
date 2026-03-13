@@ -280,8 +280,13 @@ export default function ExperiencedWorkspace({
   const promptValidation = promptOutput.validation && typeof promptOutput.validation === 'object' ? promptOutput.validation : {};
   const validationWarnings = Array.isArray(promptValidation.warnings) ? promptValidation.warnings : [];
   const validationReasonCodes = Array.isArray(promptValidation.reason_codes) ? promptValidation.reason_codes : [];
-  const validationSummary = getPromptValidationSummary(promptValidation.summary_code, promptValidation.status);
-  const validationReasons = validationReasonCodes
+  const validationSummary = typeof promptValidation.summary === 'string' && promptValidation.summary.trim()
+    ? promptValidation.summary.trim()
+    : getPromptValidationSummary(promptValidation.summary_code, promptValidation.status);
+  const validationReasons = (Array.isArray(promptValidation.reason_details) ? promptValidation.reason_details : [])
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+  const fallbackValidationReasons = validationReasonCodes
     .map((code) => getPromptValidationReason(code))
     .filter(Boolean);
   const validationTrustChecklist = buildPromptValidationTrustChecklist({
@@ -501,6 +506,8 @@ export default function ExperiencedWorkspace({
                 <ul className="experienced-summary-list">
                   {(validationReasons.length > 0
                     ? validationReasons
+                    : fallbackValidationReasons.length > 0
+                      ? fallbackValidationReasons
                     : ["\uD2B9\uBCC4\uD55C \uAC80\uD1A0 \uC2E0\uD638\uB294 \uC5C6\uC9C0\uB9CC, \uC544\uB798 \uBA54\uBAA8\uB97C \uD55C \uBC88 \uB354 \uD655\uC778\uD558\uBA74 \uC88B\uC2B5\uB2C8\uB2E4."])
                     .slice(0, 3)
                     .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}

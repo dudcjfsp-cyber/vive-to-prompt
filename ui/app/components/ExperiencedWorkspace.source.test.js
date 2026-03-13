@@ -13,7 +13,9 @@ test('ExperiencedWorkspace keeps the prompt-first summary path wired to prompt-n
 test('ExperiencedWorkspace still exposes prompt rationale and prompt validation helpers', () => {
   assert.ok(source.includes('promptOutput.rewrite_rationale'));
   assert.ok(source.includes('buildPromptValidationTrustChecklist'));
+  assert.ok(source.includes('promptValidation.summary'));
   assert.ok(source.includes('promptValidation.summary_code'));
+  assert.ok(source.includes('promptValidation.reason_details'));
   assert.ok(source.includes('promptValidation.reason_codes'));
   assert.ok(source.includes('validationWarnings.length || validationReasons.length'));
 });
