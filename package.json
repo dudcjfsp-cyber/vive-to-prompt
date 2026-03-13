@@ -4,9 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "check:mojibake": "node scripts/check-mojibake.js",
     "dev": "vite",
+    "prebuild": "node scripts/check-mojibake.js",
     "build": "vite build",
     "preview": "vite preview",
+    "pretest": "node scripts/check-mojibake.js",
     "test": "node --test"
   },
   "dependencies": {
