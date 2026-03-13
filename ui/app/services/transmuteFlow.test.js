@@ -19,6 +19,7 @@ test('buildGeneratedResultPlan limits questions when loop is disabled', () => {
   const plan = buildGeneratedResultPlan({
     generated: {
       validation_report: {
+        severity: 'medium',
         needs_clarification: true,
         suggested_questions: ['질문 1'],
       },
@@ -31,6 +32,7 @@ test('buildGeneratedResultPlan limits questions when loop is disabled', () => {
 
   assert.deepEqual(plan.nextQuestions, []);
   assert.equal(plan.validationReport?.needs_clarification, true);
+  assert.equal(plan.validationReport?.source, 'validation_report');
   assert.match(plan.nextGenerationId, /^exp_baseline_v1_/);
 });
 
@@ -55,6 +57,9 @@ test('buildGeneratedResultPlan uses prompt validation questions when prompt outp
   });
 
   assert.deepEqual(plan.nextQuestions, ['Who is the audience?', 'What format is required?']);
+  assert.equal(plan.validationReport?.source, 'prompt_output.validation');
+  assert.equal(plan.validationReport?.needs_clarification, true);
+  assert.deepEqual(plan.validationReport?.suggested_questions, ['Who is the audience?', 'What format is required?']);
 });
 
 test('buildGeneratedResultPlan prioritizes prompt-native clarification questions over spec fallback questions', () => {
@@ -78,6 +83,8 @@ test('buildGeneratedResultPlan prioritizes prompt-native clarification questions
   });
 
   assert.deepEqual(plan.nextQuestions, ['Prompt question 1', 'Prompt question 2', 'Spec question 1']);
+  assert.equal(plan.validationReport?.source, 'prompt_output.validation');
+  assert.deepEqual(plan.validationReport?.suggested_questions, ['Prompt question 1', 'Prompt question 2', 'Spec question 1']);
 });
 
 test('buildGeneratedResultPlan does not reopen clarify loop from spec fallback when prompt validation says it is unnecessary', () => {
@@ -101,6 +108,57 @@ test('buildGeneratedResultPlan does not reopen clarify loop from spec fallback w
   });
 
   assert.deepEqual(plan.nextQuestions, []);
+  assert.equal(plan.validationReport?.source, 'prompt_output.validation');
+  assert.equal(plan.validationReport?.needs_clarification, false);
+});
+
+test('buildGeneratedResultPlan persists prompt-native validation as the main loop contract', () => {
+  const plan = buildGeneratedResultPlan({
+    generated: {
+      validation_report: {
+        severity: 'high',
+        can_auto_proceed: false,
+        warning_count: 3,
+        blocking_issue_count: 1,
+        needs_clarification: true,
+        suggested_questions: ['Spec question 1'],
+      },
+      prompt_output: {
+        validation: {
+          status: 'review',
+          summary_code: 'review_before_use',
+          summary: '현재 프롬프트는 한 번 검토하고 쓰는 편이 안전합니다.',
+          warning_count: 2,
+          warnings: ['프롬프트 경고 1'],
+          reason_codes: ['validation_missing_requirements'],
+          reason_details: ['핵심 요구사항이 아직 덜 고정돼 있습니다.'],
+          needs_clarification: true,
+          suggested_questions: ['Prompt question 1', 'Prompt question 2'],
+        },
+      },
+    },
+    loopMode: 'guided_once',
+    maxClarifyTurns: 1,
+    nextLoopTurn: 0,
+    promptExperimentId: 'exp_baseline_v1',
+  });
+
+  assert.equal(plan.validationReport?.source, 'prompt_output.validation');
+  assert.equal(plan.validationReport?.status, 'review');
+  assert.equal(plan.validationReport?.summary_code, 'review_before_use');
+  assert.equal(plan.validationReport?.severity, 'high');
+  assert.equal(plan.validationReport?.can_auto_proceed, false);
+  assert.deepEqual(plan.validationReport?.suggested_questions, [
+    'Prompt question 1',
+    'Prompt question 2',
+    'Spec question 1',
+  ]);
+  assert.deepEqual(plan.validationReport?.upstream_validation, {
+    severity: 'high',
+    warning_count: 3,
+    blocking_issue_count: 1,
+    can_auto_proceed: false,
+  });
 });
 
 test('buildTransmuteSuccessShadowPayload switches event type for regenerate flow', () => {
@@ -116,7 +174,13 @@ test('buildTransmuteSuccessShadowPayload switches event type for regenerate flow
     selectedModel: 'gpt-4.1',
     promptPolicyMode: 'baseline',
     promptExperimentId: 'exp_baseline_v1',
-    validationReport: { severity: 'medium', can_auto_proceed: false },
+    validationReport: {
+      source: 'prompt_output.validation',
+      severity: 'medium',
+      can_auto_proceed: false,
+      status: 'review',
+      summary_code: 'review_before_use',
+    },
     nextQuestions: ['질문 1'],
     nextLoopTurn: 1,
     nextGenerationId: 'exp_baseline_v1_123',

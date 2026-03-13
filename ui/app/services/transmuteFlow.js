@@ -15,6 +15,62 @@ function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function toPositiveNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildLoopValidationContract({ promptValidation = null, validationReport = null, suggestedQuestions = [] } = {}) {
+  const safePromptValidation = isPlainObject(promptValidation) ? promptValidation : null;
+  const safeValidationReport = isPlainObject(validationReport) ? validationReport : null;
+  const normalizedQuestions = toStringArray(suggestedQuestions).slice(0, 3);
+
+  if (safePromptValidation) {
+    const promptStatus = toText(safePromptValidation.status, 'ready');
+    const fallbackSeverity = promptStatus === 'review' ? 'medium' : 'low';
+    const canAutoProceed = typeof safeValidationReport?.can_auto_proceed === 'boolean'
+      ? safeValidationReport.can_auto_proceed
+      : promptStatus !== 'review';
+
+    return {
+      ...safePromptValidation,
+      source: 'prompt_output.validation',
+      severity: toText(safeValidationReport?.severity, fallbackSeverity),
+      can_auto_proceed: canAutoProceed,
+      warning_count: toPositiveNumber(
+        safePromptValidation.warning_count,
+        toPositiveNumber(safeValidationReport?.warning_count),
+      ),
+      blocking_issue_count: toPositiveNumber(safeValidationReport?.blocking_issue_count),
+      suggested_questions: normalizedQuestions,
+      needs_clarification: typeof safePromptValidation.needs_clarification === 'boolean'
+        ? safePromptValidation.needs_clarification
+        : normalizedQuestions.length > 0,
+      upstream_validation: safeValidationReport
+        ? {
+          severity: toText(safeValidationReport.severity, 'low'),
+          warning_count: toPositiveNumber(safeValidationReport.warning_count),
+          blocking_issue_count: toPositiveNumber(safeValidationReport.blocking_issue_count),
+          can_auto_proceed: safeValidationReport.can_auto_proceed === true,
+        }
+        : null,
+    };
+  }
+
+  if (!safeValidationReport) {
+    return null;
+  }
+
+  return {
+    ...safeValidationReport,
+    source: 'validation_report',
+    suggested_questions: normalizedQuestions,
+    needs_clarification: typeof safeValidationReport.needs_clarification === 'boolean'
+      ? safeValidationReport.needs_clarification
+      : normalizedQuestions.length > 0,
+  };
+}
+
 export function buildPromptExperimentId(personaConfig = {}) {
   const scope = toText(personaConfig.promptExperimentScope, toText(personaConfig.id, 'default')) || 'default';
   const mode = toText(personaConfig.promptPolicyMode, 'baseline') || 'baseline';
@@ -41,15 +97,18 @@ export function buildGeneratedResultPlan({
   const promptNeedsClarification = typeof promptValidation?.needs_clarification === 'boolean'
     ? promptValidation.needs_clarification
     : (promptQuestions.length > 0 ? true : null);
-  const loopValidation = (isPlainObject(validationReport) || isPlainObject(promptValidation))
-    ? {
-      ...(isPlainObject(validationReport) ? validationReport : {}),
-      needs_clarification: promptNeedsClarification === null
-        ? Boolean(validationReport?.needs_clarification)
-        : promptNeedsClarification,
-      suggested_questions: suggestedQuestions,
-    }
-    : null;
+  const loopValidation = buildLoopValidationContract({
+    promptValidation: isPlainObject(promptValidation)
+      ? {
+        ...promptValidation,
+        needs_clarification: promptNeedsClarification === null
+          ? promptValidation.needs_clarification
+          : promptNeedsClarification,
+      }
+      : null,
+    validationReport,
+    suggestedQuestions,
+  });
   const shouldOfferLoop = shouldOfferClarificationLoop({
     loopMode,
     maxClarifyTurns,
@@ -58,7 +117,7 @@ export function buildGeneratedResultPlan({
   });
 
   return {
-    validationReport,
+    validationReport: loopValidation,
     nextQuestions: shouldOfferLoop ? suggestedQuestions : [],
     nextGenerationId: `${toText(promptExperimentId, 'generation')}_${Date.now()}`,
   };
