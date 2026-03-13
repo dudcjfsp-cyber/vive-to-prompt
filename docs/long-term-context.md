@@ -86,6 +86,7 @@ As of 2026-03-13 in this repo:
 - prompt metadata is visible in the UI by default
 - rewrite rationale and validation rationale are now exposed on the active prompt-first surface
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
+- app-facing validation consumption now goes through a prompt-first adapter instead of asking each UI path to read raw validation sources directly
 
 What is still transitional:
 - intent IR is still derived after spec-shaped normalization
@@ -188,6 +189,7 @@ As of 2026-03-13:
 - prompt runtime handoff exists and is tested
 - model runtime extraction exists and is tested
 - prompt-first app shell exists
+- first entry now has a simpler input-stage shell, and the existing result/workbench surface appears only after submission
 - prompt rationale is visible in the main result surface
 - rewrite rationale summary and validation summary are visible in the main result surface
 - prompt validation now carries summary/reason metadata instead of only raw warnings
@@ -195,6 +197,7 @@ As of 2026-03-13:
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
 - prompt-first controller mode now requires actual `prompt_output` instead of silently synthesizing it from spec fallback results
 - prompt review-needed output can now surface prompt-native clarification questions that feed the clarify loop
+- app-side controller/result-panel/clarify paths now share one prompt-first validation contract instead of independently deriving from raw validation sources
 - technique names and technique explanations shown on the active prompt-first surface now read in Korean
 - the pass-through safety signal is now labeled in a way that better matches "result stability" rather than "the model can probably handle it"
 - compatibility spec paths still exist beneath the surface

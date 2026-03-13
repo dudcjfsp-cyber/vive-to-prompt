@@ -121,11 +121,13 @@ Delivered:
 Current visible state:
 - one active prompt-first app surface
 - one natural-language input
+- a pre-submit input stage now stays visually simpler, and the result/workbench surface appears only after generation starts
 - one prompt-oriented result surface
 - visible rationale for why the prompt was shaped that way
 - clearer review-state trust signaling when the prompt should be checked before use
 - prompt-first mode now rejects missing prompt-renderer output instead of silently rebuilding it from spec compatibility data
 - prompt review-needed output can now seed the clarify loop through renderer-side validation question metadata
+- app-side validation consumption now runs through one prompt-first adapter instead of letting controller/result-panel paths read raw validation sources independently
 
 What remains transitional:
 - internal compatibility helpers still mention spec-era concepts
@@ -186,9 +188,9 @@ That stop signal is now much closer than it was before the prompt renderer exist
 
 ## Suggested Next Thread Boundary
 Choose only one of these in a new thread:
-1. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-2. improve prompt-output warning language or review-state trust signals in a user-visible way
-3. validate the prompt-first product surface further and leave deep engine cleanup alone
+1. make prompt question metadata consumption explicit at one thin UI/controller boundary
+2. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
+3. validate the result-stage information hierarchy and leave deep engine cleanup alone
 
 Do not mix both unless there is a direct blocker.
 

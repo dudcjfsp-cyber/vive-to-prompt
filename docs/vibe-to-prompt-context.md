@@ -87,6 +87,7 @@ As of 2026-03-13:
 - prompt renderer exists
 - prompt-first controller branching exists
 - the active app shell is prompt-first
+- the first-entry screen now stays input-focused until the user submits, instead of showing the full result/workbench layout immediately
 - the active app surface no longer depends on persona selection
 - rewrite rationale summary and validation summary are visible in the main result UI
 - `review_before_use` is surfaced with a dedicated trust card and immediate review guidance in the main result UI
@@ -94,6 +95,7 @@ As of 2026-03-13:
 - human-readable selection-signal rationale is visible in the main result UI
 - prompt-first mode now requires renderer-provided prompt_output instead of silently backfilling it from spec output
 - prompt validation can now provide prompt-native clarification questions for review-needed results
+- app-side controller/result-panel/clarify paths now share one prompt-first validation contract instead of independently reading raw validation sources
 - applied / skipped technique cards on the active prompt-first surface now read in Korean
 - the pass-through safety signal label now describes likely result stability instead of implying "just paste the original input"
 - spec compatibility paths still remain internally
@@ -142,6 +144,7 @@ Reason:
 ## Practical Decision Rule
 If a task makes the app feel more like:
 - one input
+- one simple entry stage before generation
 - one prompt result
 - one explanation surface
 
@@ -167,6 +170,7 @@ Current repo assumptions:
 - The current product goal is one input, one final prompt result, and one explanation layer.
 - Spec-shaped normalization and some compatibility paths still remain internally.
 - The previous thread already surfaced rewrite rationale summary and validation summary in the main UI.
+- The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
 - First judge the candidate against these three questions:
@@ -174,7 +178,16 @@ Thread goal:
   - Does it create visible user value?
   - Does it reduce a real remaining engine blocker?
 - If it is mostly internal cleanup, stop and explain why.
-- Pick exactly one real engine blocker or one real prompt-first UX blocker and resolve it.
+- Prefer the next boundary candidate in this order:
+  1. result-stage primary information hierarchy
+  2. prompt question metadata consumption boundary
+  3. prompt renderer upstream validation-ready handoff boundary
+- Pick exactly one boundary and resolve only that.
+
+Boundary rule:
+- If you choose the result-stage hierarchy boundary, keep it focused on primary vs secondary information after generation. Do not redesign the whole panel.
+- If you choose the question metadata boundary, keep it thin: make the app read `intent_key` / `source` / `reason_code` more explicitly without turning the thread into copy polish or broad UI redesign.
+- Only inspect the upstream validation-ready handoff if the metadata boundary does not pass the entry rule.
 
 At the end, always summarize:
 - why this work was not a loop
