@@ -24,16 +24,19 @@ test('ExperiencedWorkspace orders the success-state cards around prompt-first pr
   const promptIndex = source.indexOf('<h3>최종 프롬프트</h3>');
   const trustIndex = source.indexOf('<h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>');
   const rationaleIndex = source.indexOf('<h3>이번 구조화 판단 요약</h3>');
+  const questionsIndex = source.indexOf('<h3>추가 확인이 필요한 질문</h3>');
   const sourceIndex = source.indexOf('<h3>원문 입력</h3>');
   const techniqueIndex = source.indexOf('<h3>적용된 기법</h3>');
 
   assert.ok(promptIndex !== -1);
   assert.ok(trustIndex !== -1);
   assert.ok(rationaleIndex !== -1);
+  assert.ok(questionsIndex !== -1);
   assert.ok(sourceIndex !== -1);
   assert.ok(techniqueIndex !== -1);
   assert.ok(promptIndex < sourceIndex);
   assert.ok(trustIndex < sourceIndex);
+  assert.ok(questionsIndex < sourceIndex);
   assert.ok(rationaleIndex < techniqueIndex);
   assert.ok(source.includes('experienced-priority-sequence'));
   assert.ok(source.includes('experienced-secondary-stack'));

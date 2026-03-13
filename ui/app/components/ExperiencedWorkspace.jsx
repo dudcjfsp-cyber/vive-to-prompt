@@ -502,6 +502,44 @@ export default function ExperiencedWorkspace({
                     </ul>
                   </section>
                 </div>
+
+                {validationQuestions.length > 0 && (
+                  <section className="experienced-summary-card experienced-priority-card">
+                    <p className="experienced-card-kicker experienced-card-kicker-warning">바로 보완</p>
+                    <h3>추가 확인이 필요한 질문</h3>
+                    <p className="small-muted">
+                      review 상태라면 아래 질문부터 짧게 보완한 뒤 다시 결과를 확인하는 것이 가장 빠릅니다.
+                    </p>
+                    <div className="stack-actions">
+                      <span className="pill">보완 차수: {clarifyLoopTurn}</span>
+                      <span className="pill">질문 수: {validationQuestions.length}</span>
+                    </div>
+                    <div className="form-group">
+                      {validationQuestions.map((question) => (
+                        <div key={question} className="form-group">
+                          <label>{question}</label>
+                          <textarea
+                            rows={2}
+                            value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
+                            onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
+                            placeholder="확정된 정보만 짧게 입력하세요."
+                            disabled={state.status === 'processing'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="stack-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={actions.handleApplyClarifications}
+                        disabled={state.status === 'processing' || !canSubmitClarification}
+                      >
+                        입력에 반영
+                      </button>
+                    </div>
+                  </section>
+                )}
               </div>
 
               <div className="experienced-secondary-stack">
@@ -567,42 +605,6 @@ export default function ExperiencedWorkspace({
                   </section>
                 )}
 
-                {validationQuestions.length > 0 && (
-                  <section className="experienced-summary-card">
-                    <h3>추가 확인이 필요한 질문</h3>
-                    <p className="small-muted">
-                      현재 프롬프트를 더 안정적으로 만들기 위해 필요한 정보만 짧게 보완합니다.
-                    </p>
-                    <div className="stack-actions">
-                      <span className="pill">보완 차수: {clarifyLoopTurn}</span>
-                      <span className="pill">질문 수: {validationQuestions.length}</span>
-                    </div>
-                    <div className="form-group">
-                      {validationQuestions.map((question) => (
-                        <div key={question} className="form-group">
-                          <label>{question}</label>
-                          <textarea
-                            rows={2}
-                            value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
-                            onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
-                            placeholder="확정된 정보만 짧게 입력하세요."
-                            disabled={state.status === 'processing'}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="stack-actions">
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={actions.handleApplyClarifications}
-                        disabled={state.status === 'processing' || !canSubmitClarification}
-                      >
-                        입력에 반영
-                      </button>
-                    </div>
-                  </section>
-                )}
               </div>
             </div>
           )}
