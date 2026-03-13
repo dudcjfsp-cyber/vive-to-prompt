@@ -1,9 +1,4 @@
 import {
-  buildPromptPolicyMeta,
-  buildPromptSections,
-  resolvePromptPolicy,
-} from './promptPolicy.js';
-import {
   transmuteVibeToSpec as transmuteSpecFacade,
 } from '../facades/spec/transmuteSpecFacade.js';
 import {
@@ -15,9 +10,9 @@ import {
   sharedModelRuntime,
 } from '../runtime/modelRuntime.js';
 import { validateStandardOutput } from '../validation/standardOutputValidation.js';
-import { prepareSpecAnalysis } from '../intent/prepareSpecAnalysis.js';
-import { normalizeSpecDraft } from '../intent/normalizeSpecDraft.js';
+import { prepareValidationReadySpecDraft } from '../intent/prepareValidationReadySpecDraft.js';
 import { executeStructuredGeneration } from '../execution/executeStructuredGeneration.js';
+import { createStructuredGenerationPromptBuilder } from '../execution/structuredGenerationPromptBuilder.js';
 import { collectSemanticRepairIssues as collectStructuredGenerationIssues } from '../validation/semanticRepairIssues.js';
 
 /**
@@ -188,6 +183,10 @@ OUTPUT RULES (MUST FOLLOW):
 
 // 메모리 캐시: 이미 조회한 모델 목록을 저장해 중복 네트워크 호출을 줄입니다.
 const availableModelsCache = new Map();
+const structuredGenerationPromptBuilder = createStructuredGenerationPromptBuilder({
+  baseSystemPrompt: BASE_SYSTEM_PROMPT,
+  schemaHint: JSON_SCHEMA_HINT,
+});
 
 /**
  * 값이 "객체"인지 검사합니다.
@@ -1088,26 +1087,12 @@ function extractJsonText(text) {
  * - 완성도 점수/경고 자동 계산
  */
 function normalizeStandardOutput(raw) {
-  const safe = isObject(raw) ? raw : {};
-  const { specDraft, analysisHandoff } = normalizeSpecDraft({
+  const { specDraft, completenessInput } = prepareValidationReadySpecDraft({
     schemaKeys: K,
-    raw: safe,
+    raw,
     normalizeLayerGuide,
   });
-
-  // normalizeSpecDraft finishes raw provider JSON -> spec draft normalization.
-  // prepareSpecAnalysis begins the post-normalization analysis-preparation stage.
-  const analysisPrep = prepareSpecAnalysis({
-    schemaKeys: K,
-    spec: specDraft,
-    ...analysisHandoff,
-  });
-
-  specDraft[K.INTERVIEW] = analysisPrep.interviewMode;
-  specDraft[K.REQUEST_CONVERTER] = analysisPrep.requestConverter;
-  specDraft[K.IMPACT] = analysisPrep.impact;
-
-  const validationReport = validateStandardOutput(specDraft, analysisPrep.completenessInput);
+  const validationReport = validateStandardOutput(specDraft, completenessInput);
 
   specDraft[K.COMPLETENESS] = {
     [K.SCORE]: validationReport.score,
@@ -1161,109 +1146,16 @@ function canApplyAdvancedRepairs(promptOptions = {}) {
 // -------------------------------------------------------
 // 이 구간은 실제 AI 호출과 JSON 복구 재시도 로직을 담당합니다.
 
-/**
- * 모델 호출 프롬프트를 생성합니다.
- * - 일반 생성 프롬프트
- * - JSON 오류 복구(retry) 프롬프트
- */
-function buildLegacyBaselinePrompt(vibe, showThinking) {
-  return `SYSTEM:\n${BASE_SYSTEM_PROMPT}\n\nJSON Schema Shape:\n${JSON_SCHEMA_HINT}\n\nUser vibe:\n${vibe}\n\nRuntime option: showThinking=${showThinking ? 'ON' : 'OFF'}.\nReturn only the fixed schema above.`;
-}
-
-function formatPromptSections(sections) {
-  return sections
-    .map((section) => `${section.label}:\n${section.content}`)
-    .join('\n\n');
-}
-
-function buildPromptEnvelope({
-  vibe = '',
-  showThinking = true,
-  retryPayload = null,
-  repairContext = null,
-  persona = '',
-  policyMode = '',
-  promptExperimentId = '',
-} = {}) {
-  if (retryPayload) {
-    return {
-      prompt: `Your previous response was invalid JSON. Fix it now. Return JSON only and strictly follow schema.\nSchema:\n${JSON_SCHEMA_HINT}\nPrevious output:\n${retryPayload}`,
-      meta: null,
-    };
-  }
-
-  if (isObject(repairContext) && repairContext.mode === 'semantic_repair') {
-    const policy = resolvePromptPolicy({ mode: 'semantic_repair' });
-    const promptSections = buildPromptSections({
-      vibe,
-      schemaHint: JSON_SCHEMA_HINT,
-      baseSystemPrompt: BASE_SYSTEM_PROMPT,
-      policy,
-      showThinking,
-    });
-    const issueList = Array.isArray(repairContext.issues)
-      ? repairContext.issues.map((issue) => `- ${toSafeString(issue)}`).filter(Boolean).join('\n')
-      : '';
-    const currentJson = JSON.stringify(repairContext.previousOutput || {}, null, 2);
-
-    return {
-      prompt: `${formatPromptSections(promptSections)}\n\nSemantic repair checklist:\n${issueList || '- Repair missing semantic fields.'}\n\nCurrent JSON to repair:\n${currentJson}\n\nPreserve valid details, repair the missing fields listed above, and return only the fixed schema above.`,
-      meta: buildPromptPolicyMeta({
-        vibe,
-        persona,
-        policy,
-        promptSections,
-        positiveRewriteCount: policy.positiveRewriteCount,
-        promptExperimentId,
-      }),
-    };
-  }
-
-  const policy = resolvePromptPolicy({ persona, mode: policyMode });
-  if (policy.mode === 'baseline') {
-    return {
-      prompt: buildLegacyBaselinePrompt(vibe, showThinking),
-      meta: buildPromptPolicyMeta({
-        vibe,
-        persona,
-        policy,
-        promptSections: ['role', 'schema', 'user_vibe', 'runtime'],
-        promptExperimentId,
-      }),
-    };
-  }
-
-  const promptSections = buildPromptSections({
-    vibe,
-    schemaHint: JSON_SCHEMA_HINT,
-    baseSystemPrompt: BASE_SYSTEM_PROMPT,
-    policy,
-    showThinking,
-  });
-
-  return {
-    prompt: `${formatPromptSections(promptSections)}\n\nReturn only the fixed schema above.`,
-    meta: buildPromptPolicyMeta({
-      vibe,
-      persona,
-      policy,
-      promptSections,
-      positiveRewriteCount: policy.positiveRewriteCount,
-      promptExperimentId,
-    }),
-  };
+function buildPromptEnvelope(options = {}) {
+  return structuredGenerationPromptBuilder.buildPromptEnvelope(options);
 }
 
 export function buildPrompt(options = {}, legacyShowThinking = true, legacyRetryPayload = null) {
-  if (typeof options === 'string') {
-    return buildPromptEnvelope({
-      vibe: options,
-      showThinking: legacyShowThinking,
-      retryPayload: legacyRetryPayload,
-    }).prompt;
-  }
-
-  return buildPromptEnvelope(options).prompt;
+  return structuredGenerationPromptBuilder.buildPrompt(
+    options,
+    legacyShowThinking,
+    legacyRetryPayload,
+  );
 }
 
 /**
