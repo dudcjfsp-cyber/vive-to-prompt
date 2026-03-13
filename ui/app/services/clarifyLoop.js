@@ -18,12 +18,17 @@ export function mergeClarificationQuestions(existingQuestions = [], nextQuestion
 export function buildWarningDrivenQuestions({
   warningId = '',
   warningDetail = '',
+  promptValidation = null,
   validationReport = null,
   maxQuestions = 3,
 } = {}) {
   const normalizedWarningId = toText(warningId);
   const normalizedWarningDetail = toText(warningDetail);
-  const suggestedQuestions = toStringArray(validationReport?.suggested_questions);
+  const suggestedQuestions = mergeClarificationQuestions(
+    toStringArray(promptValidation?.suggested_questions),
+    toStringArray(validationReport?.suggested_questions),
+    maxQuestions,
+  );
   const nextQuestions = [];
 
   const directQuestion = WARNING_QUESTION_BY_ID[normalizedWarningId];

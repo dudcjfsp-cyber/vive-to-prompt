@@ -57,6 +57,52 @@ test('buildGeneratedResultPlan uses prompt validation questions when prompt outp
   assert.deepEqual(plan.nextQuestions, ['Who is the audience?', 'What format is required?']);
 });
 
+test('buildGeneratedResultPlan prioritizes prompt-native clarification questions over spec fallback questions', () => {
+  const plan = buildGeneratedResultPlan({
+    generated: {
+      validation_report: {
+        needs_clarification: true,
+        suggested_questions: ['Spec question 1', 'Spec question 2', 'Spec question 3'],
+      },
+      prompt_output: {
+        validation: {
+          needs_clarification: true,
+          suggested_questions: ['Prompt question 1', 'Prompt question 2'],
+        },
+      },
+    },
+    loopMode: 'guided_once',
+    maxClarifyTurns: 1,
+    nextLoopTurn: 0,
+    promptExperimentId: 'exp_baseline_v1',
+  });
+
+  assert.deepEqual(plan.nextQuestions, ['Prompt question 1', 'Prompt question 2', 'Spec question 1']);
+});
+
+test('buildGeneratedResultPlan does not reopen clarify loop from spec fallback when prompt validation says it is unnecessary', () => {
+  const plan = buildGeneratedResultPlan({
+    generated: {
+      validation_report: {
+        needs_clarification: true,
+        suggested_questions: ['Spec question 1'],
+      },
+      prompt_output: {
+        validation: {
+          needs_clarification: false,
+          suggested_questions: [],
+        },
+      },
+    },
+    loopMode: 'guided_once',
+    maxClarifyTurns: 1,
+    nextLoopTurn: 0,
+    promptExperimentId: 'exp_baseline_v1',
+  });
+
+  assert.deepEqual(plan.nextQuestions, []);
+});
+
 test('buildTransmuteSuccessShadowPayload switches event type for regenerate flow', () => {
   const payload = buildTransmuteSuccessShadowPayload({
     generated: {

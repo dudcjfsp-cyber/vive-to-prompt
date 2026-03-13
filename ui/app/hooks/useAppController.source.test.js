@@ -6,10 +6,18 @@ const source = fs.readFileSync(new URL('./useAppController.js', import.meta.url)
 
 test('useAppController can route generation through prompt-first execution', () => {
   assert.ok(source.includes('transmuteVibeToPrompt,'));
+  assert.ok(source.includes('buildPromptOutputFromSpecResult,'));
   assert.ok(source.includes("export function useAppController({ runtimeConfig = null, personaConfig = null } = {})"));
   assert.ok(source.includes("transmuteTarget: String(runtimeConfig?.capabilities?.transmuteTarget || 'spec')"));
   assert.ok(source.includes("const transmute = transmuteTarget === 'prompt' ? transmuteVibeToPrompt : transmuteVibeToSpec;"));
   assert.ok(source.includes("const promptFirstMode = String(resolvedRuntime.capabilities.transmuteTarget || 'spec') === 'prompt';"));
   assert.ok(source.includes("throw new Error('Prompt-first mode requires prompt_output from the prompt renderer.');"));
   assert.ok(source.includes('promptOutput: isPlainObject(result?.prompt_output) ? result.prompt_output : null,'));
+  assert.doesNotMatch(source, /engine\/pipeline\/buildPromptOutputFromSpecResult/);
+});
+
+test('useAppController keeps warning-driven clarify sync prompt-first', () => {
+  assert.ok(source.includes('const promptValidation = isPlainObject(result?.prompt_output?.validation)'));
+  assert.ok(source.includes('promptValidation,'));
+  assert.ok(source.includes('validationReport,'));
 });

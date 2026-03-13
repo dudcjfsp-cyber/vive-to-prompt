@@ -81,6 +81,25 @@ test('buildWarningDrivenQuestions prefers warning-specific prompts and suggested
   ]);
 });
 
+test('buildWarningDrivenQuestions prioritizes prompt-native questions before spec fallback questions', () => {
+  const questions = buildWarningDrivenQuestions({
+    warningId: 'permission-delete',
+    warningDetail: 'permission warning',
+    promptValidation: {
+      suggested_questions: ['Prompt question A', 'Prompt question B'],
+    },
+    validationReport: {
+      suggested_questions: ['Spec question A', 'Spec question B'],
+    },
+  });
+
+  assert.deepEqual(questions, [
+    '삭제 가능한 역할은 누구이고, 삭제 전에 필요한 승인 단계는 무엇인가요?',
+    'Prompt question A',
+    'Prompt question B',
+  ]);
+});
+
 test('buildWarningDrivenQuestions keeps schema warnings anchored to the clicked warning', () => {
   const questions = buildWarningDrivenQuestions({
     warningId: 'schema-1',
@@ -93,4 +112,19 @@ test('buildWarningDrivenQuestions keeps schema warnings anchored to the clicked 
   assert.deepEqual(questions, [
     '이 경고를 해소하려면 다음 부족한 부분을 구체적으로 보완해 주세요: AI 모델의 구체적인 학습 데이터 및 평가 지표에 대한 계획이 부족합니다.',
   ]);
+});
+
+test('buildWarningDrivenQuestions uses prompt-native schema question before spec fallback schema question', () => {
+  const questions = buildWarningDrivenQuestions({
+    warningId: 'schema-1',
+    warningDetail: 'AI 모델의 구체적인 학습 데이터 및 평가 지표에 대한 계획이 부족합니다.',
+    promptValidation: {
+      suggested_questions: ['Prompt schema question 0', 'Prompt schema question 1'],
+    },
+    validationReport: {
+      suggested_questions: ['Spec schema question 0', 'Spec schema question 1'],
+    },
+  });
+
+  assert.deepEqual(questions, ['Prompt schema question 1']);
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  buildPromptOutputFromSpecResult,
   fetchAvailableModels,
   getProviderDisplayName,
   recommendHybridStacks,
@@ -33,7 +34,6 @@ import {
 import { initializeSpecState, shadowWriteSpecState } from '../services/specStateShadow';
 import { resolvePersonaRuntimeConfig } from '../persona/presets';
 import { REQUIRES_USER_API_KEY } from '../config/runtime.js';
-import { buildPromptOutputFromSpecResult } from '../../../engine/pipeline/buildPromptOutputFromSpecResult.js';
 
 function getSafeModelName(value, fallback = 'OFFLINE') {
   const text = String(value || '').trim();
@@ -288,10 +288,14 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
   const syncWarningToClarifyLoop = useCallback((warningContext = {}) => {
     if (resolvedRuntime.capabilities.loopMode !== 'manual') return [];
 
+    const promptValidation = isPlainObject(result?.prompt_output?.validation)
+      ? result.prompt_output.validation
+      : null;
     const validationReport = isPlainObject(result?.validation_report) ? result.validation_report : null;
     const warningQuestions = buildWarningDrivenQuestions({
       warningId: warningContext?.warningId,
       warningDetail: warningContext?.warningDetail,
+      promptValidation,
       validationReport,
       maxQuestions: 3,
     });

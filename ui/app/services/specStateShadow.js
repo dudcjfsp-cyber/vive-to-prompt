@@ -15,6 +15,10 @@ export function initializeSpecState() {
   updateSpecStateInSession(() => seed);
 }
 
+export function readSpecStateSnapshot() {
+  return loadSpecStateFromSession();
+}
+
 function normalizeQuestionList(value) {
   if (!Array.isArray(value)) return [];
   return value

@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initializeSpecState, shadowWriteSpecState } from './specStateShadow.js';
-import { loadSpecStateFromSession } from '../../../engine/state/specState.js';
+import { initializeSpecState, readSpecStateSnapshot, shadowWriteSpecState } from './specStateShadow.js';
 
 function createMemoryStorage() {
   const store = new Map();
@@ -27,7 +26,7 @@ test('initializeSpecState seeds the upgraded state schema', () => {
 
   try {
     initializeSpecState();
-    const state = loadSpecStateFromSession();
+    const state = readSpecStateSnapshot();
 
     assert.equal(state.version, 2);
     assert.deepEqual(state.pending_questions, []);
@@ -56,7 +55,7 @@ test('shadowWriteSpecState stores loop tracking fields without breaking history 
       payload: { reason: 'missing_permissions' },
     });
 
-    const state = loadSpecStateFromSession();
+    const state = readSpecStateSnapshot();
 
     assert.equal(state.current_node_id, 'clarify_budget');
     assert.deepEqual(state.answers, { source_vibe: '예약 관리 앱' });

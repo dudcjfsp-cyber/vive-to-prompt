@@ -11,6 +11,7 @@ import {
   transmuteVibeToPrompt as transmuteVibeToPromptDirect,
   recommendHybridStacks as recommendHybridStacksDirect,
 } from '../engine/graph/transmuteEngine';
+import { buildPromptOutputFromSpecResult as buildPromptOutputFromSpecResultDirect } from '../engine/pipeline/buildPromptOutputFromSpecResult.js';
 
 export { SUPPORTED_MODEL_PROVIDERS, getProviderDisplayName };
 
@@ -28,4 +29,8 @@ export async function transmuteVibeToPrompt(vibe, apiKey, options = {}) {
 
 export async function recommendHybridStacks(vibe, standardOutput, apiKey, options = {}) {
   return recommendHybridStacksDirect(vibe, standardOutput, apiKey, options);
+}
+
+export function buildPromptOutputFromSpecResult(options = {}) {
+  return buildPromptOutputFromSpecResultDirect(options);
 }

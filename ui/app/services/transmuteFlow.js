@@ -32,14 +32,21 @@ export function buildGeneratedResultPlan({
   const promptValidation = isPlainObject(generated?.prompt_output?.validation)
     ? generated.prompt_output.validation
     : null;
+  const promptQuestions = toStringArray(promptValidation?.suggested_questions);
+  const fallbackQuestions = toStringArray(validationReport?.suggested_questions);
   const suggestedQuestions = Array.from(new Set([
-    ...toStringArray(validationReport?.suggested_questions),
-    ...toStringArray(promptValidation?.suggested_questions),
+    ...promptQuestions,
+    ...fallbackQuestions,
   ])).slice(0, 3);
+  const promptNeedsClarification = typeof promptValidation?.needs_clarification === 'boolean'
+    ? promptValidation.needs_clarification
+    : (promptQuestions.length > 0 ? true : null);
   const loopValidation = (isPlainObject(validationReport) || isPlainObject(promptValidation))
     ? {
       ...(isPlainObject(validationReport) ? validationReport : {}),
-      needs_clarification: Boolean(validationReport?.needs_clarification || promptValidation?.needs_clarification),
+      needs_clarification: promptNeedsClarification === null
+        ? Boolean(validationReport?.needs_clarification)
+        : promptNeedsClarification,
       suggested_questions: suggestedQuestions,
     }
     : null;
