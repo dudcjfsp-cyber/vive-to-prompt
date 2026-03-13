@@ -192,6 +192,7 @@ As of 2026-03-13:
 - first entry now has a simpler input-stage shell, and the existing result/workbench surface appears only after submission
 - prompt rationale is visible in the main result surface
 - rewrite rationale summary and validation summary are visible in the main result surface
+- the success-state result surface now puts the final prompt first, followed by readiness and rewrite-why summary, with source input and supporting notes pushed lower as secondary context
 - prompt validation now carries summary/reason metadata instead of only raw warnings
 - prompt validation warnings are being pushed toward more user-readable prompt-output messaging
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface

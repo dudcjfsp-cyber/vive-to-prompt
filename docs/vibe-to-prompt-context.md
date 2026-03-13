@@ -91,6 +91,7 @@ As of 2026-03-13:
 - the active app surface no longer depends on persona selection
 - rewrite rationale summary and validation summary are visible in the main result UI
 - `review_before_use` is surfaced with a dedicated trust card and immediate review guidance in the main result UI
+- after generation succeeds, the active result surface now leads with the final prompt, then immediate use/review judgment, then a short rewrite-why summary before supporting context cards
 - prompt metadata is visible in the main result UI
 - human-readable selection-signal rationale is visible in the main result UI
 - prompt-first mode now requires renderer-provided prompt_output instead of silently backfilling it from spec output

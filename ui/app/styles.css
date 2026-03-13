@@ -376,6 +376,18 @@ body::after {
   gap: 10px;
 }
 
+.experienced-priority-sequence,
+.experienced-secondary-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.experienced-priority-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .experienced-summary-card {
   border: 1px solid rgba(91, 141, 255, 0.24);
   border-radius: 12px;
@@ -394,6 +406,40 @@ body::after {
 .experienced-priority-card {
   border-color: rgba(130, 168, 255, 0.38);
   box-shadow: 0 10px 24px rgba(29, 78, 216, 0.1);
+}
+
+.experienced-primary-card {
+  border-color: rgba(130, 168, 255, 0.32);
+  background: linear-gradient(180deg, rgba(6, 22, 46, 0.86), rgba(4, 18, 40, 0.72));
+  box-shadow: 0 10px 22px rgba(18, 98, 173, 0.1);
+}
+
+.experienced-card-kicker {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #111111;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.experienced-card-kicker-primary {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.experienced-card-kicker-warning {
+  color: #f97316;
+}
+
+.experienced-card-kicker-success {
+  color: #16a34a;
 }
 
 .experienced-summary-list {
@@ -1628,6 +1674,7 @@ body::after {
   }
 
   .experienced-focus-grid,
+  .experienced-priority-grid,
   .major-review-grid,
   .major-readiness-grid {
     grid-template-columns: 1fr;

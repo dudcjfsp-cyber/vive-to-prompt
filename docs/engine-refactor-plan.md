@@ -123,6 +123,7 @@ Current visible state:
 - one natural-language input
 - a pre-submit input stage now stays visually simpler, and the result/workbench surface appears only after generation starts
 - one prompt-oriented result surface
+- the success-state result hierarchy now leads with final prompt, immediate use/review judgment, and rewrite-why summary before secondary supporting cards
 - visible rationale for why the prompt was shaped that way
 - clearer review-state trust signaling when the prompt should be checked before use
 - prompt-first mode now rejects missing prompt-renderer output instead of silently rebuilding it from spec compatibility data
@@ -190,7 +191,7 @@ That stop signal is now much closer than it was before the prompt renderer exist
 Choose only one of these in a new thread:
 1. make prompt question metadata consumption explicit at one thin UI/controller boundary
 2. remove one remaining real spec-shaped engine blocker upstream of prompt rendering
-3. validate the result-stage information hierarchy and leave deep engine cleanup alone
+3. only if a broader product decision is truly needed, redefine the result-stage information architecture in a new thread rather than continuing the same surface-polish lane
 
 Do not mix both unless there is a direct blocker.
 

@@ -432,172 +432,178 @@ export default function ExperiencedWorkspace({
                 <span className="pill">검증 상태: {getPromptValidationStatusLabel(promptValidation.status)}</span>
               </div>
 
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>원문 입력</h3>
-                <pre className="mono-block experienced-quick-request">
-                  {sourceVibe || '원문 입력이 아직 없습니다.'}
-                </pre>
-              </section>
-
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>
-                <div className="signal-pills">
-                  <span className="pill">현재 상태: {getPromptValidationStatusLabel(promptValidation.status)}</span>
-                  {promptValidation.status === 'review' && (
-                    <span className="pill">검토 메모 {validationWarnings.length || validationReasons.length}개</span>
-                  )}
-                  {validationQuestions.length > 0 && (
-                    <span className="pill">추가 질문 {validationQuestions.length}개</span>
-                  )}
-                </div>
-                <p className="small-muted">
-                  {getPromptValidationTrustLead(
-                    promptValidation.status,
-                    validationWarnings.length,
-                    validationQuestions.length,
-                  )}
-                </p>
-                <p>{validationSummary}</p>
-                <ul className="experienced-summary-list">
-                  {validationTrustChecklist.map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                </ul>
-              </section>
-
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>적용된 기법</h3>
-                {appliedTechniques.length > 0 ? (
-                  <ul className="experienced-summary-list">
-                    {appliedTechniques.map((technique) => (
-                      <li key={technique.id}>
-                        <strong>{getTechniqueLabel(technique.label)}</strong>
-                        {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="small-muted">이번 결과에서는 별도 기법 적용이 기록되지 않았습니다.</p>
-                )}
-              </section>
-
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>이번 구조화 판단 요약</h3>
-                <p>{rewriteRationaleSummary}</p>
-                <ul className="experienced-summary-list">
-                  {(rewriteRationaleReasons.length > 0
-                    ? rewriteRationaleReasons
-                    : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
-                    .slice(0, 4)
-                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                </ul>
-              </section>
-
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>구조화 판단 근거</h3>
-                <ul className="experienced-summary-list">
-                  {(signalEntries.length > 0 ? signalEntries : ['현재 기록된 구조화 판단 신호는 없습니다.'])
-                    .slice(0, 6)
-                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                </ul>
-              </section>
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>{"\uAC80\uC99D \uC694\uC57D"}</h3>
-                <p className="small-muted">{"\uC9C0\uAE08 \uBC14\uB85C \uC368\uB3C4 \uB418\uB294\uC9C0\uB97C \uD55C \uC904\uB85C \uBA3C\uC800 \uC54C\uB824\uC90D\uB2C8\uB2E4."}</p>
-                <p>{validationSummary}</p>
-                <ul className="experienced-summary-list">
-                  {(validationReasons.length > 0
-                    ? validationReasons
-                    : fallbackValidationReasons.length > 0
-                      ? fallbackValidationReasons
-                    : ["\uD2B9\uBCC4\uD55C \uAC80\uD1A0 \uC2E0\uD638\uB294 \uC5C6\uC9C0\uB9CC, \uC544\uB798 \uBA54\uBAA8\uB97C \uD55C \uBC88 \uB354 \uD655\uC778\uD558\uBA74 \uC88B\uC2B5\uB2C8\uB2E4."])
-                    .slice(0, 3)
-                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                </ul>
-              </section>
-
-              <section className="experienced-summary-card experienced-priority-card">
-                <h3>{"\uAC80\uC99D \uBA54\uBAA8"}</h3>
-                <p className="small-muted">{"\uACBD\uACE0\uB098 \uBCF4\uC644 \uD3EC\uC778\uD2B8\uB97C \uADF8\uB300\uB85C \uD655\uC778\uD558\uB294 \uCE78\uC785\uB2C8\uB2E4."}</p>
-                <ul className="experienced-summary-list">
-                  {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ["\uD604\uC7AC \uAE30\uB85D\uB41C \uAC80\uD1A0 \uBA54\uBAA8\uB294 \uC5C6\uC2B5\uB2C8\uB2E4."])
-                    .slice(0, 3)
-                    .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                </ul>
-              </section>
-              {skippedTechniques.length > 0 && (
-                <section className="experienced-summary-card experienced-priority-card">
-                  <h3>이번엔 쓰지 않은 기법</h3>
-                  <ul className="experienced-summary-list">
-                    {skippedTechniques.slice(0, 4).map((technique) => (
-                      <li key={technique.id}>
-                        <strong>{getTechniqueLabel(technique.label)}</strong>
-                        {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {validationQuestions.length > 0 && (
-                <section className="experienced-summary-card experienced-priority-card">
-                  <h3>추가 확인이 필요한 질문</h3>
-                  <p className="small-muted">
-                    현재 프롬프트를 더 안정적으로 만들기 위해 필요한 정보만 짧게 보완합니다.
-                  </p>
-                  <div className="stack-actions">
-                    <span className="pill">보완 차수: {clarifyLoopTurn}</span>
-                    <span className="pill">질문 수: {validationQuestions.length}</span>
-                  </div>
-                  <div className="form-group">
-                    {validationQuestions.map((question) => (
-                      <div key={question} className="form-group">
-                        <label>{question}</label>
-                        <textarea
-                          rows={2}
-                          value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
-                          onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
-                          placeholder="확정된 정보만 짧게 입력하세요."
-                          disabled={state.status === 'processing'}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="stack-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={actions.handleApplyClarifications}
-                      disabled={state.status === 'processing' || !canSubmitClarification}
-                    >
-                      입력에 반영
+              <div className="experienced-priority-sequence">
+                <section className="experienced-summary-card experienced-priority-card experienced-primary-card">
+                  <div className="compact-delivery-head">
+                    <div>
+                      <p className="experienced-card-kicker experienced-card-kicker-primary">먼저 확인</p>
+                      <h3>최종 프롬프트</h3>
+                    </div>
+                    <button type="button" className="btn btn-secondary" onClick={handleCopyExperiencedPrompt}>
+                      프롬프트 복사
                     </button>
                   </div>
+                  <p className="small-muted">
+                    생성이 끝나면 이 프롬프트를 먼저 읽고, 바로 사용할지 이어서 판단합니다.
+                  </p>
+                  {(rewriteMode || appliedTechniqueCount > 0) && (
+                    <div className="signal-pills compact-delivery-meta">
+                      {rewriteMode && (
+                        <span className="pill">구조화 방식: {getRewriteModeLabel(rewriteMode)}</span>
+                      )}
+                      {appliedTechniqueCount > 0 && (
+                        <span className="pill">사용 기법: {appliedTechniqueCount}개</span>
+                      )}
+                    </div>
+                  )}
+                  <pre className="mono-block compact-delivery-block">
+                    {quickAiPrompt || '최종 프롬프트가 아직 없습니다.'}
+                  </pre>
+                  <p className="small-muted compact-delivery-status">{promptCopyStatus || '아직 복사 전'}</p>
                 </section>
-              )}
 
-              <section className="experienced-summary-card">
-                <div className="compact-delivery-head">
-                  <div>
-                    <h3>최종 프롬프트</h3>
-                  </div>
-                  <button type="button" className="btn btn-secondary" onClick={handleCopyExperiencedPrompt}>
-                    프롬프트 복사
-                  </button>
+                <div className="experienced-priority-grid">
+                  <section className="experienced-summary-card experienced-priority-card">
+                    <p className="experienced-card-kicker experienced-card-kicker-warning">사용 전 판단</p>
+                    <h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>
+                    <div className="signal-pills">
+                      <span className="pill">현재 상태: {getPromptValidationStatusLabel(promptValidation.status)}</span>
+                      {promptValidation.status === 'review' && (
+                        <span className="pill">검토 메모 {validationWarnings.length || validationReasons.length}개</span>
+                      )}
+                      {validationQuestions.length > 0 && (
+                        <span className="pill">추가 질문 {validationQuestions.length}개</span>
+                      )}
+                    </div>
+                    <p className="small-muted">
+                      {getPromptValidationTrustLead(
+                        promptValidation.status,
+                        validationWarnings.length,
+                        validationQuestions.length,
+                      )}
+                    </p>
+                    <p>{validationSummary}</p>
+                    <ul className="experienced-summary-list">
+                      {validationTrustChecklist.map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                    </ul>
+                  </section>
+
+                  <section className="experienced-summary-card experienced-priority-card">
+                    <p className="experienced-card-kicker experienced-card-kicker-success">구조화 이유</p>
+                    <h3>이번 구조화 판단 요약</h3>
+                    <p className="small-muted">왜 이런 형태를 선택했는지 짧게 읽고 필요하면 아래 세부 카드로 내려갑니다.</p>
+                    <p>{rewriteRationaleSummary}</p>
+                    <ul className="experienced-summary-list">
+                      {(rewriteRationaleReasons.length > 0
+                        ? rewriteRationaleReasons
+                        : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
+                        .slice(0, 4)
+                        .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                    </ul>
+                  </section>
                 </div>
-                {(rewriteMode || appliedTechniqueCount > 0) && (
-                  <div className="signal-pills compact-delivery-meta">
-                    {rewriteMode && (
-                      <span className="pill">구조화 방식: {getRewriteModeLabel(rewriteMode)}</span>
-                    )}
-                    {appliedTechniqueCount > 0 && (
-                      <span className="pill">사용 기법: {appliedTechniqueCount}개</span>
-                    )}
-                  </div>
+              </div>
+
+              <div className="experienced-secondary-stack">
+                <section className="experienced-summary-card">
+                  <h3>원문 입력</h3>
+                  <pre className="mono-block experienced-quick-request">
+                    {sourceVibe || '원문 입력이 아직 없습니다.'}
+                  </pre>
+                </section>
+
+                <section className="experienced-summary-card">
+                  <h3>적용된 기법</h3>
+                  {appliedTechniques.length > 0 ? (
+                    <ul className="experienced-summary-list">
+                      {appliedTechniques.map((technique) => (
+                        <li key={technique.id}>
+                          <strong>{getTechniqueLabel(technique.label)}</strong>
+                          {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="small-muted">이번 결과에서는 별도 기법 적용이 기록되지 않았습니다.</p>
+                  )}
+                </section>
+
+                <section className="experienced-summary-card">
+                  <h3>구조화 판단 근거</h3>
+                  <ul className="experienced-summary-list">
+                    {(signalEntries.length > 0 ? signalEntries : ['현재 기록된 구조화 판단 신호는 없습니다.'])
+                      .slice(0, 6)
+                      .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                  </ul>
+                </section>
+
+                <section className="experienced-summary-card">
+                  <h3>{"\uAC80\uC99D \uBA54\uBAA8"}</h3>
+                  <p className="small-muted">{"\uACBD\uACE0\uB098 \uBCF4\uC644 \uD3EC\uC778\uD2B8\uB97C \uADF8\uB300\uB85C \uD655\uC778\uD558\uB294 \uCE78\uC785\uB2C8\uB2E4."}</p>
+                  {(validationReasons.length > 0 || fallbackValidationReasons.length > 0) && (
+                    <ul className="experienced-summary-list">
+                      {(validationReasons.length > 0 ? validationReasons : fallbackValidationReasons)
+                        .slice(0, 3)
+                        .map((item, idx) => <li key={String(item) + '-reason-' + String(idx)}>{item}</li>)}
+                    </ul>
+                  )}
+                  <ul className="experienced-summary-list">
+                    {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ["\uD604\uC7AC \uAE30\uB85D\uB41C \uAC80\uD1A0 \uBA54\uBAA8\uB294 \uC5C6\uC2B5\uB2C8\uB2E4."])
+                      .slice(0, 3)
+                      .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                  </ul>
+                </section>
+                {skippedTechniques.length > 0 && (
+                  <section className="experienced-summary-card">
+                    <h3>이번엔 쓰지 않은 기법</h3>
+                    <ul className="experienced-summary-list">
+                      {skippedTechniques.slice(0, 4).map((technique) => (
+                        <li key={technique.id}>
+                          <strong>{getTechniqueLabel(technique.label)}</strong>
+                          {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 )}
-                <pre className="mono-block compact-delivery-block">
-                  {quickAiPrompt || '최종 프롬프트가 아직 없습니다.'}
-                </pre>
-                <p className="small-muted compact-delivery-status">{promptCopyStatus || '아직 복사 전'}</p>
-              </section>
+
+                {validationQuestions.length > 0 && (
+                  <section className="experienced-summary-card">
+                    <h3>추가 확인이 필요한 질문</h3>
+                    <p className="small-muted">
+                      현재 프롬프트를 더 안정적으로 만들기 위해 필요한 정보만 짧게 보완합니다.
+                    </p>
+                    <div className="stack-actions">
+                      <span className="pill">보완 차수: {clarifyLoopTurn}</span>
+                      <span className="pill">질문 수: {validationQuestions.length}</span>
+                    </div>
+                    <div className="form-group">
+                      {validationQuestions.map((question) => (
+                        <div key={question} className="form-group">
+                          <label>{question}</label>
+                          <textarea
+                            rows={2}
+                            value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
+                            onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
+                            placeholder="확정된 정보만 짧게 입력하세요."
+                            disabled={state.status === 'processing'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="stack-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={actions.handleApplyClarifications}
+                        disabled={state.status === 'processing' || !canSubmitClarification}
+                      >
+                        입력에 반영
+                      </button>
+                    </div>
+                  </section>
+                )}
+              </div>
             </div>
           )}
         </section>

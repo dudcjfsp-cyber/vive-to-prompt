@@ -33,6 +33,11 @@ This repo no longer needs to protect every old spec-era surface.
   - one natural-language input
   - one prompt-oriented result surface
   - visible rationale for prompt structure
+- the current success-state result hierarchy now leads with:
+  - the final prompt
+  - an immediate ready-to-use vs review-first judgment
+  - a short rewrite-why summary
+  before source input and other supporting explanation cards
 - prompt metadata shown in the UI now includes:
   - rewrite mode
   - applied technique count
@@ -67,6 +72,7 @@ This repo no longer needs to protect every old spec-era surface.
 - rewrite rationale and validation-readiness rationale are visible in the main UI
 - prompt validation now carries summary/reason metadata and user-facing warning language
 - the main result UI now distinguishes review-needed output with a dedicated trust card instead of leaving the signal buried in warning lists
+- the active result-stage now makes primary vs secondary information more explicit by putting prompt, use judgment, and rewrite-why first
 - prompt-first app control flow now rejects missing prompt-renderer output instead of masking it with spec fallback assembly
 - prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
 - prompt-first validation consumption is now centralized behind one app-side adapter instead of split between raw `prompt_output.validation` and raw `validation_report` reads
@@ -106,9 +112,9 @@ The main user-facing promise is now:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. validate the result-stage primary information hierarchy without redesigning the whole panel
-2. make prompt question metadata consumption explicit at one thin UI/controller boundary using `intent_key` / `source` / `reason_code`
-3. remove one remaining real spec-shaped engine blocker upstream of prompt rendering only if the UI hierarchy work does not reveal a bigger product blocker
+1. make prompt question metadata consumption explicit at one thin UI/controller boundary using `intent_key` / `source` / `reason_code`
+2. remove one remaining real spec-shaped engine blocker upstream of prompt rendering only if product work does not reveal a bigger blocker
+3. if needed, open a clearly new thread to redefine broader result-stage information architecture rather than continuing the same hierarchy-polish lane
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -137,15 +143,16 @@ Current repo assumptions:
 - The original Vibe-to-Spec V2 product repo is preserved elsewhere.
 - The active UX is one natural-language input, one final prompt result, and an explanation of why it was structured that way.
 - The previous thread already separated the first-entry input stage from the post-submit result stage.
+- The previous thread already moved the success-state result hierarchy so the final prompt, use/review judgment, and rewrite-why summary are what users read first.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
 - Prefer the next boundary candidate in this order:
-  1. result-stage primary information hierarchy
-  2. prompt question metadata consumption boundary
-  3. prompt renderer upstream validation-ready handoff boundary
+  1. prompt question metadata consumption boundary
+  2. prompt renderer upstream validation-ready handoff boundary
+  3. broader result-stage information architecture only if it is clearly a new decision boundary
 - Choose exactly one boundary.
 - Do not mix both.
 
@@ -158,9 +165,9 @@ Thread entry rule:
 - Pick exactly one real engine blocker or one real prompt-first UX improvement.
 
 Boundary guidance:
-- If you choose the result-stage hierarchy boundary, focus on what the user should see first after generation succeeds. Do not turn it into a broad panel redesign.
 - If you choose the question metadata boundary, keep it thin: the goal is to make the app read question metadata more explicitly, not to do copy polish or broad UI redesign.
-- If that boundary does not clear the entry rule, only then inspect one upstream validation-ready handoff blocker.
+- If you choose a broader result-stage architecture boundary, treat it as a genuinely new product decision thread, not a continuation of the previous hierarchy-polish work.
+- If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
 
 At the end, always summarize:
 - why this thread was not a loop
