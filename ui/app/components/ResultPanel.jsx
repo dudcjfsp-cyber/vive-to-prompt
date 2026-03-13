@@ -152,6 +152,7 @@ export default function ResultPanel({ viewModel }) {
     validationWarnings,
     suggestedQuestions,
     manualLoopQuestions,
+    manualLoopQuestionDetails,
     manualLoopQuestionCount,
     manualLoopAnswers,
     canSubmitManualLoop,
@@ -917,6 +918,7 @@ export default function ResultPanel({ viewModel }) {
                 validationSeverity={validationSeverity}
                 blockingIssues={blockingIssues}
                 clarifyQuestions={manualLoopQuestions}
+                clarifyQuestionDetails={manualLoopQuestionDetails}
                 clarifyAnswers={manualLoopAnswers}
                 canSubmitClarifications={canSubmitManualLoop}
                 clarifyApplyNotice={clarifyApplyNotice}

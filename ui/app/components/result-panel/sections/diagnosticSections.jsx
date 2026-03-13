@@ -18,6 +18,32 @@ function getValidationSeverityLabel(severity) {
   return '낮음';
 }
 
+function getQuestionIntentLabel(intentKey) {
+  const normalized = toText(intentKey, 'general');
+  const labels = {
+    audience: '대상',
+    task_definition: '작업',
+    success_criteria: '성공 기준',
+    requirements: '요구사항',
+    permissions: '권한',
+    schedule: '일정',
+    structure: '구조',
+    deliverable: '산출물',
+    source_vibe: '원문 의도',
+    output_format: '출력 형식',
+    general: '일반',
+  };
+
+  return labels[normalized] || normalized;
+}
+
+function getQuestionSourceLabel(source) {
+  const normalized = toText(source, 'manual_loop');
+  if (normalized === 'prompt_output.validation') return '프롬프트 검증';
+  if (normalized === 'validation_report') return '호환 검증';
+  return '수동 보완';
+}
+
 export function L4IntegritySimulator({
   gateStatus,
   integritySignals,
@@ -189,6 +215,7 @@ export function L5ActionBinder({
   validationSeverity = 'low',
   blockingIssues = [],
   clarifyQuestions = [],
+  clarifyQuestionDetails = [],
   clarifyAnswers = {},
   canSubmitClarifications = false,
   clarifyApplyNotice = '',
@@ -207,6 +234,11 @@ export function L5ActionBinder({
   const currentPreset = actionPackPresets.find((preset) => preset.id === actionPackPresetId);
   const hasClarifyQuestions = Array.isArray(clarifyQuestions) && clarifyQuestions.length > 0;
   const visibleBlockingIssues = Array.isArray(blockingIssues) ? blockingIssues : [];
+  const questionDetailByText = new Map(
+    (Array.isArray(clarifyQuestionDetails) ? clarifyQuestionDetails : [])
+      .filter((detail) => detail && typeof detail === 'object')
+      .map((detail) => [toText(detail.question), detail]),
+  );
 
   return (
     <section>
@@ -262,36 +294,47 @@ export function L5ActionBinder({
           {hasClarifyQuestions && (
             <div className="form-group">
               <strong>보완점 입력</strong>
-              {clarifyQuestions.map((question, index) => (
-                <div key={`${question}-${index}`} className="form-group">
-                  <label>{question}</label>
-                  <textarea
-                    rows={2}
-                    value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
-                    onChange={(event) => {
-                      if (typeof onSetClarifyAnswer === 'function') {
-                        onSetClarifyAnswer(question, event.target.value);
-                      }
-                    }}
-                    placeholder="보완할 정보만 바로 입력하세요"
-                    disabled={isProcessing}
-                  />
-                  <div className="stack-actions">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-mini"
-                      onClick={() => {
-                        if (typeof onRemoveClarifyQuestion === 'function') {
-                          onRemoveClarifyQuestion(question);
+              {clarifyQuestions.map((question, index) => {
+                const detail = questionDetailByText.get(question);
+                const reasonCode = toText(detail?.reason_code);
+
+                return (
+                  <div key={`${question}-${index}`} className="form-group">
+                    <label>{question}</label>
+                    <p className="small-muted">
+                      보완 축: {getQuestionIntentLabel(detail?.intent_key)}
+                      {' | '}
+                      출처: {getQuestionSourceLabel(detail?.source)}
+                      {reasonCode ? ` | 근거 코드: ${reasonCode}` : ''}
+                    </p>
+                    <textarea
+                      rows={2}
+                      value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
+                      onChange={(event) => {
+                        if (typeof onSetClarifyAnswer === 'function') {
+                          onSetClarifyAnswer(question, event.target.value);
                         }
                       }}
-                      disabled={isProcessing || typeof onRemoveClarifyQuestion !== 'function'}
-                    >
-                      이 질문 제외
-                    </button>
+                      placeholder="보완할 정보만 바로 입력하세요"
+                      disabled={isProcessing}
+                    />
+                    <div className="stack-actions">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-mini"
+                        onClick={() => {
+                          if (typeof onRemoveClarifyQuestion === 'function') {
+                            onRemoveClarifyQuestion(question);
+                          }
+                        }}
+                        disabled={isProcessing || typeof onRemoveClarifyQuestion !== 'function'}
+                      >
+                        이 질문 제외
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div className="stack-actions">
                 <button
                   type="button"

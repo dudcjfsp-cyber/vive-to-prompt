@@ -15,6 +15,7 @@ import {
 } from '../integrity';
 import {
   isObject,
+  toObjectArray,
   toStringArray,
   toText,
 } from '../utils';
@@ -82,6 +83,10 @@ export function useResultPanelDerived({
   );
   const manualLoopQuestions = useMemo(
     () => toStringArray(safeManualLoop.questions),
+    [safeManualLoop],
+  );
+  const manualLoopQuestionDetails = useMemo(
+    () => toObjectArray(safeManualLoop.questionDetails),
     [safeManualLoop],
   );
   const manualLoopQuestionCount = manualLoopQuestions.length;
@@ -226,6 +231,7 @@ export function useResultPanelDerived({
     validationWarnings,
     suggestedQuestions,
     manualLoopQuestions,
+    manualLoopQuestionDetails,
     manualLoopQuestionCount,
     manualLoopAnswers,
     canSubmitManualLoop,

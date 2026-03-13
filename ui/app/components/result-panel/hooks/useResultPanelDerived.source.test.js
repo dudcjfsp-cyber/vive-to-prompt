@@ -13,6 +13,7 @@ test('useResultPanelDerived consumes normalized prompt, validation, manual-loop,
   assert.match(source, /const safePromptPolicy = isObject\(promptPolicy\) \? promptPolicy : \{\};/);
   assert.match(source, /const safeValidation = isObject\(validation\) \? validation : \{\};/);
   assert.match(source, /const safeManualLoop = isObject\(manualLoop\) \? manualLoop : \{\};/);
+  assert.match(source, /const manualLoopQuestionDetails = useMemo\(\s*\(\) => toObjectArray\(safeManualLoop.questionDetails\),/s);
   assert.match(source, /const safeDelivery = isObject\(delivery\) \? delivery : \{\};/);
   assert.match(source, /buildIntegritySignals\(\{\s*integritySource,/s);
   assert.match(source, /buildWarnings\(\{\s*integritySource,/s);

@@ -31,6 +31,8 @@ import {
   buildPromptExperimentId,
   buildTransmuteSuccessShadowPayload,
 } from '../services/transmuteFlow.js';
+import { buildClarifyQuestionDetails } from '../services/clarifyQuestionMetadata.js';
+import { buildPromptFirstValidationReportFromResult } from '../services/promptValidationContract.js';
 import { initializeSpecState, shadowWriteSpecState } from '../services/specStateShadow';
 import { resolvePersonaRuntimeConfig } from '../persona/presets';
 import { REQUIRES_USER_API_KEY } from '../config/runtime.js';
@@ -285,18 +287,25 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     });
   }, [clarifyLoopTurn, clarifyQuestions]);
 
+  const promptFirstValidationReport = useMemo(
+    () => buildPromptFirstValidationReportFromResult(result),
+    [result],
+  );
+  const clarifyQuestionDetails = useMemo(
+    () => buildClarifyQuestionDetails({
+      questions: clarifyQuestions,
+      suggestedQuestionDetails: promptFirstValidationReport?.suggested_question_details,
+    }),
+    [clarifyQuestions, promptFirstValidationReport],
+  );
+
   const syncWarningToClarifyLoop = useCallback((warningContext = {}) => {
     if (resolvedRuntime.capabilities.loopMode !== 'manual') return [];
 
-    const promptValidation = isPlainObject(result?.prompt_output?.validation)
-      ? result.prompt_output.validation
-      : null;
-    const validationReport = isPlainObject(result?.validation_report) ? result.validation_report : null;
     const warningQuestions = buildWarningDrivenQuestions({
       warningId: warningContext?.warningId,
       warningDetail: warningContext?.warningDetail,
-      promptValidation,
-      validationReport,
+      validationReport: promptFirstValidationReport,
       maxQuestions: 3,
     });
     const shouldPrioritizeIncoming = toText(warningContext?.source) === 'result_panel_warning';
@@ -330,8 +339,8 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     applyClarifyQuestionSet,
     clarifyLoopTurn,
     clarifyQuestions,
+    promptFirstValidationReport,
     resolvedRuntime.capabilities.loopMode,
-    result,
   ]);
 
   const applyGeneratedResult = useCallback((generated, {
@@ -659,11 +668,12 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
       promptOutput: isPlainObject(result?.prompt_output) ? result.prompt_output : null,
       transmuteTarget: String(resolvedRuntime.capabilities.transmuteTarget || 'spec'),
       promptPolicyMeta: result?.meta || null,
-      validationReport: isPlainObject(result?.validation_report) ? result.validation_report : null,
+      validationReport: promptFirstValidationReport,
       clarifyApplyNotice,
       clarifyLoop: {
         active: Boolean(resolvedRuntime.capabilities.showLoopControls) && clarifyQuestions.length > 0,
         questions: clarifyQuestions,
+        questionDetails: clarifyQuestionDetails,
         answers: clarifyAnswers,
         canSubmit: clarifyQuestions.some((question) => Boolean(toText(clarifyAnswers[question]))),
         loopTurn: clarifyLoopTurn,
