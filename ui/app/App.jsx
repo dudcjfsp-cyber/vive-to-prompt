@@ -1,6 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import ApiKeyModal from './components/ApiKeyModal';
 import ExperiencedWorkspace from './components/ExperiencedWorkspace';
+import PromptEntryStage from './components/PromptEntryStage.jsx';
 import { useAppController } from './hooks/useAppController';
 import { PROMPT_FIRST_APP_CONFIG } from './runtime/promptFirstConfig';
 
@@ -55,6 +56,7 @@ export default function App() {
     : '관리형 서버 (' + providerLabel + ')';
   const headerCopy = getHeaderCopy();
   const modelStatusLabel = state.selectedModel || (state.isModelOptionsLoading ? '불러오는 중' : (state.activeModel || '선택 안 됨'));
+  const hasEnteredResultStage = hasApiAccess && (state.status !== 'idle' || Boolean(state.result));
 
   return (
     <main className="app-shell">
@@ -95,12 +97,21 @@ export default function App() {
         actions,
       })}
 
-      {hasApiAccess && (
+      {hasApiAccess && !hasEnteredResultStage && (
+        <PromptEntryStage
+          state={state}
+          derived={derived}
+          actions={actions}
+          showApiSettings={requiresApiKey}
+        />
+      )}
+
+      {hasEnteredResultStage && (
         <ExperiencedWorkspace
           state={state}
           derived={derived}
           actions={actions}
-          showModeIntro
+          showModeIntro={false}
           showApiSettings={requiresApiKey}
         />
       )}

@@ -8,7 +8,11 @@ test('App uses a single prompt-first shell instead of persona-driven workspaces'
   assert.match(source, /Vibe-to-Prompt/);
   assert.match(source, /Surface: prompt-first/);
   assert.match(source, /runtimeConfig: PROMPT_FIRST_APP_CONFIG/);
+  assert.match(source, /hasEnteredResultStage/);
+  assert.match(source, /<PromptEntryStage/);
   assert.match(source, /<ExperiencedWorkspace/);
+  assert.match(source, /!hasEnteredResultStage/);
+  assert.match(source, /showModeIntro=\{false\}/);
   assert.doesNotMatch(source, /<PersonaSelector/);
   assert.doesNotMatch(source, /<BeginnerWorkspace/);
   assert.doesNotMatch(source, /<MajorWorkspace/);
