@@ -85,6 +85,17 @@ test('prompt renderer escalates to structured refine when intent is vague and am
       needs_clarification: true,
       warning_count: 2,
       blocking_issue_count: 1,
+      blocking_issues: [
+        { id: 'missing_problem_who', message: '문제정의 5칸: 누가가 비어 있습니다.' },
+      ],
+      warnings: [
+        '문제정의 5칸: 누가가 비어 있습니다.',
+        '필수 기능이 비어 있습니다.',
+      ],
+      suggested_questions: [
+        '누가 이 기능을 가장 자주 사용하는지 알려주세요.',
+        '이번에 반드시 들어가야 하는 핵심 기능 1~3개를 알려주세요.',
+      ],
     },
     intentIr: {
       summary: '',
@@ -131,17 +142,26 @@ test('prompt renderer escalates to structured refine when intent is vague and am
     'missing_information',
     'validation_flags',
   ]);
-  assert.equal(result.validation.status, 'ready');
-  assert.equal(result.validation.summary_code, 'ready_to_use');
-  assert.equal(result.validation.summary, '원문 의도를 유지한 채 바로 사용할 수 있는 실행용 프롬프트로 정리됐습니다.');
+  assert.equal(result.validation.status, 'review');
+  assert.equal(result.validation.summary_code, 'review_before_use');
+  assert.equal(result.validation.summary, '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.');
   assert.deepEqual(result.validation.reason_codes, [
-    'preserves_source_vibe',
-    'rewrite_trace_recorded',
+    'validation_missing_audience_or_role',
+    'validation_missing_requirements',
+  ]);
+  assert.deepEqual(result.validation.warnings, [
+    '이 프롬프트가 맞춰야 하는 대상이나 역할 정보가 아직 덜 고정돼 있습니다.',
+    '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건이 아직 덜 드러나 있습니다.',
   ]);
   assert.deepEqual(result.validation.reason_details, [
-    '원문 요청의 핵심 의도가 최종 프롬프트 안에 그대로 남아 있습니다.',
-    '적용된 구조화 기법과 이유가 함께 남아 있어 결과를 추적하기 쉽습니다.',
-    '적용된 구조화 기법 6개가 함께 기록돼 있습니다.',
+    '누구를 위한 프롬프트인지, 어떤 역할을 기준으로 답해야 하는지가 아직 충분히 분명하지 않습니다.',
+    '결과 품질을 좌우하는 필수 요구사항이나 입력 조건이 아직 충분히 고정되지 않았습니다.',
+    '아직 확정되지 않은 정보가 있어 결과 편차가 남을 수 있습니다: target audience, exact launch date.',
+  ]);
+  assert.deepEqual(result.validation.suggested_questions, [
+    'Who is the email for?',
+    'When is the launch date?',
+    '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건은 무엇인가요?',
   ]);
 });
 
@@ -247,5 +267,81 @@ test('prompt validation exposes prompt-first clarification questions for review-
     '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.',
     '아직 확정되지 않은 정보가 있어 결과 편차가 남을 수 있습니다: launch date.',
     '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.',
+  ]);
+});
+
+test('prompt validation translates upstream validation blockers into prompt-native review reasons', () => {
+  const result = buildPromptValidation({
+    sourceVibe: 'Write a launch plan prompt',
+    finalPrompt: 'Original request:\nWrite a launch plan prompt\n\nTask:\nWrite a launch plan prompt',
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [{ id: 'goal_clarification' }],
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      validationReport: {
+        severity: 'high',
+        needs_clarification: true,
+        warning_count: 2,
+        blocking_issue_count: 1,
+        blocking_issues: [
+          { id: 'missing_problem_success', message: '문제정의 5칸: 성공기준이 비어 있습니다.' },
+        ],
+        warnings: [
+          '문제정의 5칸: 성공기준이 비어 있습니다.',
+          '권한 규칙이 비어 있습니다.',
+        ],
+        suggested_questions: [
+          '완료를 어떻게 판단할지 성공 기준을 알려주세요.',
+          '역할별로 조회, 생성, 수정, 삭제 권한 차이가 필요한지 알려주세요.',
+        ],
+      },
+      intentIr: {
+        summary: 'Write a launch plan prompt',
+        intent: {
+          target_user: 'ops team',
+          usage_moment: 'launch prep',
+          user_job: 'write a launch plan prompt',
+          problem_context: 'Need a reusable launch-planning prompt.',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: ['timeline'],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: true,
+          severity: 'high',
+          warning_count: 2,
+          blocking_issue_count: 1,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'review');
+  assert.equal(result.summary_code, 'review_before_use');
+  assert.equal(result.summary, '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.');
+  assert.deepEqual(result.reason_codes, [
+    'validation_missing_success_criteria',
+    'validation_missing_permissions',
+  ]);
+  assert.deepEqual(result.warnings, [
+    '좋은 결과를 판단할 성공 기준이 아직 약합니다.',
+    '역할별 권한이나 허용 범위를 반영해야 하는지 아직 분명하지 않습니다.',
+  ]);
+  assert.deepEqual(result.reason_details, [
+    '이 프롬프트의 결과가 충분히 좋은지 판단할 기준이나 확인 포인트가 아직 부족합니다.',
+    '이 프롬프트가 역할별 허용 범위나 권한 차이를 반영해야 하는지 아직 고정되지 않았습니다.',
+    '바로 보완할 수 있는 추가 확인 질문이 함께 준비되어 있습니다.',
+  ]);
+  assert.deepEqual(result.suggested_questions, [
+    '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+    '역할별 권한이나 허용 범위를 이 프롬프트에 반영해야 하나요?',
+    '완료를 어떻게 판단할지 성공 기준을 알려주세요.',
   ]);
 });

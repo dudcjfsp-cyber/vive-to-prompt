@@ -19,6 +19,61 @@ function pushUniqueText(list, value) {
   list.push(text);
 }
 
+function pushQuestionForTopic(list, question, matcher = null) {
+  const text = toText(question);
+  if (!text) return;
+  if (matcher && list.some((item) => matcher.test(item))) return;
+  pushUniqueText(list, text);
+}
+
+const PROMPT_NATIVE_VALIDATION_SIGNAL_MAP = Object.freeze({
+  audience_or_role_missing: {
+    ids: ['missing_problem_who', 'missing_roles'],
+    warnings: ['문제정의 5칸: 누가가 비어 있습니다.', '사용자 역할이 비어 있습니다.'],
+    reason_code: 'validation_missing_audience_or_role',
+    warning: '이 프롬프트가 맞춰야 하는 대상이나 역할 정보가 아직 덜 고정돼 있습니다.',
+    reason_detail: '누구를 위한 프롬프트인지, 어떤 역할을 기준으로 답해야 하는지가 아직 충분히 분명하지 않습니다.',
+    question: '이 프롬프트가 가장 먼저 맞춰야 하는 대상이나 역할은 누구인가요?',
+    question_matcher: /(who|audience|target|user|reader|customer|recipient|role|persona|누구|대상|사용자|독자|고객|수신자|역할)/i,
+  },
+  task_definition_missing: {
+    ids: ['missing_summary', 'missing_problem_what', 'missing_standard_request'],
+    warnings: ['한 줄 요약이 비어 있습니다.', '문제정의 5칸: 무엇을이 비어 있습니다.', '표준 요청문이 비어 있습니다.'],
+    reason_code: 'validation_missing_task_definition',
+    warning: '이 프롬프트가 정확히 시켜야 할 작업이 아직 덜 구체적입니다.',
+    reason_detail: '최종 프롬프트가 수행해야 할 핵심 작업이나 요청 문장이 아직 충분히 선명하지 않습니다.',
+    question: '이 프롬프트로 정확히 어떤 작업을 수행하게 하고 싶나요?',
+    question_matcher: /(task|job|work|request|what|무엇|작업|요청|기능)/i,
+  },
+  success_or_quality_bar_missing: {
+    ids: ['missing_problem_success', 'missing_tests'],
+    warnings: ['문제정의 5칸: 성공기준이 비어 있습니다.', '테스트 시나리오가 비어 있습니다.'],
+    reason_code: 'validation_missing_success_criteria',
+    warning: '좋은 결과를 판단할 성공 기준이 아직 약합니다.',
+    reason_detail: '이 프롬프트의 결과가 충분히 좋은지 판단할 기준이나 확인 포인트가 아직 부족합니다.',
+    question: '이 프롬프트의 결과가 충분히 좋다고 볼 기준은 무엇인가요?',
+    question_matcher: /(success|quality|criteria|check|test|검증|성공|기준|확인|테스트)/i,
+  },
+  requirements_or_input_missing: {
+    ids: ['missing_must_features', 'missing_input_fields'],
+    warnings: ['필수 기능이 비어 있습니다.', '입력 데이터 필드가 비어 있습니다.'],
+    reason_code: 'validation_missing_requirements',
+    warning: '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건이 아직 덜 드러나 있습니다.',
+    reason_detail: '결과 품질을 좌우하는 필수 요구사항이나 입력 조건이 아직 충분히 고정되지 않았습니다.',
+    question: '이 프롬프트에 반드시 포함해야 할 핵심 요구나 입력 조건은 무엇인가요?',
+    question_matcher: /(must|required|requirement|input|field|constraint|필수|요구|입력|조건|제약)/i,
+  },
+  permission_rules_missing: {
+    ids: ['missing_permissions'],
+    warnings: ['권한 규칙이 비어 있습니다.'],
+    reason_code: 'validation_missing_permissions',
+    warning: '역할별 권한이나 허용 범위를 반영해야 하는지 아직 분명하지 않습니다.',
+    reason_detail: '이 프롬프트가 역할별 허용 범위나 권한 차이를 반영해야 하는지 아직 고정되지 않았습니다.',
+    question: '역할별 권한이나 허용 범위를 이 프롬프트에 반영해야 하나요?',
+    question_matcher: /(permission|access|approve|delete|role|권한|허용|승인|삭제|역할)/i,
+  },
+});
+
 function toLevel(score) {
   if (score >= 2) return 'high';
   if (score >= 1) return 'medium';
@@ -319,7 +374,45 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   return sections.join('\n');
 }
 
-function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }) {
+function collectPromptNativeValidationSignals(validationReport = {}) {
+  const normalizedReport = isPlainObject(validationReport) ? validationReport : {};
+  const blockingIssues = Array.isArray(normalizedReport.blocking_issues) ? normalizedReport.blocking_issues : [];
+  const warningTexts = toStringArray(normalizedReport.warnings);
+  const matchedSignalKeys = [];
+
+  Object.entries(PROMPT_NATIVE_VALIDATION_SIGNAL_MAP).forEach(([signalKey, config]) => {
+    const matchedById = blockingIssues.some((issue) => config.ids.includes(toText(issue?.id)));
+    const matchedByWarning = warningTexts.some((warning) => config.warnings.includes(warning));
+    if (matchedById || matchedByWarning) {
+      matchedSignalKeys.push(signalKey);
+    }
+  });
+
+  const signals = matchedSignalKeys.map((signalKey) => PROMPT_NATIVE_VALIDATION_SIGNAL_MAP[signalKey]);
+  const requiresReview = Boolean(
+    signals.length > 0
+    && (
+      Number(normalizedReport.blocking_issue_count || 0) > 0
+      || normalizedReport.needs_clarification === true
+    )
+  );
+
+  return {
+    requires_review: requiresReview,
+    warning_count: Number(normalizedReport.warning_count || 0),
+    blocking_issue_count: Number(normalizedReport.blocking_issue_count || 0),
+    reason_codes: signals.map((signal) => signal.reason_code),
+    warnings: signals.map((signal) => signal.warning),
+    reason_details: signals.map((signal) => signal.reason_detail),
+    questions: signals.map((signal) => signal.question),
+  };
+}
+
+function buildPromptClarificationQuestions({
+  sharedRuntimeHandoff,
+  reasonCodes,
+  promptNativeValidationSignals,
+}) {
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
   const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
   const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
@@ -328,6 +421,7 @@ function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }
   const clarificationQuestions = toStringArray(analysis.clarification_questions);
   const missingInformation = toStringArray(analysis.missing_information);
   const fallbackQuestions = toStringArray(validationReport.suggested_questions);
+  const translatedValidationQuestions = toStringArray(promptNativeValidationSignals?.questions);
   const suggestions = [];
 
   if (reasonCodes.includes('empty_prompt')) {
@@ -345,45 +439,76 @@ function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }
   missingInformation.slice(0, 3).forEach((item) => {
     const normalized = toText(item);
     if (!normalized) return;
-    const lower = normalized.toLowerCase();
 
     if (/(audience|target user|user|reader|customer|recipient|persona|사용자|대상|독자|고객|수신자|역할)/i.test(normalized)) {
-      pushUniqueText(suggestions, '이 프롬프트가 가장 먼저 맞춰야 하는 대상은 누구인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '이 프롬프트가 가장 먼저 맞춰야 하는 대상은 누구인가요?',
+        /(who|audience|target|user|reader|customer|recipient|role|persona|누구|대상|사용자|독자|고객|수신자|역할)/i,
+      );
       return;
     }
 
     if (/(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i.test(normalized)) {
-      pushUniqueText(suggestions, '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '이 프롬프트에 반영할 일정이나 날짜는 무엇인가요?',
+        /(date|deadline|schedule|timeline|timing|launch date|일정|날짜|마감|시점)/i,
+      );
       return;
     }
 
     if (/(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i.test(normalized)) {
-      pushUniqueText(suggestions, '최종 응답 형식은 무엇으로 고정하면 될까요?');
+      pushQuestionForTopic(
+        suggestions,
+        '최종 응답 형식은 무엇으로 고정하면 될까요?',
+        /(format|output|template|schema|json|table|email|markdown|형식|출력|포맷|스키마|템플릿|본문)/i,
+      );
       return;
     }
 
     if (/(tone|style|voice|톤|말투|문체)/i.test(normalized)) {
-      pushUniqueText(suggestions, '원하는 톤이나 말투는 무엇인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '원하는 톤이나 말투는 무엇인가요?',
+        /(tone|style|voice|톤|말투|문체)/i,
+      );
       return;
     }
 
     if (/(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i.test(normalized)) {
-      pushUniqueText(suggestions, '분량이나 길이 제한은 어느 정도인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '분량이나 길이 제한은 어느 정도인가요?',
+        /(length|word count|wordcount|under|within|limit|분량|길이|글자 수|글자수|제한)/i,
+      );
       return;
     }
 
     if (/(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i.test(normalized)) {
-      pushUniqueText(suggestions, '이 프롬프트가 유도해야 하는 다음 행동은 무엇인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '이 프롬프트가 유도해야 하는 다음 행동은 무엇인가요?',
+        /(cta|call to action|next step|action|행동|다음 단계|콜투액션)/i,
+      );
       return;
     }
 
     if (/(context|background|problem|situation|배경|맥락|문제|상황)/i.test(normalized)) {
-      pushUniqueText(suggestions, '이 프롬프트가 전제로 삼아야 하는 핵심 맥락은 무엇인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '이 프롬프트가 전제로 삼아야 하는 핵심 맥락은 무엇인가요?',
+        /(context|background|problem|situation|배경|맥락|문제|상황)/i,
+      );
       return;
     }
 
     if (/(goal|success|outcome|objective|목표|성공|결과)/i.test(normalized)) {
-      pushUniqueText(suggestions, '이 프롬프트가 만족해야 하는 성공 기준은 무엇인가요?');
+      pushQuestionForTopic(
+        suggestions,
+        '이 프롬프트가 만족해야 하는 성공 기준은 무엇인가요?',
+        /(goal|success|outcome|objective|목표|성공|결과)/i,
+      );
       return;
     }
 
@@ -393,6 +518,16 @@ function buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes }
   if (reasonCodes.includes('missing_technique_trace')) {
     pushUniqueText(suggestions, '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?');
   }
+
+  translatedValidationQuestions.slice(0, 3).forEach((question) => {
+    const matchedSignalConfig = Object.values(PROMPT_NATIVE_VALIDATION_SIGNAL_MAP)
+      .find((signal) => signal.question === question);
+    pushQuestionForTopic(
+      suggestions,
+      question,
+      matchedSignalConfig?.question_matcher || null,
+    );
+  });
 
   fallbackQuestions.slice(0, 3).forEach((question) => {
     pushUniqueText(suggestions, question);
@@ -406,6 +541,7 @@ function buildPromptValidationNarrative({
   appliedTechniques,
   warnings,
   reasonCodes,
+  promptNativeValidationSignals,
   suggestedQuestions,
   sharedRuntimeHandoff,
 }) {
@@ -421,6 +557,8 @@ function buildPromptValidationNarrative({
   if (warnings.length > 0) {
     if (reasonCodes.includes('empty_prompt')) {
       summary = '최종 프롬프트가 비어 있어 바로 사용할 수 없습니다.';
+    } else if (toStringArray(promptNativeValidationSignals?.reason_codes).length > 0) {
+      summary = '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.';
     } else if (reasonCodes.includes('loses_source_vibe') && reasonCodes.includes('missing_technique_trace')) {
       summary = '현재 프롬프트는 원문 의도 유지와 구조화 근거를 함께 다시 확인해야 합니다.';
     } else if (reasonCodes.includes('loses_source_vibe')) {
@@ -440,6 +578,9 @@ function buildPromptValidationNarrative({
     if (reasonCodes.includes('missing_technique_trace')) {
       pushUniqueText(reasonDetails, '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.');
     }
+    toStringArray(promptNativeValidationSignals?.reason_details).forEach((detail) => {
+      pushUniqueText(reasonDetails, detail);
+    });
     if (missingInformation.length > 0) {
       pushUniqueText(
         reasonDetails,
@@ -498,6 +639,10 @@ export function buildPromptValidation({
   const reasonCodes = [];
   const normalizedSource = toText(sourceVibe);
   const normalizedPrompt = toText(finalPrompt);
+  const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
+    ? sharedRuntimeHandoff.validationReport
+    : {};
+  const promptNativeValidationSignals = collectPromptNativeValidationSignals(validationReport);
   const preservesSourceVibe = rewriteMode === 'pass_through'
     ? normalizedPrompt === normalizedSource
     : normalizedPrompt.includes('Original request:');
@@ -514,6 +659,16 @@ export function buildPromptValidation({
     warnings.push('\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
     reasonCodes.push('missing_technique_trace');
   }
+  if (promptNativeValidationSignals.requires_review) {
+    promptNativeValidationSignals.warnings.forEach((warning) => {
+      pushUniqueText(warnings, warning);
+    });
+    promptNativeValidationSignals.reason_codes.forEach((code) => {
+      if (!reasonCodes.includes(code)) {
+        reasonCodes.push(code);
+      }
+    });
+  }
 
   if (warnings.length === 0) {
     if (preservesSourceVibe) {
@@ -528,13 +683,14 @@ export function buildPromptValidation({
   }
 
   const suggestedQuestions = warnings.length > 0
-    ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes })
+    ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes, promptNativeValidationSignals })
     : [];
   const narrative = buildPromptValidationNarrative({
     rewriteMode,
     appliedTechniques,
     warnings,
     reasonCodes,
+    promptNativeValidationSignals,
     suggestedQuestions,
     sharedRuntimeHandoff,
   });
