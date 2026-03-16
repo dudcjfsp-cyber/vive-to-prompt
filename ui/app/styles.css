@@ -403,6 +403,40 @@ body::after {
   text-transform: none;
 }
 
+.experienced-secondary-details {
+  margin-top: 0;
+}
+
+.experienced-secondary-details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.experienced-secondary-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.experienced-secondary-details-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.experienced-secondary-details-summary p {
+  margin: 6px 0 0;
+}
+
+.experienced-secondary-details-body {
+  margin-top: 10px;
+}
+
+@media (max-width: 980px) {
+  .experienced-secondary-details-summary {
+    flex-direction: column;
+  }
+}
+
 .experienced-priority-card {
   border-color: rgba(130, 168, 255, 0.38);
   box-shadow: 0 10px 24px rgba(29, 78, 216, 0.1);

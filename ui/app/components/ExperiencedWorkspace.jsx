@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import WorkspaceStatusCard from './WorkspaceStatusCard.jsx';
 import { useExperiencedSummary } from './hooks/useExperiencedSummary.js';
 import { buildExperiencedSummaryModel } from './experienced-workspace/buildExperiencedSummaryModel.js';
+import { buildReadyToUseSuccessState } from './experienced-workspace/buildReadyToUseSuccessState.js';
 
 function getPromptValidationStatusLabel(status) {
   if (status === 'review') return '한 번 검토 후 사용';
@@ -299,6 +300,19 @@ export default function ExperiencedWorkspace({
   const rewriteRationaleReasons = (Array.isArray(rewriteRationale.reason_codes) ? rewriteRationale.reason_codes : [])
     .map((code) => getRewriteRationaleReason(code))
     .filter(Boolean);
+  const localizedAppliedTechniques = appliedTechniques.map((technique) => ({
+    ...technique,
+    label: getTechniqueLabel(technique.label),
+    why: getTechniqueWhy(technique.why),
+  }));
+  const localizedSkippedTechniques = skippedTechniques.map((technique) => ({
+    ...technique,
+    label: getTechniqueLabel(technique.label),
+    why: getTechniqueWhy(technique.why),
+  }));
+  const visibleSkippedTechniques = localizedSkippedTechniques.filter(
+    (technique) => technique.id !== 'zero_shot_pass_through',
+  );
   const signalEntries = Object.entries(selectionSignals)
     .map(([key, value]) => getSignalLabel(key, value))
     .filter(Boolean);
@@ -306,6 +320,29 @@ export default function ExperiencedWorkspace({
     ? promptOutput.source_vibe.trim()
     : (quickRequest || state.vibe || '');
   const statusCard = buildPromptWorkspaceStatus(state);
+  const isReadyToUseSuccessState = promptValidation.status === 'ready';
+  const readyToUseSuccessState = isReadyToUseSuccessState
+    ? buildReadyToUseSuccessState({
+      appliedTechniques: localizedAppliedTechniques,
+      rewriteRationaleSummary,
+    })
+    : null;
+  const representativeTechniques = readyToUseSuccessState?.representativeTechniques || [];
+  const hiddenTechniqueCount = readyToUseSuccessState?.hiddenTechniqueCount || 0;
+  const learningNarrative = readyToUseSuccessState?.learningNarrative || rewriteRationaleSummary;
+  const hasValidationMemo = (
+    validationReasons.length > 0
+    || fallbackValidationReasons.length > 0
+    || validationWarnings.length > 0
+    || topWarnings.length > 0
+  );
+  const hasSecondaryTrace = (
+    Boolean(sourceVibe)
+    || localizedAppliedTechniques.length > 0
+    || signalEntries.length > 0
+    || hasValidationMemo
+    || visibleSkippedTechniques.length > 0
+  );
 
   return (
     <section className="experienced-workspace">
@@ -491,16 +528,43 @@ export default function ExperiencedWorkspace({
                   <section className="experienced-summary-card experienced-priority-card">
                     <p className="experienced-card-kicker experienced-card-kicker-success">구조화 이유</p>
                     <h3>이번 구조화 판단 요약</h3>
-                    <p className="small-muted">왜 이런 형태를 선택했는지 짧게 읽고 필요하면 아래 세부 카드로 내려갑니다.</p>
-                    <p>{rewriteRationaleSummary}</p>
-                    <ul className="experienced-summary-list">
-                      {(rewriteRationaleReasons.length > 0
-                        ? rewriteRationaleReasons
-                        : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
-                        .slice(0, 4)
-                        .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                    </ul>
+                    <p className="small-muted">
+                      {isReadyToUseSuccessState
+                        ? '성공 상태에서는 먼저 왜 바로 써도 되는지 한 문장으로 확인하고, 필요할 때만 상세 메모를 펼쳐봅니다.'
+                        : '왜 이런 형태를 선택했는지 짧게 읽고 필요하면 아래 세부 카드로 내려갑니다.'}
+                    </p>
+                    <p>{learningNarrative}</p>
+                    {!isReadyToUseSuccessState && (
+                      <ul className="experienced-summary-list">
+                        {(rewriteRationaleReasons.length > 0
+                          ? rewriteRationaleReasons
+                          : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
+                          .slice(0, 4)
+                          .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                      </ul>
+                    )}
                   </section>
+
+                  {isReadyToUseSuccessState && representativeTechniques.length > 0 && (
+                    <section className="experienced-summary-card experienced-priority-card">
+                      <p className="experienced-card-kicker experienced-card-kicker-success">대표 기법</p>
+                      <h3>대표 구조화 기법</h3>
+                      <p className="small-muted">성공 상태에서 먼저 읽으면 되는 핵심 기법만 3개까지 남겼습니다.</p>
+                      <ul className="experienced-summary-list">
+                        {representativeTechniques.map((technique, idx) => (
+                          <li key={String(technique.id || technique.label) + '-' + String(idx)}>
+                            <strong>{technique.label}</strong>
+                            {technique.learning_effect ? `: ${technique.learning_effect}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                      {hiddenTechniqueCount > 0 && (
+                        <p className="small-muted">
+                          나머지 구조화 메모 {hiddenTechniqueCount}개는 아래 상세 구조화 메모에서 확인할 수 있습니다.
+                        </p>
+                      )}
+                    </section>
+                  )}
                 </div>
 
                 {validationQuestions.length > 0 && (
@@ -542,70 +606,156 @@ export default function ExperiencedWorkspace({
                 )}
               </div>
 
-              <div className="experienced-secondary-stack">
-                <section className="experienced-summary-card">
-                  <h3>원문 입력</h3>
-                  <pre className="mono-block experienced-quick-request">
-                    {sourceVibe || '원문 입력이 아직 없습니다.'}
-                  </pre>
-                </section>
+              {hasSecondaryTrace && (
+                isReadyToUseSuccessState ? (
+                  <details className="experienced-summary-card experienced-secondary-details">
+                    <summary className="experienced-secondary-details-summary">
+                      <div>
+                        <strong>상세 구조화 메모 보기</strong>
+                        <p className="small-muted">원문 입력, 전체 적용 기법, 판단 신호, 검증 메모는 필요할 때만 펼쳐봅니다.</p>
+                      </div>
+                      <div className="signal-pills">
+                        <span className="pill">원문 입력</span>
+                        <span className="pill">전체 기법 {localizedAppliedTechniques.length}개</span>
+                        {hasValidationMemo && <span className="pill">검증 메모</span>}
+                      </div>
+                    </summary>
+                    <div className="experienced-secondary-stack experienced-secondary-details-body">
+                      <section className="experienced-summary-card">
+                        <h3>원문 입력</h3>
+                        <pre className="mono-block experienced-quick-request">
+                          {sourceVibe || '원문 입력이 아직 없습니다.'}
+                        </pre>
+                      </section>
 
-                <section className="experienced-summary-card">
-                  <h3>적용된 기법</h3>
-                  {appliedTechniques.length > 0 ? (
-                    <ul className="experienced-summary-list">
-                      {appliedTechniques.map((technique) => (
-                        <li key={technique.id}>
-                          <strong>{getTechniqueLabel(technique.label)}</strong>
-                          {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="small-muted">이번 결과에서는 별도 기법 적용이 기록되지 않았습니다.</p>
-                  )}
-                </section>
+                      <section className="experienced-summary-card">
+                        <h3>적용된 기법</h3>
+                        {localizedAppliedTechniques.length > 0 ? (
+                          <ul className="experienced-summary-list">
+                            {localizedAppliedTechniques.map((technique, idx) => (
+                              <li key={String(technique.id || technique.label) + '-' + String(idx)}>
+                                <strong>{technique.label}</strong>
+                                {technique.why ? ': ' + technique.why : ''}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="small-muted">이번 결과에서는 별도 기법 적용이 기록되지 않았습니다.</p>
+                        )}
+                      </section>
 
-                <section className="experienced-summary-card">
-                  <h3>구조화 판단 근거</h3>
-                  <ul className="experienced-summary-list">
-                    {(signalEntries.length > 0 ? signalEntries : ['현재 기록된 구조화 판단 신호는 없습니다.'])
-                      .slice(0, 6)
-                      .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                  </ul>
-                </section>
+                      {signalEntries.length > 0 && (
+                        <section className="experienced-summary-card">
+                          <h3>구조화 판단 근거</h3>
+                          <ul className="experienced-summary-list">
+                            {signalEntries
+                              .slice(0, 6)
+                              .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                          </ul>
+                        </section>
+                      )}
 
-                <section className="experienced-summary-card">
-                  <h3>{"\uAC80\uC99D \uBA54\uBAA8"}</h3>
-                  <p className="small-muted">{"\uACBD\uACE0\uB098 \uBCF4\uC644 \uD3EC\uC778\uD2B8\uB97C \uADF8\uB300\uB85C \uD655\uC778\uD558\uB294 \uCE78\uC785\uB2C8\uB2E4."}</p>
-                  {(validationReasons.length > 0 || fallbackValidationReasons.length > 0) && (
-                    <ul className="experienced-summary-list">
-                      {(validationReasons.length > 0 ? validationReasons : fallbackValidationReasons)
-                        .slice(0, 3)
-                        .map((item, idx) => <li key={String(item) + '-reason-' + String(idx)}>{item}</li>)}
-                    </ul>
-                  )}
-                  <ul className="experienced-summary-list">
-                    {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ["\uD604\uC7AC \uAE30\uB85D\uB41C \uAC80\uD1A0 \uBA54\uBAA8\uB294 \uC5C6\uC2B5\uB2C8\uB2E4."])
-                      .slice(0, 3)
-                      .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                  </ul>
-                </section>
-                {skippedTechniques.length > 0 && (
-                  <section className="experienced-summary-card">
-                    <h3>이번엔 쓰지 않은 기법</h3>
-                    <ul className="experienced-summary-list">
-                      {skippedTechniques.slice(0, 4).map((technique) => (
-                        <li key={technique.id}>
-                          <strong>{getTechniqueLabel(technique.label)}</strong>
-                          {technique.why ? ': ' + getTechniqueWhy(technique.why) : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
+                      {hasValidationMemo && (
+                        <section className="experienced-summary-card">
+                          <h3>검증 메모</h3>
+                          <p className="small-muted">경고나 보완 포인트를 그대로 확인하는 칸입니다.</p>
+                          {(validationReasons.length > 0 || fallbackValidationReasons.length > 0) && (
+                            <ul className="experienced-summary-list">
+                              {(validationReasons.length > 0 ? validationReasons : fallbackValidationReasons)
+                                .slice(0, 3)
+                                .map((item, idx) => <li key={String(item) + '-reason-' + String(idx)}>{item}</li>)}
+                            </ul>
+                          )}
+                          <ul className="experienced-summary-list">
+                            {(validationWarnings.length > 0 ? validationWarnings : topWarnings)
+                              .slice(0, 3)
+                              .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                          </ul>
+                        </section>
+                      )}
 
-              </div>
+                      {visibleSkippedTechniques.length > 0 && (
+                        <section className="experienced-summary-card">
+                          <h3>이번엔 쓰지 않은 기법</h3>
+                          <ul className="experienced-summary-list">
+                            {visibleSkippedTechniques.slice(0, 4).map((technique, idx) => (
+                              <li key={String(technique.id || technique.label) + '-skipped-' + String(idx)}>
+                                <strong>{technique.label}</strong>
+                                {technique.why ? ': ' + technique.why : ''}
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
+                    </div>
+                  </details>
+                ) : (
+                  <div className="experienced-secondary-stack">
+                    <section className="experienced-summary-card">
+                      <h3>원문 입력</h3>
+                      <pre className="mono-block experienced-quick-request">
+                        {sourceVibe || '원문 입력이 아직 없습니다.'}
+                      </pre>
+                    </section>
+
+                    <section className="experienced-summary-card">
+                      <h3>적용된 기법</h3>
+                      {localizedAppliedTechniques.length > 0 ? (
+                        <ul className="experienced-summary-list">
+                          {localizedAppliedTechniques.map((technique, idx) => (
+                            <li key={String(technique.id || technique.label) + '-' + String(idx)}>
+                              <strong>{technique.label}</strong>
+                              {technique.why ? ': ' + technique.why : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="small-muted">이번 결과에서는 별도 기법 적용이 기록되지 않았습니다.</p>
+                      )}
+                    </section>
+
+                    <section className="experienced-summary-card">
+                      <h3>구조화 판단 근거</h3>
+                      <ul className="experienced-summary-list">
+                        {(signalEntries.length > 0 ? signalEntries : ['현재 기록된 구조화 판단 신호는 없습니다.'])
+                          .slice(0, 6)
+                          .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                      </ul>
+                    </section>
+
+                    <section className="experienced-summary-card">
+                      <h3>검증 메모</h3>
+                      <p className="small-muted">경고나 보완 포인트를 그대로 확인하는 칸입니다.</p>
+                      {(validationReasons.length > 0 || fallbackValidationReasons.length > 0) && (
+                        <ul className="experienced-summary-list">
+                          {(validationReasons.length > 0 ? validationReasons : fallbackValidationReasons)
+                            .slice(0, 3)
+                            .map((item, idx) => <li key={String(item) + '-reason-' + String(idx)}>{item}</li>)}
+                        </ul>
+                      )}
+                      <ul className="experienced-summary-list">
+                        {(validationWarnings.length > 0 ? validationWarnings : topWarnings.length > 0 ? topWarnings : ['현재 기록된 검토 메모는 없습니다.'])
+                          .slice(0, 3)
+                          .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                      </ul>
+                    </section>
+                    {visibleSkippedTechniques.length > 0 && (
+                      <section className="experienced-summary-card">
+                        <h3>이번엔 쓰지 않은 기법</h3>
+                        <ul className="experienced-summary-list">
+                          {visibleSkippedTechniques.slice(0, 4).map((technique, idx) => (
+                            <li key={String(technique.id || technique.label) + '-skipped-' + String(idx)}>
+                              <strong>{technique.label}</strong>
+                              {technique.why ? ': ' + technique.why : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                  </div>
+                )
+              )}
             </div>
           )}
         </section>

@@ -116,7 +116,7 @@ Transitional rule:
 - treating spec artifacts as the main output users come for
 
 ## Current State Snapshot
-As of 2026-03-13:
+As of 2026-03-16:
 - prompt renderer exists
 - prompt-first controller branching exists
 - the active app shell is prompt-first
@@ -132,6 +132,12 @@ As of 2026-03-13:
 - app-side controller/result-panel/clarify paths now share one prompt-first validation contract instead of independently reading raw validation sources
 - applied / skipped technique cards on the active prompt-first surface now read in Korean
 - the pass-through safety signal label now describes likely result stability instead of implying "just paste the original input"
+- `ready_to_use` success-state now defaults to a thinner explanation layer:
+  - one short learning narrative
+  - up to 3 representative techniques at primary weight
+  - deeper trace moved into collapsed detail
+- short/common `ready_to_use` prompt output now compacts the final prompt body so empty scaffold sections and meta workflow/finalizing blocks do not dominate the copyable result
+- `zero_shot_pass_through` is no longer shown as a skipped-technique item when refinement was actually used
 - spec compatibility paths still remain internally
 
 So the repository is currently best described as:
@@ -159,6 +165,7 @@ These remain valid in the same thread if they directly support the current produ
 3. Improve prompt-output validation messages shown to users.
 4. Remove one remaining compatibility path only when its blast radius is understood.
 5. Strengthen review-state trust signals without reopening large architecture work.
+6. Compact the final prompt body further only if manual testing still shows success-state outputs reading like engine scaffolds rather than copyable prompts.
 
 ## Current Thread: Work To Avoid
 These should not be pushed further in the same thread unless they become a direct blocker.
@@ -176,6 +183,7 @@ Move to a new thread when the work changes from:
 - prompt-first product reshaping
 - UI/controller simplification
 - app-contract migration toward `prompt_output`
+- thin `ready_to_use` output compaction
 
 into:
 - new information-architecture decisions
@@ -218,6 +226,9 @@ Current repo assumptions:
 - Spec-shaped normalization and some compatibility paths still remain internally.
 - The previous thread already surfaced rewrite rationale summary and validation summary in the main UI.
 - The current result-stage hierarchy already treats final prompt, use/review judgment, immediate follow-up action, and rewrite-why as the primary reading path.
+- The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
+- The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
+- The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks do not dominate the copyable result.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
@@ -227,13 +238,14 @@ Thread goal:
   - Does it reduce a real remaining engine blocker?
 - If it is mostly internal cleanup, stop and explain why.
 - Prefer the next boundary candidate in this order:
-  1. prompt question metadata consumption boundary
-  2. prompt renderer upstream validation-ready handoff boundary
-  3. broader result-stage information architecture only if a genuinely new mismatch appears after the current hierarchy rule
+  1. one remaining final-prompt compaction mismatch only if manual testing still shows success-state outputs reading like engine scaffolds
+  2. prompt question metadata consumption boundary
+  3. prompt renderer upstream validation-ready handoff boundary
 - Pick exactly one boundary and resolve only that.
 
 Boundary rule:
-- Do not reopen the result-stage hierarchy boundary for copy-only polish once prompt, trust/action, and rewrite-why are already the primary reading order.
+- Do not reopen the result-stage hierarchy boundary for copy-only polish once prompt, trust/action, rewrite-why, and compressed success-state explanation are already the primary reading order.
+- If you choose the remaining final-prompt compaction boundary, keep it thin: remove only one still-misleading scaffold or label from `ready_to_use` copyable output without redesigning renderer logic broadly.
 - If you choose the question metadata boundary, keep it thin: make the app read `intent_key` / `source` / `reason_code` more explicitly without turning the thread into copy polish or broad UI redesign.
 - Only inspect the upstream validation-ready handoff if the metadata boundary does not pass the entry rule.
 

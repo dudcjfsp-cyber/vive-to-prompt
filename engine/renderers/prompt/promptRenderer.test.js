@@ -165,6 +165,57 @@ test('prompt renderer escalates to structured refine when intent is vague and am
   ]);
 });
 
+test('prompt renderer compacts short ready-to-use prompts without blank scaffold sections', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '신규 가입자에게 보내는 환영 이메일 프롬프트 만들어줘',
+    intentIr: {
+      summary: '신규 가입자용 환영 이메일을 작성하는 프롬프트를 만들어줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '회원가입 완료 시 환영 이메일 자동 발송',
+          '환영 이메일 템플릿 관리 (내용, 제목 등)',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.rewrite_mode, 'light_refine');
+  assert.match(result.final_prompt, /Original request:/);
+  assert.match(result.final_prompt, /Task:/);
+  assert.match(result.final_prompt, /Constraints and priorities:/);
+  assert.match(result.final_prompt, /Output format:/);
+  assert.doesNotMatch(result.final_prompt, /Role:/);
+  assert.doesNotMatch(result.final_prompt, /Context:/);
+  assert.doesNotMatch(result.final_prompt, /Not specified/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.equal(result.validation.status, 'ready');
+  assert.equal(result.validation.summary_code, 'ready_to_use');
+});
+
 
 test('prompt validation marks empty prompt as review_before_use', () => {
   const result = buildPromptValidation({

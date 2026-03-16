@@ -355,7 +355,10 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   const intent = isPlainObject(intentIr.intent) ? intentIr.intent : {};
   const delivery = isPlainObject(intentIr.delivery) ? intentIr.delivery : {};
   const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
-  const summary = toText(intentIr.summary, sourceVibe || 'Clarify the user request and produce the best possible answer.');
+  const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
+    ? sharedRuntimeHandoff.validationReport
+    : {};
+  const summary = toText(intentIr.summary) || sourceVibe || 'Clarify the user request and produce the best possible answer.';
   const mustHaves = toStringArray(delivery.must_haves);
   const niceToHaves = toStringArray(delivery.nice_to_haves);
   const missingInformation = toStringArray(analysis.missing_information);
@@ -363,46 +366,80 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   const risks = toStringArray(analysis.risks);
   const sections = [];
   const selectedIds = new Set(appliedTechniques.map((item) => item.id));
+  const shouldUseCompactPromptTemplate = Boolean(
+    sourceVibe
+    && sourceVibe.length <= 120
+    && !/\n/.test(sourceVibe)
+    && Number(validationReport.warning_count || 0) === 0
+    && Number(validationReport.blocking_issue_count || 0) === 0
+    && validationReport.needs_clarification !== true
+    && missingInformation.length === 0
+    && clarificationQuestions.length === 0
+  );
 
   sections.push('Original request:');
   sections.push(sourceVibe || '(empty)');
 
-  if (selectedIds.has('role_assignment')) {
+  if (!shouldUseCompactPromptTemplate && selectedIds.has('role_assignment') && toText(intent.target_user)) {
     sections.push('');
     sections.push('Role:');
-    sections.push(`Act as a focused assistant for ${toText(intent.target_user, 'the intended audience')}.`);
+    sections.push(`Act as a focused assistant for ${intent.target_user}.`);
   }
 
   if (selectedIds.has('goal_clarification')) {
-    sections.push('');
-    sections.push('Task:');
-    sections.push(summary);
-    if (toText(intent.user_job)) {
-      sections.push(`Primary job to be done: ${intent.user_job}`);
+    const taskLines = [];
+    if (summary) taskLines.push(summary);
+    if (!shouldUseCompactPromptTemplate && toText(intent.user_job)) {
+      taskLines.push(`Primary job to be done: ${intent.user_job}`);
     }
-    if (toText(intent.success_signal)) {
-      sections.push(`Success condition: ${intent.success_signal}`);
+    if (!shouldUseCompactPromptTemplate && toText(intent.success_signal)) {
+      taskLines.push(`Success condition: ${intent.success_signal}`);
+    }
+
+    if (taskLines.length > 0) {
+      sections.push('');
+      sections.push('Task:');
+      taskLines.forEach((line) => sections.push(line));
     }
   }
 
-  if (selectedIds.has('context_structuring')) {
-    sections.push('');
-    sections.push('Context:');
-    sections.push(`- Target user: ${toText(intent.target_user, 'Not specified')}`);
-    sections.push(`- Usage moment: ${toText(intent.usage_moment, 'Not specified')}`);
-    sections.push(`- Problem context: ${toText(intent.problem_context, 'Use the original request as the main context anchor.')}`);
+  if (!shouldUseCompactPromptTemplate && selectedIds.has('context_structuring')) {
+    const contextLines = [];
+    if (toText(intent.target_user)) {
+      contextLines.push(`- Target user: ${intent.target_user}`);
+    }
+    if (toText(intent.usage_moment)) {
+      contextLines.push(`- Usage moment: ${intent.usage_moment}`);
+    }
+    if (toText(intent.problem_context)) {
+      contextLines.push(`- Problem context: ${intent.problem_context}`);
+    }
+
+    if (contextLines.length > 0) {
+      sections.push('');
+      sections.push('Context:');
+      contextLines.forEach((line) => sections.push(line));
+    }
   }
 
   if (selectedIds.has('constraint_expansion')) {
-    sections.push('');
-    sections.push('Constraints and priorities:');
+    const constraintLines = [];
     if (mustHaves.length > 0) {
-      mustHaves.slice(0, rewriteMode === 'structured_refine' ? 4 : 3).forEach((item) => sections.push(`- Must: ${item}`));
-    } else {
-      sections.push('- Preserve the original goal without adding unrelated scope.');
+      mustHaves.slice(0, rewriteMode === 'structured_refine' ? 4 : 3).forEach((item) => {
+        constraintLines.push(`- Must: ${item}`);
+      });
+    } else if (!shouldUseCompactPromptTemplate) {
+      constraintLines.push('- Preserve the original goal without adding unrelated scope.');
     }
-    niceToHaves.slice(0, 2).forEach((item) => sections.push(`- Nice to have: ${item}`));
-    risks.slice(0, 2).forEach((item) => sections.push(`- Avoid: ${item}`));
+
+    niceToHaves.slice(0, 2).forEach((item) => constraintLines.push(`- Nice to have: ${item}`));
+    risks.slice(0, 2).forEach((item) => constraintLines.push(`- Avoid: ${item}`));
+
+    if (constraintLines.length > 0) {
+      sections.push('');
+      sections.push('Constraints and priorities:');
+      constraintLines.forEach((line) => sections.push(line));
+    }
   }
 
   if (selectedIds.has('output_format_lock')) {
@@ -412,7 +449,7 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
     sections.push('- Keep the answer concise, explicit, and immediately usable.');
   }
 
-  if (selectedIds.has('step_decomposition')) {
+  if (!shouldUseCompactPromptTemplate && selectedIds.has('step_decomposition')) {
     sections.push('');
     sections.push('Suggested workflow:');
     sections.push('1. Identify the exact deliverable the user is asking for.');
@@ -420,7 +457,7 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
     sections.push('3. Produce the final answer in the requested format without unnecessary detours.');
   }
 
-  if (selectedIds.has('quality_checklist_injection')) {
+  if (!shouldUseCompactPromptTemplate && selectedIds.has('quality_checklist_injection')) {
     sections.push('');
     sections.push('Before finalizing:');
     sections.push('- Do not hide missing assumptions. State them clearly if you must infer.');

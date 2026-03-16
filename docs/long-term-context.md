@@ -95,7 +95,7 @@ The reusable target shape is still:
 6. validation and feedback
 
 ## Current Engine Reality
-As of 2026-03-13 in this repo:
+As of 2026-03-16 in this repo:
 - spec-only facade logic has been separated into a spec facade
 - provider/model runtime has been separated into a shared runtime service
 - a shared renderer runtime handoff exists
@@ -105,6 +105,14 @@ As of 2026-03-13 in this repo:
 - rewrite rationale and validation rationale are now exposed on the active prompt-first surface
 - `review_before_use` now shows a clearer review-first trust signal with immediate follow-up actions in the main result surface
 - app-facing validation consumption now goes through a prompt-first adapter instead of asking each UI path to read raw validation sources directly
+- the `ready_to_use` success-state explanation layer is now compressed by default into:
+  - final prompt
+  - readiness judgment
+  - one short learning narrative
+  - up to 3 representative techniques
+  with deeper trace moved into collapsed secondary detail
+- short/common `ready_to_use` prompt output can now compact the final prompt body by removing empty scaffold sections and internal workflow/finalizing blocks when no review signal is present
+- `zero_shot_pass_through` remains a real pass-through technique, but it no longer appears as a misleading skipped-technique item when refinement was actually used
 
 What is still transitional:
 - intent IR is still derived after spec-shaped normalization
@@ -164,6 +172,13 @@ After generation succeeds, the result-stage hierarchy should remain:
 - short rewrite-why summary before deeper trace details
 - source input, technique trace, selection signals, and validation notes as secondary context
 
+For `ready_to_use` success-state by default, the visible explanation should now compress toward:
+- one short effect-first learning narrative
+- representative techniques at primary weight, capped to 3
+- deeper trace details only when expanded
+
+The final prompt body itself should also avoid reading like an engine scaffold when the request is short and already usable.
+
 This should still feel like one explanation surface around one prompt result, not several competing outputs.
 
 ### 3. Transitional compatibility is allowed
@@ -217,7 +232,7 @@ If a proposed change solves a local issue but makes prompt-first direction less 
 If a proposed change improves prompt-first clarity or renderer reuse, it is likely aligned.
 
 ## Current Snapshot
-As of 2026-03-13:
+As of 2026-03-16:
 - prompt renderer exists and is tested
 - prompt runtime handoff exists and is tested
 - model runtime extraction exists and is tested
@@ -234,5 +249,11 @@ As of 2026-03-13:
 - app-side controller/result-panel/clarify paths now share one prompt-first validation contract instead of independently deriving from raw validation sources
 - technique names and technique explanations shown on the active prompt-first surface now read in Korean
 - the pass-through safety signal is now labeled in a way that better matches "result stability" rather than "the model can probably handle it"
+- the active success-state now compresses explanation density by default:
+  - one short learning narrative
+  - representative techniques capped at 3
+  - deeper source/technique/validation trace moved into collapsed detail
+- short/common `ready_to_use` results now compact the final prompt body instead of always exposing empty `Role/Task/Context` scaffolding and meta workflow blocks
+- `zero_shot_pass_through` no longer shows up as a skipped-technique distraction when the engine actually chose refinement
 - compatibility spec paths still exist beneath the surface
-- the next risk area is overextending the same surface-polish thread rather than missing prompt-first UI basics
+- the next risk area is overextending the same success-state polish thread instead of stopping once the remaining issue becomes a clearly new boundary

@@ -60,6 +60,14 @@ The current discussion also clarified a stronger long-term reading:
 - the active prompt-first result surface now localizes technique labels and technique explanations into Korean
 - the `safe_to_pass_through` signal is now presented as "원문만으로도 결과 편차가 낮은가" to match the product's conservative judgment more honestly
 - the first-entry placeholder now uses a more everyday non-builder example so the product reads less like a spec-design tool
+- `ready_to_use` success-state now compresses the default visible explanation into:
+  - final prompt
+  - readiness judgment
+  - one short learning narrative
+  - up to 3 representative techniques
+  with deeper source/technique/signal/validation trace moved into collapsed detail
+- `zero_shot_pass_through` remains an engine technique for real pass-through cases, but it no longer appears as a misleading skipped-technique item when refinement was actually used
+- short/common `ready_to_use` outputs now compact the final prompt body by omitting empty scaffold sections and internal workflow/finalizing blocks when no review signal is present
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -88,6 +96,11 @@ The current discussion also clarified a stronger long-term reading:
   - immediate follow-up questions near that judgment when review is needed
   - rewrite-why summary before lower trace cards
   - source input, techniques, selection signals, and validation notes as supporting trace
+- `ready_to_use` success-state now carries a clearer compression rule:
+  - one short effect-first learning narrative
+  - representative techniques capped at 3
+  - deeper trace only when expanded
+- short/common `ready_to_use` final prompts now read less like engine scaffolds and more like copyable execution prompts
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -109,7 +122,7 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - renderer reuse
 - removal of a real remaining engine blocker
 
-The other rising loop risk is polishing the same prompt-result surface repeatedly after rewrite rationale and validation-readiness summaries are already visible.
+The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -202,7 +215,7 @@ Current recommended interpretation:
 Only start a new thread if the goal is clearly one of these:
 1. explicitly redefine the long-term product declaration around `Vibe Studio` as a learning platform and `Vibe-to-Prompt` as a learning track
 2. decide whether the next UI iteration should move toward hybrid learning-track behavior or more explicit technique-library behavior
-3. only after that strategic clarification, choose whether prompt question metadata or one remaining upstream engine blocker is truly the best next boundary
+3. only after that strategic clarification, choose whether one still-misleading final-prompt scaffold, prompt question metadata, or one remaining upstream engine blocker is truly the best next boundary
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -212,6 +225,7 @@ Avoid choosing a new thread for:
 - full intent-analysis redesign
 - multi-renderer studio architecture work
 - relitigating prompt-signal thresholds through copy-only tweaks unless a real product misunderstanding persists
+- reopening the just-compressed success-state explanation density without a concrete manual-testing failure
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
 
 ## Suggested Start Prompt For The Next Thread
@@ -232,15 +246,18 @@ Current repo assumptions:
 - The active UX is one natural-language input, one final prompt result, and an explanation of why it was structured that way.
 - The previous thread already separated the first-entry input stage from the post-submit result stage.
 - The previous thread already moved the success-state result hierarchy so the final prompt, use/review judgment, and rewrite-why summary are what users read first.
+- The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
+- The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
+- The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
 - Prefer the next boundary candidate in this order:
-  1. prompt question metadata consumption boundary
-  2. prompt renderer upstream validation-ready handoff boundary
-  3. broader result-stage information architecture only if a genuinely new mismatch appears after the current hierarchy rule
+  1. one still-misleading final-prompt scaffold only if manual testing shows a remaining real mismatch
+  2. prompt question metadata consumption boundary
+  3. prompt renderer upstream validation-ready handoff boundary
 - Choose exactly one boundary.
 - Do not mix both.
 
@@ -253,6 +270,7 @@ Thread entry rule:
 - Pick exactly one real engine blocker or one real prompt-first UX improvement.
 
 Boundary guidance:
+- If you choose the remaining final-prompt scaffold boundary, keep it thin: remove only one still-misleading label or block from `ready_to_use` copyable output without broad renderer redesign.
 - If you choose the question metadata boundary, keep it thin: the goal is to make the app read question metadata more explicitly, not to do copy polish or broad UI redesign.
 - The broader result-stage architecture boundary has now been used to clarify primary output vs immediate action vs supporting trace. Do not reopen it for copy-only polish.
 - If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
