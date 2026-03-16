@@ -1,6 +1,6 @@
 # Session Handoff (Latest)
 
-- Updated: 2026-03-13
+- Updated: 2026-03-16
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
 - Branch: `main`
 - Scope: prompt-first product transition, reusable engine extraction, compatibility-harness cleanup
@@ -130,10 +130,78 @@ The main user-facing promise is now:
 That promise is still accurate for the current repo state.
 It may no longer be the best long-term top-level product declaration.
 
+## Current Strategic Comparison
+The current discussion narrowed the likely product-shape options to three:
+
+### 1. Auto-generator first
+- shape:
+  - user enters one vibe
+  - the system generates one final prompt
+  - explanations mainly justify the result after the fact
+- strengths:
+  - immediate practical value
+  - easiest story for a prompt-first prototype
+  - aligns well with the existing engine/result surface
+- weaknesses:
+  - learning value can remain passive
+  - users may copy the result without internalizing the structure
+  - differentiation from other generation tools remains weaker
+
+### 2. Technique-library first
+- shape:
+  - users learn from explicit prompt-technique cards
+  - each card can expose when to use it, before/after examples, and copyable markdown patterns
+  - generated output becomes optional or secondary
+- strengths:
+  - much clearer learning value
+  - fits the long-term "reveal structure, do not hide it" philosophy strongly
+  - many surfaces can work without API dependence
+- weaknesses:
+  - weaker immediate payoff for a user's own live input
+  - puts more selection burden on the learner
+  - risks drifting away from the existing prompt-renderer value already built
+
+### 3. Hybrid learning track
+- shape:
+  - generated prompt output still exists
+  - but techniques become first-class teachable surfaces rather than only metadata
+  - the system can show why a technique was used, when to reuse it manually, and what a reusable template looks like
+- strengths:
+  - preserves immediate utility while increasing teachability
+  - best bridge from the current repo state toward the broader `Vibe Studio` learning-platform direction
+  - lets the engine support learning without remaining a pure black-box generator
+- weaknesses:
+  - easier to make muddled if the learning surface and generation surface are not clearly separated
+  - can become too dense unless the UI has a clear primary/secondary structure
+
+Current lean from this discussion:
+- the long-term direction appears closer to `hybrid learning track` than pure auto-generator
+- pure technique-library direction remains attractive for learning value, but it would be a larger product pivot
+
+## Current API Interpretation
+The discussion also clarified a more precise role for API usage:
+
+- API should no longer be assumed to be the mandatory center of the product's value
+- API is most justified where the product provides:
+  - personalized technique recommendation
+  - live transformation of a user's own vibe
+  - follow-up clarification questions
+  - comparative feedback on why a structure changed
+- API is less necessary for:
+  - static technique cards
+  - reusable markdown examples
+  - copyable pattern libraries
+  - explainers about when a technique fits or does not fit
+
+Current recommended interpretation:
+- treat API as an optional personalization and feedback layer
+- do not treat API dependence as the defining identity of the platform
+- future learning surfaces should ideally provide real value even when no live API call is made
+
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
 1. explicitly redefine the long-term product declaration around `Vibe Studio` as a learning platform and `Vibe-to-Prompt` as a learning track
-2. decide whether prompt techniques should become first-class teachable surfaces rather than only result metadata
+2. decide whether the next UI iteration should move toward hybrid learning-track behavior or more explicit technique-library behavior
 3. only after that strategic clarification, choose whether prompt question metadata or one remaining upstream engine blocker is truly the best next boundary
 
 ## Work To Avoid In The Immediate Next Thread
