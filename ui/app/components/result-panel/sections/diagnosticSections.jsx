@@ -293,20 +293,27 @@ export function L5ActionBinder({
           )}
           {hasClarifyQuestions && (
             <div className="form-group">
-              <strong>보완점 입력</strong>
+              <strong>프롬프트 구조를 보완할 질문</strong>
+              <p className="small-muted">
+                아래 질문은 빠진 항목을 채워 최종 프롬프트의 구조를 더 분명하게 만들기 위한 것입니다.
+              </p>
               {clarifyQuestions.map((question, index) => {
                 const detail = questionDetailByText.get(question);
-                const reasonCode = toText(detail?.reason_code);
+                const intentLabel = toText(detail?.intent_label, getQuestionIntentLabel(detail?.intent_key));
+                const sourceLabel = toText(detail?.source_label, getQuestionSourceLabel(detail?.source));
+                const whyThisQuestion = toText(detail?.why_this_question);
+                const promptImprovement = toText(detail?.prompt_improvement);
 
                 return (
                   <div key={`${question}-${index}`} className="form-group">
                     <label>{question}</label>
                     <p className="small-muted">
-                      보완 축: {getQuestionIntentLabel(detail?.intent_key)}
+                      빠진 구조: {intentLabel}
                       {' | '}
-                      출처: {getQuestionSourceLabel(detail?.source)}
-                      {reasonCode ? ` | 근거 코드: ${reasonCode}` : ''}
+                      읽은 경계: {sourceLabel}
                     </p>
+                    {whyThisQuestion && <p className="small-muted">왜 필요한가: {whyThisQuestion}</p>}
+                    {promptImprovement && <p className="small-muted">답하면 좋아지는 점: {promptImprovement}</p>}
                     <textarea
                       rows={2}
                       value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
