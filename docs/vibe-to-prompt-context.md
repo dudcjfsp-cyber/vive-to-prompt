@@ -116,7 +116,7 @@ Transitional rule:
 - treating spec artifacts as the main output users come for
 
 ## Current State Snapshot
-As of 2026-03-16:
+As of 2026-03-17:
 - prompt renderer exists
 - prompt-first controller branching exists
 - the active app shell is prompt-first
@@ -137,6 +137,8 @@ As of 2026-03-16:
   - up to 3 representative techniques at primary weight
   - deeper trace moved into collapsed detail
 - short/common `ready_to_use` prompt output now compacts the final prompt body so empty scaffold sections and meta workflow/finalizing blocks do not dominate the copyable result
+- compact `ready_to_use` copy now also removes `Original request:` and other template-style success-state scaffolds when the prompt is already ready to use
+- compact email-writing prompts can now translate some spec-flavored `must_haves` into writing-friendly constraints so the copied result reads more like a real prompt than a feature checklist
 - `zero_shot_pass_through` is no longer shown as a skipped-technique item when refinement was actually used
 - spec compatibility paths still remain internally
 
@@ -165,7 +167,7 @@ These remain valid in the same thread if they directly support the current produ
 3. Improve prompt-output validation messages shown to users.
 4. Remove one remaining compatibility path only when its blast radius is understood.
 5. Strengthen review-state trust signals without reopening large architecture work.
-6. Compact the final prompt body further only if manual testing still shows success-state outputs reading like engine scaffolds rather than copyable prompts.
+6. Run broader manual checks across short/common inputs before compacting the final prompt body any further.
 
 ## Current Thread: Work To Avoid
 These should not be pushed further in the same thread unless they become a direct blocker.
@@ -184,6 +186,7 @@ Move to a new thread when the work changes from:
 - UI/controller simplification
 - app-contract migration toward `prompt_output`
 - thin `ready_to_use` output compaction
+- focused regression checking across multiple short/common success-state inputs
 
 into:
 - new information-architecture decisions
@@ -229,6 +232,7 @@ Current repo assumptions:
 - The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
 - The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks do not dominate the copyable result.
+- The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
@@ -238,9 +242,10 @@ Thread goal:
   - Does it reduce a real remaining engine blocker?
 - If it is mostly internal cleanup, stop and explain why.
 - Prefer the next boundary candidate in this order:
-  1. one remaining final-prompt compaction mismatch only if manual testing still shows success-state outputs reading like engine scaffolds
-  2. prompt question metadata consumption boundary
-  3. prompt renderer upstream validation-ready handoff boundary
+  1. broader short/common manual regression checks across multiple input types
+  2. one remaining final-prompt compaction mismatch only if those checks expose a real repeated failure
+  3. prompt question metadata consumption boundary
+  4. prompt renderer upstream validation-ready handoff boundary
 - Pick exactly one boundary and resolve only that.
 
 Boundary rule:

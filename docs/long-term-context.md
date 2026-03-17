@@ -95,7 +95,7 @@ The reusable target shape is still:
 6. validation and feedback
 
 ## Current Engine Reality
-As of 2026-03-16 in this repo:
+As of 2026-03-17 in this repo:
 - spec-only facade logic has been separated into a spec facade
 - provider/model runtime has been separated into a shared runtime service
 - a shared renderer runtime handoff exists
@@ -111,7 +111,12 @@ As of 2026-03-16 in this repo:
   - one short learning narrative
   - up to 3 representative techniques
   with deeper trace moved into collapsed secondary detail
-- short/common `ready_to_use` prompt output can now compact the final prompt body by removing empty scaffold sections and internal workflow/finalizing blocks when no review signal is present
+- short/common `ready_to_use` prompt output can now compact the final prompt body by:
+  - removing empty scaffold sections
+  - removing internal workflow/finalizing blocks when no review signal is present
+  - removing `Original request:` from compact success-state copy
+  - replacing template-style section headers with lighter prompt-facing structure such as `조건:` and `출력 형식:`
+  - rewriting some spec-shaped email `must_haves` into writing-friendly constraints so the copied prompt reads less like a product spec
 - `zero_shot_pass_through` remains a real pass-through technique, but it no longer appears as a misleading skipped-technique item when refinement was actually used
 
 What is still transitional:
@@ -178,6 +183,7 @@ For `ready_to_use` success-state by default, the visible explanation should now 
 - deeper trace details only when expanded
 
 The final prompt body itself should also avoid reading like an engine scaffold when the request is short and already usable.
+For short/common success-state prompts, prefer compact prompt-like wording over spec-like section scaffolding.
 
 This should still feel like one explanation surface around one prompt result, not several competing outputs.
 
@@ -232,7 +238,7 @@ If a proposed change solves a local issue but makes prompt-first direction less 
 If a proposed change improves prompt-first clarity or renderer reuse, it is likely aligned.
 
 ## Current Snapshot
-As of 2026-03-16:
+As of 2026-03-17:
 - prompt renderer exists and is tested
 - prompt runtime handoff exists and is tested
 - model runtime extraction exists and is tested
@@ -254,6 +260,9 @@ As of 2026-03-16:
   - representative techniques capped at 3
   - deeper source/technique/validation trace moved into collapsed detail
 - short/common `ready_to_use` results now compact the final prompt body instead of always exposing empty `Role/Task/Context` scaffolding and meta workflow blocks
+- compact `ready_to_use` prompts now also avoid `Original request:` and other explicit template labels when the result is already ready to use
+- compact email-writing success-state prompts can now rewrite spec-flavored constraints into more copyable writing constraints
 - `zero_shot_pass_through` no longer shows up as a skipped-technique distraction when the engine actually chose refinement
 - compatibility spec paths still exist beneath the surface
 - the next risk area is overextending the same success-state polish thread instead of stopping once the remaining issue becomes a clearly new boundary
+- the next useful boundary is broader short-input regression checking across multiple common prompt types, not endlessly polishing the same single email example

@@ -1,6 +1,6 @@
 # Session Handoff (Latest)
 
-- Updated: 2026-03-16
+- Updated: 2026-03-17
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
 - Branch: `main`
 - Scope: prompt-first product transition, reusable engine extraction, compatibility-harness cleanup
@@ -68,6 +68,8 @@ The current discussion also clarified a stronger long-term reading:
   with deeper source/technique/signal/validation trace moved into collapsed detail
 - `zero_shot_pass_through` remains an engine technique for real pass-through cases, but it no longer appears as a misleading skipped-technique item when refinement was actually used
 - short/common `ready_to_use` outputs now compact the final prompt body by omitting empty scaffold sections and internal workflow/finalizing blocks when no review signal is present
+- compact `ready_to_use` prompt copy now also removes `Original request:` and other template-style section scaffolds when the prompt is already ready to use
+- compact email-writing success-state prompts now translate some spec-like requirements into writing-friendly constraints so the copied prompt reads less like a product spec
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -101,6 +103,7 @@ The current discussion also clarified a stronger long-term reading:
   - representative techniques capped at 3
   - deeper trace only when expanded
 - short/common `ready_to_use` final prompts now read less like engine scaffolds and more like copyable execution prompts
+- compact writing-task prompts can now normalize some spec-flavored constraints into more usable prompt-facing wording
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -123,6 +126,7 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - removal of a real remaining engine blocker
 
 The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
+The best next validation step is broader short-input regression testing across multiple common task types before choosing any new compaction tweak.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -213,9 +217,9 @@ Current recommended interpretation:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. explicitly redefine the long-term product declaration around `Vibe Studio` as a learning platform and `Vibe-to-Prompt` as a learning track
-2. decide whether the next UI iteration should move toward hybrid learning-track behavior or more explicit technique-library behavior
-3. only after that strategic clarification, choose whether one still-misleading final-prompt scaffold, prompt question metadata, or one remaining upstream engine blocker is truly the best next boundary
+1. run broader manual regression checks across short/common input types to see whether compact `ready_to_use` output stays prompt-first outside the email example
+2. only if those checks expose a repeated failure, choose one still-misleading final-prompt scaffold or constraint-shaping mismatch
+3. otherwise, move to prompt question metadata consumption boundary or one remaining upstream engine blocker
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -227,6 +231,7 @@ Avoid choosing a new thread for:
 - relitigating prompt-signal thresholds through copy-only tweaks unless a real product misunderstanding persists
 - reopening the just-compressed success-state explanation density without a concrete manual-testing failure
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
+- polishing the same email success-state copy again before broader regression testing proves it is still the main failure pattern
 
 ## Suggested Start Prompt For The Next Thread
 ```text
@@ -249,15 +254,17 @@ Current repo assumptions:
 - The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
 - The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
+- The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
 - Prefer the next boundary candidate in this order:
-  1. one still-misleading final-prompt scaffold only if manual testing shows a remaining real mismatch
-  2. prompt question metadata consumption boundary
-  3. prompt renderer upstream validation-ready handoff boundary
+  1. broader short/common manual regression checks across multiple input types
+  2. one still-misleading final-prompt scaffold only if manual testing shows a remaining real mismatch
+  3. prompt question metadata consumption boundary
+  4. prompt renderer upstream validation-ready handoff boundary
 - Choose exactly one boundary.
 - Do not mix both.
 
