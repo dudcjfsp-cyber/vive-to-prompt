@@ -340,6 +340,240 @@ test('prompt renderer rewrites spec-like email constraints into writing-friendly
   assert.doesNotMatch(result.final_prompt, /성공\/실패 로깅/);
 });
 
+test('prompt renderer keeps short summary prompts compact without email-style output scaffold', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '회의록 3줄 요약 프롬프트 만들어줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '회의록을 핵심만 3줄로 요약하는 프롬프트를 만들어줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '회의록 3줄 요약 프롬프트 생성',
+          '생성된 프롬프트 복사 기능',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.match(result.final_prompt, /회의록을 핵심만 3줄로 요약하는 프롬프트를 만들어줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /회의록의 핵심만 3줄로 압축하게 한다/);
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.doesNotMatch(result.final_prompt, /출력 형식:/);
+  assert.doesNotMatch(result.final_prompt, /제목:/);
+  assert.doesNotMatch(result.final_prompt, /본문:/);
+  assert.doesNotMatch(result.final_prompt, /복사 기능/);
+});
+
+test('prompt renderer keeps short planning prompts compact without forcing email sections', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '도쿄 2박 3일 일정 짜는 프롬프트 만들어줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '도쿄 2박 3일 여행 일정을 짜는 프롬프트를 만들어줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '사용자 입력 기반 2박 3일 도쿄 여행 일정 생성',
+          '날짜별, 시간대별(오전/오후) 활동 및 장소 추천',
+          '주요 관광지, 맛집, 쇼핑 장소 등 카테고리별 추천',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.match(result.final_prompt, /도쿄 2박 3일 여행 일정을 짜는 프롬프트를 만들어줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /여행자 조건을 반영해 도쿄 2박 3일 일정을 짠다/);
+  assert.match(result.final_prompt, /날짜별로 오전과 오후 일정을 나눠 활동과 장소를 제안한다/);
+  assert.match(result.final_prompt, /관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다/);
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.doesNotMatch(result.final_prompt, /출력 형식:/);
+  assert.doesNotMatch(result.final_prompt, /제목:/);
+  assert.doesNotMatch(result.final_prompt, /본문:/);
+});
+
+test('prompt renderer keeps short marketing prompts lightweight instead of falling back to email scaffold', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '인스타 신제품 홍보 문구 프롬프트 만들어줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '신제품 인스타그램 홍보 문구를 만드는 프롬프트를 작성해줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '제품 정보 입력 (제품명, 특징, 타겟 고객 등)',
+          'AI 기반 홍보 문구 생성',
+          '생성된 문구 목록 확인 및 선택',
+          '문구 복사 기능',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.match(result.final_prompt, /신제품 인스타그램 홍보 문구를 만드는 프롬프트를 작성해줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /제품명, 특징, 타겟 고객 정보를 반영해 문구를 만든다/);
+  assert.match(result.final_prompt, /인스타그램용 홍보 문구를 여러 개 제안한다/);
+  assert.match(result.final_prompt, /후보 문구를 비교해 바로 고르기 쉽게 정리한다/);
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.doesNotMatch(result.final_prompt, /출력 형식:/);
+  assert.doesNotMatch(result.final_prompt, /제목:/);
+  assert.doesNotMatch(result.final_prompt, /본문:/);
+  assert.doesNotMatch(result.final_prompt, /문구 복사 기능/);
+});
+
+test('prompt renderer keeps short announcement prompts compact and prompt-like', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '서비스 점검 안내문 작성 프롬프트 만들어줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '서비스 점검 안내문을 작성하는 프롬프트를 만들어줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '점검 유형(정기/긴급) 선택',
+          '점검 시작/종료 시간 입력',
+          '점검 영향 범위(전체/일부 기능) 선택 및 상세 입력',
+          '안내문 미리보기',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.match(result.final_prompt, /서비스 점검 안내문을 작성하는 프롬프트를 만들어줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /점검 유형이 정기인지 긴급인지 분명히 반영한다/);
+  assert.match(result.final_prompt, /점검 시작 시간과 종료 시간을 명확히 넣는다/);
+  assert.match(result.final_prompt, /점검 영향 범위와 영향을 받는 기능을 구체적으로 적는다/);
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.doesNotMatch(result.final_prompt, /출력 형식:/);
+  assert.doesNotMatch(result.final_prompt, /제목:/);
+  assert.doesNotMatch(result.final_prompt, /본문:/);
+  assert.doesNotMatch(result.final_prompt, /안내문 미리보기/);
+});
+
 
 test('prompt validation marks empty prompt as review_before_use', () => {
   const result = buildPromptValidation({

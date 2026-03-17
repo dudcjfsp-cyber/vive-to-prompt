@@ -70,6 +70,10 @@ The current discussion also clarified a stronger long-term reading:
 - short/common `ready_to_use` outputs now compact the final prompt body by omitting empty scaffold sections and internal workflow/finalizing blocks when no review signal is present
 - compact `ready_to_use` prompt copy now also removes `Original request:` and other template-style section scaffolds when the prompt is already ready to use
 - compact email-writing success-state prompts now translate some spec-like requirements into writing-friendly constraints so the copied prompt reads less like a product spec
+- broader short/common regression checks were also run across summary, marketing, announcement, and planning-style inputs
+- those checks confirmed that the main remaining success-state mismatch is no longer email scaffold leakage; it is non-email prompt copy drifting into product-requirement wording such as input fields, buttons, preview, copy features, or feature-list language
+- the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines for non-email short/common prompts
+- focused renderer tests now lock this compact success-state boundary for summary, planning, marketing, and announcement-style `ready_to_use` prompts
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -104,6 +108,8 @@ The current discussion also clarified a stronger long-term reading:
   - deeper trace only when expanded
 - short/common `ready_to_use` final prompts now read less like engine scaffolds and more like copyable execution prompts
 - compact writing-task prompts can now normalize some spec-flavored constraints into more usable prompt-facing wording
+- broader manual checks now prove that the success-state hierarchy and representative-technique compression remain stable across several short/common prompt types
+- the remaining quality gap is now mostly lexical normalization of non-email product-spec wording inside compact success-state constraint lines
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -126,7 +132,8 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - removal of a real remaining engine blocker
 
 The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
-The best next validation step is broader short-input regression testing across multiple common task types before choosing any new compaction tweak.
+That broader regression step has now been done.
+The new loop risk is continuing copy-only tweaks after the remaining issue has become a clearly separate non-email constraint-normalization boundary.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -217,9 +224,9 @@ Current recommended interpretation:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. run broader manual regression checks across short/common input types to see whether compact `ready_to_use` output stays prompt-first outside the email example
-2. only if those checks expose a repeated failure, choose one still-misleading final-prompt scaffold or constraint-shaping mismatch
-3. otherwise, move to prompt question metadata consumption boundary or one remaining upstream engine blocker
+1. if repeated failures still persist, choose one explicit non-email short success-state constraint-normalization boundary rather than reopening the whole success-state IA
+2. otherwise, move to prompt question metadata consumption boundary
+3. or inspect one remaining upstream engine blocker only if that product boundary no longer clears the entry rule
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -229,7 +236,7 @@ Avoid choosing a new thread for:
 - full intent-analysis redesign
 - multi-renderer studio architecture work
 - relitigating prompt-signal thresholds through copy-only tweaks unless a real product misunderstanding persists
-- reopening the just-compressed success-state explanation density without a concrete manual-testing failure
+- reopening the just-compressed success-state explanation density without a concrete new failure beyond the now-confirmed non-email prompt-body wording gap
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
 - polishing the same email success-state copy again before broader regression testing proves it is still the main failure pattern
 

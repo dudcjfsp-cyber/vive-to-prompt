@@ -139,6 +139,9 @@ As of 2026-03-17:
 - short/common `ready_to_use` prompt output now compacts the final prompt body so empty scaffold sections and meta workflow/finalizing blocks do not dominate the copyable result
 - compact `ready_to_use` copy now also removes `Original request:` and other template-style success-state scaffolds when the prompt is already ready to use
 - compact email-writing prompts can now translate some spec-flavored `must_haves` into writing-friendly constraints so the copied result reads more like a real prompt than a feature checklist
+- broader manual checks now confirm that the remaining short/common mismatch is mostly in non-email success-state copy:
+  - some summary, marketing, announcement, and planning prompts can still drift toward product-feature wording such as input fields, buttons, preview, or copy features
+  - the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines
 - `zero_shot_pass_through` is no longer shown as a skipped-technique item when refinement was actually used
 - spec compatibility paths still remain internally
 
@@ -167,7 +170,7 @@ These remain valid in the same thread if they directly support the current produ
 3. Improve prompt-output validation messages shown to users.
 4. Remove one remaining compatibility path only when its blast radius is understood.
 5. Strengthen review-state trust signals without reopening large architecture work.
-6. Run broader manual checks across short/common inputs before compacting the final prompt body any further.
+6. If repeated failures still remain after the broader manual checks, keep the next prompt-body work thin and limited to non-email short success-state constraint normalization.
 
 ## Current Thread: Work To Avoid
 These should not be pushed further in the same thread unless they become a direct blocker.

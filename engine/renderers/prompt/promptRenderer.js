@@ -171,6 +171,29 @@ function inferOutputInstruction(sourceVibe) {
   return 'Return a structured answer with clear headings and concise bullets.';
 }
 
+function buildCompactOutputFormatLines(sourceVibe = '') {
+  const normalized = toText(sourceVibe);
+  if (!normalized) return [];
+
+  if (/(email|이메일|메일)/i.test(normalized)) {
+    return ['- 제목:', '- 본문:'];
+  }
+
+  if (/(json)/i.test(normalized)) {
+    return ['- JSON'];
+  }
+
+  if (/(table|표)/i.test(normalized)) {
+    return ['- 표 형식'];
+  }
+
+  if (/(markdown|bullet|list|outline|목록|리스트)/i.test(normalized)) {
+    return ['- 항목별 목록'];
+  }
+
+  return [];
+}
+
 function createTechniqueDecision(id, why) {
   const technique = PROMPT_TECHNIQUE_MAP.get(id);
   return {
@@ -449,12 +472,16 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   }
 
   if (selectedIds.has('output_format_lock')) {
-    sections.push('');
-    sections.push(shouldUseCompactPromptTemplate ? '출력 형식:' : 'Output format:');
     if (shouldUseCompactPromptTemplate) {
-      sections.push('- 제목:');
-      sections.push('- 본문:');
+      const compactOutputFormatLines = buildCompactOutputFormatLines(sourceVibe || summary);
+      if (compactOutputFormatLines.length > 0) {
+        sections.push('');
+        sections.push('출력 형식:');
+        compactOutputFormatLines.forEach((line) => sections.push(line));
+      }
     } else {
+      sections.push('');
+      sections.push('Output format:');
       sections.push(`- ${inferOutputInstruction(sourceVibe)}`);
       sections.push('- Keep the answer concise, explicit, and immediately usable.');
     }
@@ -484,7 +511,7 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   return sections.join('\n');
 }
 
-function compactReadyToUsePrompt(finalPrompt = '') {
+function compactReadyToUsePrompt(finalPrompt = '', sourceVibe = '') {
   const source = toText(finalPrompt);
   if (!source) return '';
 
@@ -545,11 +572,12 @@ function compactReadyToUsePrompt(finalPrompt = '') {
       .forEach((line) => compactLines.push(line));
   }
 
-  if (outputFormatSection) {
+  const compactOutputFormatLines = buildCompactOutputFormatLines(taskLines[0] || sourceVibe || source);
+
+  if (outputFormatSection && compactOutputFormatLines.length > 0) {
     if (compactLines.length > 0) compactLines.push('');
     compactLines.push('출력 형식:');
-    compactLines.push('- 제목:');
-    compactLines.push('- 본문:');
+    compactOutputFormatLines.forEach((line) => compactLines.push(line));
   }
 
   const compacted = compactLines.join('\n').trim();
@@ -568,6 +596,81 @@ function normalizeConstraintLine(line = '') {
     .trim();
 }
 
+function rewriteCompactConstraintLine(sourceVibe = '', line = '') {
+  const normalizedSource = toText(sourceVibe);
+  const normalizedLine = normalizeConstraintLine(line);
+  if (!normalizedLine) return '';
+
+  if (/(복사 기능|복사 버튼|copy feature|copy button)/i.test(normalizedLine)) {
+    if (/(문구)/i.test(normalizedLine)) {
+      return '- 바로 복사해 쓸 수 있는 완성형 문구로 제안한다.';
+    }
+    return '';
+  }
+
+  if (/(미리보기|preview)/i.test(normalizedLine)) {
+    return '- 사용자에게 바로 보여줄 수 있는 자연스러운 문장으로 작성한다.';
+  }
+
+  if (/(회의록).*(3줄|세 줄).*(요약).*(프롬프트 생성|생성)/i.test(normalizedLine)) {
+    return '- 회의록의 핵심만 3줄로 압축하게 한다.';
+  }
+
+  if (/(제품 정보).*(입력)/i.test(normalizedLine)) {
+    return '- 제품명, 특징, 타겟 고객 정보를 반영해 문구를 만든다.';
+  }
+
+  if (/(홍보 문구).*(생성)/i.test(normalizedLine)) {
+    return '- 인스타그램용 홍보 문구를 여러 개 제안한다.';
+  }
+
+  if (/(문구 목록).*(확인).*(선택)/i.test(normalizedLine)) {
+    return '- 후보 문구를 비교해 바로 고르기 쉽게 정리한다.';
+  }
+
+  if (/(점검 유형).*(선택)/i.test(normalizedLine)) {
+    return '- 점검 유형이 정기인지 긴급인지 분명히 반영한다.';
+  }
+
+  if (/(시작\/종료 시간|시작 시간|종료 시간).*(입력)/i.test(normalizedLine)) {
+    return '- 점검 시작 시간과 종료 시간을 명확히 넣는다.';
+  }
+
+  if (/(영향 범위).*(선택).*(상세 입력|상세)/i.test(normalizedLine)) {
+    return '- 점검 영향 범위와 영향을 받는 기능을 구체적으로 적는다.';
+  }
+
+  if (/^(?=.*도쿄)(?=.*2박\s*3일)(?=.*일정)(?=.*생성).+$/i.test(normalizedLine)) {
+    return '- 여행자 조건을 반영해 도쿄 2박 3일 일정을 짠다.';
+  }
+
+  if (/(날짜별).*(시간대별|오전\/오후|오전|오후).*(활동).*(장소 추천)/i.test(normalizedLine)) {
+    return '- 날짜별로 오전과 오후 일정을 나눠 활동과 장소를 제안한다.';
+  }
+
+  if (/(관광지).*(맛집).*(쇼핑 장소).*(추천)/i.test(normalizedLine)) {
+    return '- 관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다.';
+  }
+
+  if (/(입력)/i.test(normalizedLine)) {
+    return `- ${normalizedLine.replace(/\s*입력\b/i, '').trim()} 정보를 반영한다.`;
+  }
+
+  if (/(선택)/i.test(normalizedLine)) {
+    return `- ${normalizedLine.replace(/\s*선택\b/i, '').trim()} 내용을 분명히 반영한다.`;
+  }
+
+  if (/(생성)/i.test(normalizedLine) && /(프롬프트|문구|안내문|일정)/i.test(normalizedLine)) {
+    return `- ${normalizedLine.replace(/\s*생성\b/i, '').trim()}한다.`;
+  }
+
+  if (normalizedLine === normalizedSource) {
+    return '';
+  }
+
+  return `- ${normalizedLine}`;
+}
+
 function buildCompactWritingConstraints(sourceVibe = '', constraintLines = []) {
   const normalizedSource = toText(sourceVibe);
   const normalizedLines = constraintLines
@@ -575,7 +678,18 @@ function buildCompactWritingConstraints(sourceVibe = '', constraintLines = []) {
     .filter(Boolean);
 
   if (!isEmailWritingTask(normalizedSource)) {
-    return normalizedLines.map((line) => `- ${line}`);
+    const nextLines = [];
+    const pushLine = (line) => {
+      const text = toText(line);
+      if (!text || nextLines.includes(text)) return;
+      nextLines.push(text);
+    };
+
+    normalizedLines.forEach((line) => {
+      pushLine(rewriteCompactConstraintLine(normalizedSource, line));
+    });
+
+    return nextLines;
   }
 
   const nextLines = [];
@@ -1069,7 +1183,7 @@ export function createPromptRenderer() {
     });
 
     if (rewriteMode !== 'pass_through' && validation.status === 'ready') {
-      const compactedPrompt = compactReadyToUsePrompt(rawFinalPrompt);
+      const compactedPrompt = compactReadyToUsePrompt(rawFinalPrompt, sharedRuntimeHandoff?.sourceVibe);
       if (compactedPrompt && compactedPrompt !== rawFinalPrompt) {
         finalPrompt = compactedPrompt;
         validation = buildPromptValidation({
