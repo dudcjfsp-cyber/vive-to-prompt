@@ -77,6 +77,10 @@ The current discussion also clarified a stronger long-term reading:
 - the latest thin normalization pass now also strips more literal product-feature shell wording such as input fields, buttons, save/list management, CRUD-like controls, and template-provision phrasing from non-email short/common `ready_to_use` constraint lines
 - focused renderer regressions now include more literal everyday failure patterns for summary, announcement, planning, and marketing inputs where product-feature wording appears directly in `must_haves`
 - future substantial threads should now also end with a short `Boundary health` stoplight status so repeated copy-polish work does not drift past the point where an upstream seam should be split instead
+- real dev-server verification then showed renderer-only normalization was still insufficient:
+  - actual prompt-first app outputs for summary, announcement, planning, and marketing inputs still leaked spec-style feature wording such as input text, create/edit/share/copy/select/compare, list/detail view, and publish/unpublish wording
+  - this confirmed the live issue is not only compact renderer copy; it is the upstream spec-shaped generation contract feeding `intentIr.delivery.must_haves`
+- current boundary health after that real-app verification is `Red`, and the next thread should treat this as an upstream seam problem rather than one more thin renderer-polish pass
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -112,8 +116,8 @@ The current discussion also clarified a stronger long-term reading:
 - short/common `ready_to_use` final prompts now read less like engine scaffolds and more like copyable execution prompts
 - compact writing-task prompts can now normalize some spec-flavored constraints into more usable prompt-facing wording
 - broader manual checks now prove that the success-state hierarchy and representative-technique compression remain stable across several short/common prompt types
-- the remaining quality gap is now mostly lexical normalization of non-email product-spec wording inside compact success-state constraint lines
-- that remaining lexical gap is narrower now because obvious app-feature wording is more often rewritten into prompt-facing execution lines or dropped when it is pure admin/management scaffolding
+- renderer-focused lexical normalization is no longer the main remaining blocker by itself
+- the larger confirmed gap is that real app generations still inherit spec-style `핵심_기능.필수` wording too directly, so live `ready_to_use` final prompts can collapse back into app-feature checklists even when renderer tests pass
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -138,7 +142,7 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
 That broader regression step has now been done.
 The new loop risk is continuing copy-only tweaks after the remaining issue has become a clearly separate non-email constraint-normalization boundary.
-After the latest thin pass, the next loop risk is broadening this same lane into generalized upstream cleanup instead of stopping once copied short/common prompts no longer read like app feature specs.
+After real dev-server verification, the clearer loop risk is continuing renderer copy polish after the live issue has already been identified as an upstream spec-shaped generation seam.
 
 ## Current Product Surface Summary
 The app should now be understood as:
