@@ -56,3 +56,17 @@ test('buildReadyToUseLearningNarrative falls back to rewrite summary when techni
 
   assert.equal(narrative, '입력이 이미 충분히 분명해서, 불필요한 재작성 없이 거의 그대로 통과했습니다.');
 });
+
+test('buildReadyToUseLearningNarrative avoids raw technique ids so the summary reads like coaching instead of trace', () => {
+  const narrative = buildReadyToUseLearningNarrative({
+    representativeTechniques: [
+      { id: 'goal_clarification', label: '목표 명확화' },
+      { id: 'output_format_lock', label: '출력 형식 고정' },
+    ],
+  });
+
+  assert.match(narrative, /목표와 출력 형태/);
+  assert.doesNotMatch(narrative, /goal_clarification/);
+  assert.doesNotMatch(narrative, /output_format_lock/);
+  assert.doesNotMatch(narrative, /_/);
+});

@@ -44,3 +44,12 @@ test('ExperiencedWorkspace orders the success-state cards around prompt-first pr
   assert.ok(source.includes('experienced-priority-sequence'));
   assert.ok(source.includes('experienced-secondary-details'));
 });
+
+test('ExperiencedWorkspace keeps ready-to-use supporting trace collapsed for first-run quick success evaluation', () => {
+  assert.ok(
+    source.includes('성공 상태에서는 먼저 왜 바로 써도 되는지 한 문장으로 확인하고, 필요할 때만 상세 메모를 펼쳐봅니다.'),
+  );
+  assert.ok(source.includes('성공 상태에서 먼저 읽으면 되는 핵심 기법만 3개까지 남겼습니다.'));
+  assert.ok(source.includes('<details className="experienced-summary-card experienced-secondary-details">'));
+  assert.ok(source.includes('원문 입력, 전체 적용 기법, 판단 신호, 검증 메모는 필요할 때만 펼쳐봅니다.'));
+});
