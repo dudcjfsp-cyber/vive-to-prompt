@@ -377,8 +377,10 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
     && clarificationQuestions.length === 0
   );
 
-  sections.push('Original request:');
-  sections.push(sourceVibe || '(empty)');
+  if (!shouldUseCompactPromptTemplate) {
+    sections.push('Original request:');
+    sections.push(sourceVibe || '(empty)');
+  }
 
   if (!shouldUseCompactPromptTemplate && selectedIds.has('role_assignment') && toText(intent.target_user)) {
     sections.push('');
@@ -398,8 +400,12 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
 
     if (taskLines.length > 0) {
       sections.push('');
-      sections.push('Task:');
-      taskLines.forEach((line) => sections.push(line));
+      if (shouldUseCompactPromptTemplate) {
+        sections.push(taskLines[0]);
+      } else {
+        sections.push('Task:');
+        taskLines.forEach((line) => sections.push(line));
+      }
     }
   }
 
@@ -437,16 +443,21 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
 
     if (constraintLines.length > 0) {
       sections.push('');
-      sections.push('Constraints and priorities:');
+      sections.push(shouldUseCompactPromptTemplate ? '조건:' : 'Constraints and priorities:');
       constraintLines.forEach((line) => sections.push(line));
     }
   }
 
   if (selectedIds.has('output_format_lock')) {
     sections.push('');
-    sections.push('Output format:');
-    sections.push(`- ${inferOutputInstruction(sourceVibe)}`);
-    sections.push('- Keep the answer concise, explicit, and immediately usable.');
+    sections.push(shouldUseCompactPromptTemplate ? '출력 형식:' : 'Output format:');
+    if (shouldUseCompactPromptTemplate) {
+      sections.push('- 제목:');
+      sections.push('- 본문:');
+    } else {
+      sections.push(`- ${inferOutputInstruction(sourceVibe)}`);
+      sections.push('- Keep the answer concise, explicit, and immediately usable.');
+    }
   }
 
   if (!shouldUseCompactPromptTemplate && selectedIds.has('step_decomposition')) {
@@ -471,6 +482,143 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   }
 
   return sections.join('\n');
+}
+
+function compactReadyToUsePrompt(finalPrompt = '') {
+  const source = toText(finalPrompt);
+  if (!source) return '';
+
+  const lines = source.split('\n');
+  const sections = [];
+  let currentSection = null;
+
+  lines.forEach((line) => {
+    const normalized = toText(line);
+
+    if (normalized.endsWith(':') && !normalized.startsWith('-') && normalized.length < 40) {
+      currentSection = {
+        header: normalized,
+        lines: [line],
+      };
+      sections.push(currentSection);
+      return;
+    }
+
+    if (!currentSection) {
+      currentSection = {
+        header: '',
+        lines: [],
+      };
+      sections.push(currentSection);
+    }
+
+    currentSection.lines.push(line);
+  });
+
+  const taskSection = sections.find((section) => section.header === 'Task:')
+    || sections.find((section) => !section.header && section.lines.some((line) => toText(line)));
+  const constraintsSection = sections.find((section) => (
+    section.header === 'Constraints and priorities:' || section.header === '조건:'
+  ));
+  const outputFormatSection = sections.find((section) => (
+    section.header === 'Output format:' || section.header === '출력 형식:'
+  ));
+
+  const compactLines = [];
+  const taskLines = (taskSection?.lines || [])
+    .slice(taskSection?.header ? 1 : 0)
+    .map((line) => toText(line))
+    .filter(Boolean);
+  const constraintLines = (constraintsSection?.lines || [])
+    .slice(1)
+    .map((line) => toText(line))
+    .filter(Boolean);
+
+  if (taskLines.length > 0) {
+    compactLines.push(taskLines[0]);
+  }
+
+  if (constraintLines.length > 0) {
+    if (compactLines.length > 0) compactLines.push('');
+    compactLines.push('조건:');
+    buildCompactWritingConstraints(taskLines[0] || source, constraintLines)
+      .forEach((line) => compactLines.push(line));
+  }
+
+  if (outputFormatSection) {
+    if (compactLines.length > 0) compactLines.push('');
+    compactLines.push('출력 형식:');
+    compactLines.push('- 제목:');
+    compactLines.push('- 본문:');
+  }
+
+  const compacted = compactLines.join('\n').trim();
+  return compacted || source;
+}
+
+function isEmailWritingTask(sourceVibe = '') {
+  const normalized = toText(sourceVibe);
+  return /(email|이메일|메일)/i.test(normalized) && /(write|draft|작성|써|만들어줘|만들어 줘)/i.test(normalized);
+}
+
+function normalizeConstraintLine(line = '') {
+  return toText(line)
+    .replace(/^- /, '')
+    .replace(/^(Must|Nice to have|Avoid):\s*/i, '')
+    .trim();
+}
+
+function buildCompactWritingConstraints(sourceVibe = '', constraintLines = []) {
+  const normalizedSource = toText(sourceVibe);
+  const normalizedLines = constraintLines
+    .map((line) => normalizeConstraintLine(line))
+    .filter(Boolean);
+
+  if (!isEmailWritingTask(normalizedSource)) {
+    return normalizedLines.map((line) => `- ${line}`);
+  }
+
+  const nextLines = [];
+  const pushLine = (line) => {
+    const text = toText(line);
+    if (!text || nextLines.includes(text)) return;
+    nextLines.push(text);
+  };
+
+  normalizedLines.forEach((line) => {
+    if (/(자동 발송|자동 이메일|회원\s*가입\s*완료|가입 완료|직후)/i.test(line)) {
+      pushLine('- 회원가입 직후 보내는 첫 환영 이메일이어야 한다.');
+      return;
+    }
+
+    if (/(개인화 변수|사용자이름|이름 변수|변수)/i.test(line)) {
+      pushLine('- 이름 같은 개인화 요소를 자연스럽게 넣을 수 있게 작성한다.');
+      return;
+    }
+
+    if (/(프롬프트 생성|프롬프트 수정|생성 및 수정|미리보기)/i.test(line)) {
+      pushLine('- 제목과 본문을 수정 가능한 템플릿 형태로 작성한다.');
+      return;
+    }
+
+    if (/(템플릿 관리|템플릿|제목|본문|발신자 정보)/i.test(line)) {
+      pushLine('- 제목과 본문을 수정 가능한 템플릿 형태로 작성한다.');
+      return;
+    }
+
+    if (/(로깅|성공\/실패|성공\/ 실패|발송 성공|발송 실패)/i.test(line)) {
+      return;
+    }
+
+    pushLine(`- ${line}`);
+  });
+
+  if (nextLines.length === 0) {
+    pushLine('- 회원가입 직후 보내는 첫 환영 이메일이어야 한다.');
+    pushLine('- 제목과 본문을 분리해서 작성한다.');
+  }
+
+  return nextLines;
 }
 
 function collectPromptNativeValidationSignals(validationReport = {}) {
@@ -816,10 +964,18 @@ export function buildPromptValidation({
   const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
     ? sharedRuntimeHandoff.validationReport
     : {};
+  const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
+  const promptSummary = toText(intentIr.summary);
+  const promptUserJob = toText(intentIr.intent?.user_job);
   const promptNativeValidationSignals = collectPromptNativeValidationSignals(validationReport);
   const preservesSourceVibe = rewriteMode === 'pass_through'
     ? normalizedPrompt === normalizedSource
-    : normalizedPrompt.includes('Original request:');
+    : Boolean(
+      normalizedPrompt.includes('Original request:')
+      || (normalizedSource && normalizedPrompt.includes(normalizedSource))
+      || (promptSummary && normalizedPrompt.includes(promptSummary))
+      || (promptUserJob && normalizedPrompt.includes(promptUserJob))
+    );
 
   if (!normalizedPrompt) {
     warnings.push('\uCD5C\uC885 \uD504\uB86C\uD504\uD2B8\uAC00 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.');
@@ -900,16 +1056,31 @@ export function createPromptRenderer() {
           ? 'Pass-through mode avoids unnecessary rewriting.'
           : 'This technique was not necessary for the current intent signals.',
       }));
-    const finalPrompt = rewriteMode === 'pass_through'
+    const rawFinalPrompt = rewriteMode === 'pass_through'
       ? toText(sharedRuntimeHandoff?.sourceVibe)
       : buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode);
-    const validation = buildPromptValidation({
+    let finalPrompt = rawFinalPrompt;
+    let validation = buildPromptValidation({
       sourceVibe: sharedRuntimeHandoff?.sourceVibe,
       finalPrompt,
       rewriteMode,
       appliedTechniques,
       sharedRuntimeHandoff,
     });
+
+    if (rewriteMode !== 'pass_through' && validation.status === 'ready') {
+      const compactedPrompt = compactReadyToUsePrompt(rawFinalPrompt);
+      if (compactedPrompt && compactedPrompt !== rawFinalPrompt) {
+        finalPrompt = compactedPrompt;
+        validation = buildPromptValidation({
+          sourceVibe: sharedRuntimeHandoff?.sourceVibe,
+          finalPrompt,
+          rewriteMode,
+          appliedTechniques,
+          sharedRuntimeHandoff,
+        });
+      }
+    }
 
     return {
       renderer: 'prompt',

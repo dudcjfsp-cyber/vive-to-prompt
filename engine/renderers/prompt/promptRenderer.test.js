@@ -203,10 +203,15 @@ test('prompt renderer compacts short ready-to-use prompts without blank scaffold
   const result = renderer.buildPromptOutput(handoff);
 
   assert.equal(result.rewrite_mode, 'light_refine');
-  assert.match(result.final_prompt, /Original request:/);
-  assert.match(result.final_prompt, /Task:/);
-  assert.match(result.final_prompt, /Constraints and priorities:/);
-  assert.match(result.final_prompt, /Output format:/);
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.match(result.final_prompt, /신규 가입자용 환영 이메일을 작성하는 프롬프트를 만들어줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /출력 형식:/);
+  assert.match(result.final_prompt, /제목:/);
+  assert.match(result.final_prompt, /본문:/);
+  assert.doesNotMatch(result.final_prompt, /Task:/);
+  assert.doesNotMatch(result.final_prompt, /Constraints and priorities:/);
+  assert.doesNotMatch(result.final_prompt, /Output format:/);
   assert.doesNotMatch(result.final_prompt, /Role:/);
   assert.doesNotMatch(result.final_prompt, /Context:/);
   assert.doesNotMatch(result.final_prompt, /Not specified/);
@@ -214,6 +219,125 @@ test('prompt renderer compacts short ready-to-use prompts without blank scaffold
   assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
   assert.equal(result.validation.status, 'ready');
   assert.equal(result.validation.summary_code, 'ready_to_use');
+  assert.deepEqual(result.validation.reason_codes, [
+    'preserves_source_vibe',
+    'rewrite_trace_recorded',
+  ]);
+});
+
+test('prompt renderer compacts ready-to-use prompts even when raw scaffold sections were initially present', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '신규 가입자에게 보내는 환영 이메일 프롬프트 만들어줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '신규 가입자에게 보내는 환영 이메일 프롬프트 만들어줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '환영 이메일 프롬프트 생성 및 수정',
+          '개인화 변수(예: {{사용자이름}})를 활용한 이메일 내용 구성',
+          '작성된 이메일 프롬프트 미리보기',
+          '신규 가입 완료 시 자동 이메일 발송 트리거',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: ['email tone'],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.doesNotMatch(result.final_prompt, /Original request:/);
+  assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
+  assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
+  assert.match(result.final_prompt, /신규 가입자에게 보내는 환영 이메일 프롬프트 만들어줘/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /출력 형식:/);
+  assert.match(result.final_prompt, /제목:/);
+  assert.match(result.final_prompt, /본문:/);
+  assert.doesNotMatch(result.final_prompt, /Task:/);
+  assert.doesNotMatch(result.final_prompt, /Constraints and priorities:/);
+  assert.doesNotMatch(result.final_prompt, /Output format:/);
+  assert.match(result.final_prompt, /개인화 요소/);
+  assert.match(result.final_prompt, /템플릿 형태/);
+  assert.doesNotMatch(result.final_prompt, /로깅/);
+  assert.doesNotMatch(result.final_prompt, /자동 이메일 발송 트리거/);
+});
+
+test('prompt renderer rewrites spec-like email constraints into writing-friendly ready-to-use constraints', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '신규 가입자에게 보내는 환영 이메일 작성해줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '신규 가입자에게 보내는 환영 이메일 작성해줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [
+          '회원 가입 완료 시 환영 이메일 자동 발송',
+          '환영 이메일 템플릿 관리 (제목, 본문, 발신자 정보)',
+          '이메일 발송 성공/실패 로깅',
+        ],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.match(result.final_prompt, /회원가입 직후 보내는 첫 환영 이메일/);
+  assert.match(result.final_prompt, /제목과 본문을 수정 가능한 템플릿 형태/);
+  assert.doesNotMatch(result.final_prompt, /자동 발송/);
+  assert.doesNotMatch(result.final_prompt, /템플릿 관리/);
+  assert.doesNotMatch(result.final_prompt, /성공\/실패 로깅/);
 });
 
 
