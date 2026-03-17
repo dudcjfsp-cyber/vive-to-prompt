@@ -74,6 +74,9 @@ The current discussion also clarified a stronger long-term reading:
 - those checks confirmed that the main remaining success-state mismatch is no longer email scaffold leakage; it is non-email prompt copy drifting into product-requirement wording such as input fields, buttons, preview, copy features, or feature-list language
 - the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines for non-email short/common prompts
 - focused renderer tests now lock this compact success-state boundary for summary, planning, marketing, and announcement-style `ready_to_use` prompts
+- the latest thin normalization pass now also strips more literal product-feature shell wording such as input fields, buttons, save/list management, CRUD-like controls, and template-provision phrasing from non-email short/common `ready_to_use` constraint lines
+- focused renderer regressions now include more literal everyday failure patterns for summary, announcement, planning, and marketing inputs where product-feature wording appears directly in `must_haves`
+- future substantial threads should now also end with a short `Boundary health` stoplight status so repeated copy-polish work does not drift past the point where an upstream seam should be split instead
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -110,6 +113,7 @@ The current discussion also clarified a stronger long-term reading:
 - compact writing-task prompts can now normalize some spec-flavored constraints into more usable prompt-facing wording
 - broader manual checks now prove that the success-state hierarchy and representative-technique compression remain stable across several short/common prompt types
 - the remaining quality gap is now mostly lexical normalization of non-email product-spec wording inside compact success-state constraint lines
+- that remaining lexical gap is narrower now because obvious app-feature wording is more often rewritten into prompt-facing execution lines or dropped when it is pure admin/management scaffolding
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -134,6 +138,7 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
 That broader regression step has now been done.
 The new loop risk is continuing copy-only tweaks after the remaining issue has become a clearly separate non-email constraint-normalization boundary.
+After the latest thin pass, the next loop risk is broadening this same lane into generalized upstream cleanup instead of stopping once copied short/common prompts no longer read like app feature specs.
 
 ## Current Product Surface Summary
 The app should now be understood as:

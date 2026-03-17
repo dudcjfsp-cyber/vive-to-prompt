@@ -74,6 +74,28 @@ When the thread warrants a handoff, summarize:
 - what is still transitional compatibility
 - why another thread is or is not needed
 
+## Boundary Health Check
+
+To reduce context drift across new implementation threads, include one short boundary-health status at the end of substantial threads.
+
+Use this stoplight status:
+- `Green`: the work stayed at thin output polish or boundary reinforcement, produced clear user-visible value, and did not noticeably deepen dependence on spec-shaped internals
+- `Yellow`: the work is still shippable in the current lane, but the same failure pattern is repeating or exception rules are starting to accumulate
+- `Red`: the current lane is no longer healthy; additional copy/output polish would mostly compensate for an upstream seam that now needs to be split more directly
+
+Use this 4-line format:
+- `Boundary health: Green | Yellow | Red`
+- `This thread type: thin output polish | boundary reinforcement | upstream split needed`
+- `Why:`
+  one short sentence explaining whether the work still stayed in the output/adapter layer or is now leaning on spec-shaped upstream behavior
+- `Next move:`
+  one short sentence choosing between one more thin pass, a boundary change next thread, or stopping copy polish now
+
+Default operating rule:
+- if the same lexical/product-feature wording mismatch repeats across 2-3 threads, treat that as at least `Yellow`
+- if the renderer starts acting like a spec translator rather than a prompt-output layer, treat that as `Red`
+- if the issue remains local, output-facing, and visibly improves copyability without adding broad new interpretation logic, it can remain `Green`
+
 ## Decision Rule For Narrow Follow-Up Work
 
 If several follow-up ideas exist, choose the one that best satisfies at least two of these:
