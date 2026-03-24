@@ -169,3 +169,164 @@ test('buildPromptTransmuteResult preserves prompt-native review validation metad
     },
   ]);
 });
+
+test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native across short common inputs', () => {
+  const cases = [
+    {
+      label: 'summary',
+      sourceVibe: '회의록 3줄 요약 프롬프트 만들어줘',
+      spec: {
+        summary: '회의록 3줄 요약 프롬프트',
+        problem_frame: {
+          who: '팀원',
+          when: '회의 직후',
+          what: '',
+          why: '핵심만 빠르게 공유한다',
+          success: '3줄 요약이 바로 나온다',
+        },
+        roles: [],
+        features: {
+          must: [
+            '회의록 3줄 요약 프롬프트 생성',
+            '생성된 프롬프트 복사 기능',
+          ],
+          nice: [],
+        },
+        input_fields: [],
+        permissions: [],
+        ambiguities: { missing: [], questions: [] },
+        risks: [],
+      },
+      expectedLines: [
+        '회의록의 핵심만 3줄로 간결하게 쓴다.',
+      ],
+    },
+    {
+      label: 'announcement',
+      sourceVibe: '서비스 점검 안내문 작성 프롬프트 만들어줘',
+      spec: {
+        summary: '서비스 점검 안내문 프롬프트',
+        problem_frame: {
+          who: '운영 담당자',
+          when: '점검 공지 전',
+          what: '',
+          why: '사용자 혼란을 줄인다',
+          success: '점검 정보가 분명한 안내문이 나온다',
+        },
+        roles: [],
+        features: {
+          must: [
+            '점검 유형(정기/긴급) 선택',
+            '점검 시작/종료 시간 입력',
+            '점검 영향 범위(전체/일부 기능) 선택 및 상세 입력',
+            '안내문 미리보기',
+          ],
+          nice: [],
+        },
+        input_fields: [],
+        permissions: [],
+        ambiguities: { missing: [], questions: [] },
+        risks: [],
+      },
+      expectedLines: [
+        '점검 유형이 정기인지 긴급인지 분명히 반영한다.',
+        '점검 시작 시간과 종료 시간이 분명히 드러나게 쓴다.',
+        '영향 범위와 영향을 받는 기능을 구체적으로 적는다.',
+      ],
+    },
+    {
+      label: 'planning',
+      sourceVibe: '도쿄 2박 3일 일정 짜는 프롬프트 만들어줘',
+      spec: {
+        summary: '도쿄 2박 3일 여행 계획 프롬프트',
+        problem_frame: {
+          who: '여행자',
+          when: '여행 준비 전',
+          what: '',
+          why: '짧은 여행을 효율적으로 준비한다',
+          success: '날짜별 일정이 바로 나온다',
+        },
+        roles: [],
+        features: {
+          must: [
+            '사용자 입력 기반 도쿄 2박 3일 일정 생성',
+            '날짜별 시간대별(오전/오후) 활동 및 장소 추천',
+            '주요 관광지, 맛집, 쇼핑 장소 등 카테고리별 추천',
+          ],
+          nice: [],
+        },
+        input_fields: [],
+        permissions: [],
+        ambiguities: { missing: [], questions: [] },
+        risks: [],
+      },
+      expectedLines: [
+        '여행 조건을 반영한 도쿄 2박 3일 일정을 짠다.',
+        '날짜별로 오전과 오후 일정을 나누고 활동과 장소를 함께 제안한다.',
+        '관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다.',
+      ],
+    },
+    {
+      label: 'marketing',
+      sourceVibe: '인스타 신제품 홍보 문구 프롬프트 만들어줘',
+      spec: {
+        summary: '인스타그램 신제품 홍보 문구 프롬프트',
+        problem_frame: {
+          who: '마케터',
+          when: '신제품 출시 직전',
+          what: '',
+          why: '바로 게시할 문구 초안을 준비한다',
+          success: '후보 문구를 바로 고를 수 있다',
+        },
+        roles: [],
+        features: {
+          must: [
+            '제품 정보 입력 (제품명, 핵심 특징, 타깃 고객 등)',
+            'AI 기반 홍보 문구 생성',
+            '생성된 문구 목록 확인 및 선택',
+            '문구 복사 기능',
+          ],
+          nice: [],
+        },
+        input_fields: [],
+        permissions: [],
+        ambiguities: { missing: [], questions: [] },
+        risks: [],
+      },
+      expectedLines: [
+        '제품명, 핵심 특징, 대상 고객 정보를 반영한 문구를 만든다.',
+        '인스타그램용 홍보 문구를 여러 가지 제안한다.',
+        '후보 문구를 비교하고 바로 고르기 쉽게 정리한다.',
+      ],
+    },
+  ];
+  const bannedPattern = /(입력 필드|버튼|미리보기|create\/edit\/share\/copy|복사|공유|목록\s*\/\s*상세|list\s*\/\s*detail|publish|unpublish|게시|발행)/i;
+
+  cases.forEach(({ label, sourceVibe, spec, expectedLines }) => {
+    const { result } = buildPromptTransmuteResult({
+      raw: {
+        model: 'prompt-model',
+      },
+      fallbackModel: 'fallback-model',
+      sourceVibe,
+      intentFieldMap: fieldMap,
+      normalizeStandardOutput: () => ({
+        spec,
+        validationReport: {
+          severity: 'low',
+          needs_clarification: false,
+          warning_count: 0,
+          blocking_issue_count: 0,
+        },
+      }),
+      renderer: createPromptRenderer(),
+    });
+
+    assert.equal(result.prompt_output.validation.status, 'ready', `${label} should stay ready_to_use`);
+    assert.doesNotMatch(result.prompt_output.final_prompt, /Original request:|Suggested workflow:|Before finalizing:/, `${label} should stay compact`);
+    assert.doesNotMatch(result.prompt_output.final_prompt, bannedPattern, `${label} should avoid spec-shaped feature wording`);
+    expectedLines.forEach((line) => {
+      assert.match(result.prompt_output.final_prompt, new RegExp(line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${label} should include prompt-native line: ${line}`);
+    });
+  });
+});

@@ -117,9 +117,9 @@ As of 2026-03-17 in this repo:
   - removing `Original request:` from compact success-state copy
   - replacing template-style section headers with lighter prompt-facing structure such as `조건:` and `출력 형식:`
   - rewriting some spec-shaped email `must_haves` into writing-friendly constraints so the copied prompt reads less like a product spec
-- broader short/common manual checks have now confirmed a narrower remaining mismatch:
-  - non-email `ready_to_use` prompts can still drift toward product-requirement wording such as input fields, buttons, preview, or copy features
-  - the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines for summary, marketing, announcement, and planning-style inputs
+- broader short/common prompt checks now also confirm one upstream seam fix:
+  - `intentIr.delivery.must_haves` can now normalize repeated spec-style feature wording into more prompt-native constraint lines before renderer output
+  - summary, marketing, announcement, and planning-style prompt paths now keep more of that live output out of UI/feature-checklist wording before the final prompt is assembled
 - `zero_shot_pass_through` remains a real pass-through technique, but it no longer appears as a misleading skipped-technique item when refinement was actually used
 
 What is still transitional:
@@ -270,5 +270,5 @@ As of 2026-03-17:
 - compatibility spec paths still exist beneath the surface
 - the next risk area is overextending the same success-state polish lane once the remaining problem becomes broader non-email constraint normalization rather than one more thin scaffold fix
 - the next useful boundary after this thread is either:
-  - one explicit non-email short success-state constraint-normalization pass if repeated product-spec wording still persists
-  - or moving on to prompt question metadata consumption / one upstream blocker instead of continuing copy-only polish
+  - prompt question metadata consumption
+  - or one other upstream blocker only if real prompt output still exposes a concrete PRD violation outside the resolved `must_haves` seam

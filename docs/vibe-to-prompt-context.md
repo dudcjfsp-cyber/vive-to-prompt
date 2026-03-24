@@ -139,9 +139,9 @@ As of 2026-03-17:
 - short/common `ready_to_use` prompt output now compacts the final prompt body so empty scaffold sections and meta workflow/finalizing blocks do not dominate the copyable result
 - compact `ready_to_use` copy now also removes `Original request:` and other template-style success-state scaffolds when the prompt is already ready to use
 - compact email-writing prompts can now translate some spec-flavored `must_haves` into writing-friendly constraints so the copied result reads more like a real prompt than a feature checklist
-- broader manual checks now confirm that the remaining short/common mismatch is mostly in non-email success-state copy:
-  - some summary, marketing, announcement, and planning prompts can still drift toward product-feature wording such as input fields, buttons, preview, or copy features
-  - the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines
+- the shared intent-IR path now also normalizes one confirmed upstream `must_haves` seam:
+  - summary, marketing, announcement, and planning prompts are less likely to inherit input-field, button, preview, copy, or similar feature-checklist wording before the final prompt is rendered
+  - focused handoff/pipeline checks now cover that upstream prompt-body wording normalization path directly
 - `zero_shot_pass_through` is no longer shown as a skipped-technique item when refinement was actually used
 - spec compatibility paths still remain internally
 

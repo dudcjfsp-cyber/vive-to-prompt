@@ -85,3 +85,57 @@ test('buildRendererRuntimeHandoff exposes the minimum shared runtime payload for
   assert.equal(handoff.intentIr.summary, 'Store export report');
   assert.equal(handoff.intentIr.signals.needs_clarification, true);
 });
+
+test('buildRendererRuntimeHandoff normalizes spec-shaped must-haves before prompt rendering', () => {
+  const spec = {
+    summary: '서비스 점검 안내문 프롬프트',
+    problem_frame: {
+      who: '운영 담당자',
+      when: '점검 공지 전',
+      what: '점검 안내문 프롬프트를 만든다',
+      why: '사용자 안내를 빠르게 준비한다',
+      success: '바로 사용할 수 있는 점검 안내문이 나온다',
+    },
+    roles: [],
+    features: {
+      must: [
+        '점검 유형(정기/긴급) 선택',
+        '점검 시작/종료 시간 입력',
+        '점검 영향 범위(전체/일부 기능) 선택 및 상세 입력',
+        '안내문 미리보기',
+      ],
+      nice: [],
+    },
+    input_fields: [],
+    permissions: [],
+    ambiguities: { missing: [], questions: [] },
+    risks: [],
+  };
+  const validationReport = {
+    severity: 'low',
+    needs_clarification: false,
+    warning_count: 0,
+    blocking_issue_count: 0,
+  };
+
+  const handoff = buildRendererRuntimeHandoff({
+    raw: {
+      model: 'shared-model',
+    },
+    fallbackModel: 'fallback-model',
+    sourceVibe: '서비스 점검 안내문 작성 프롬프트 만들어줘',
+    intentFieldMap: fieldMap,
+    normalizeStandardOutput: () => ({ spec, validationReport }),
+  });
+
+  assert.deepEqual(handoff.intentIr.delivery.must_haves, [
+    '점검 유형이 정기인지 긴급인지 분명히 반영한다.',
+    '점검 시작 시간과 종료 시간이 분명히 드러나게 쓴다.',
+    '영향 범위와 영향을 받는 기능을 구체적으로 적는다.',
+    '사용자에게 바로 보여줄 수 있는 자연스러운 문장으로 작성한다.',
+  ]);
+  assert.doesNotMatch(
+    handoff.intentIr.delivery.must_haves.join('\n'),
+    /(미리보기|선택|입력|버튼|공유|복사|publish|unpublish|게시|발행)/i,
+  );
+});

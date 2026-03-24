@@ -71,16 +71,14 @@ The current discussion also clarified a stronger long-term reading:
 - compact `ready_to_use` prompt copy now also removes `Original request:` and other template-style section scaffolds when the prompt is already ready to use
 - compact email-writing success-state prompts now translate some spec-like requirements into writing-friendly constraints so the copied prompt reads less like a product spec
 - broader short/common regression checks were also run across summary, marketing, announcement, and planning-style inputs
-- those checks confirmed that the main remaining success-state mismatch is no longer email scaffold leakage; it is non-email prompt copy drifting into product-requirement wording such as input fields, buttons, preview, copy features, or feature-list language
-- the compact success-state path now rewrites some of that UI/product phrasing into more prompt-facing execution lines for non-email short/common prompts
+- those checks previously confirmed that the main remaining success-state mismatch was no longer email scaffold leakage but an upstream `intentIr.delivery.must_haves` seam feeding product-requirement wording into non-email prompt copy
+- that upstream seam is now normalized earlier in `engine/intent/deriveIntentIr.js`, so repeated input-field/button/preview/copy/share/list-detail/publish-style wording is less likely to reach the prompt-facing result in the first place
 - focused renderer tests now lock this compact success-state boundary for summary, planning, marketing, and announcement-style `ready_to_use` prompts
-- the latest thin normalization pass now also strips more literal product-feature shell wording such as input fields, buttons, save/list management, CRUD-like controls, and template-provision phrasing from non-email short/common `ready_to_use` constraint lines
-- focused renderer regressions now include more literal everyday failure patterns for summary, announcement, planning, and marketing inputs where product-feature wording appears directly in `must_haves`
+- focused handoff and prompt-pipeline regressions now also include literal summary, announcement, planning, and marketing inputs where product-feature wording appears directly in `must_haves`
 - future substantial threads should now also end with a short `Boundary health` stoplight status so repeated copy-polish work does not drift past the point where an upstream seam should be split instead
-- real dev-server verification then showed renderer-only normalization was still insufficient:
-  - actual prompt-first app outputs for summary, announcement, planning, and marketing inputs still leaked spec-style feature wording such as input text, create/edit/share/copy/select/compare, list/detail view, and publish/unpublish wording
-  - this confirmed the live issue is not only compact renderer copy; it is the upstream spec-shaped generation contract feeding `intentIr.delivery.must_haves`
-- current boundary health after that real-app verification is `Red`, and the next thread should treat this as an upstream seam problem rather than one more thin renderer-polish pass
+- real dev-server verification had previously shown renderer-only normalization was insufficient because live prompt output still inherited spec-style feature wording through `intentIr.delivery.must_haves`
+- the current thread then fixed that seam in the shared intent-IR path instead of adding one more renderer-only patch
+- current boundary health after that upstream fix is `Green`
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -133,7 +131,7 @@ The current discussion also clarified a stronger long-term reading:
 - compact writing-task prompts can now normalize some spec-flavored constraints into more usable prompt-facing wording
 - broader manual checks now prove that the success-state hierarchy and representative-technique compression remain stable across several short/common prompt types
 - renderer-focused lexical normalization is no longer the main remaining blocker by itself
-- the larger confirmed gap is that real app generations still inherit spec-style `핵심_기능.필수` wording too directly, so live `ready_to_use` final prompts can collapse back into app-feature checklists even when renderer tests pass
+- one previously confirmed live blocker is now reduced: shared intent-IR normalization rewrites one repeated `핵심_기능.필수` seam before prompt rendering, so live `ready_to_use` prompts are less likely to collapse back into app-feature checklists for short/common non-email inputs
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 
 ### What is still transitional
@@ -249,9 +247,8 @@ Current recommended interpretation:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. if repeated failures still persist, choose one explicit non-email short success-state constraint-normalization boundary rather than reopening the whole success-state IA
-2. otherwise, move to prompt question metadata consumption boundary
-3. or inspect one remaining upstream engine blocker only if that product boundary no longer clears the entry rule
+1. move to prompt question metadata consumption boundary
+2. or inspect one remaining upstream engine blocker only if real prompt output still exposes a concrete PRD violation outside the resolved `must_haves` seam
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -261,7 +258,7 @@ Avoid choosing a new thread for:
 - full intent-analysis redesign
 - multi-renderer studio architecture work
 - relitigating prompt-signal thresholds through copy-only tweaks unless a real product misunderstanding persists
-- reopening the just-compressed success-state explanation density without a concrete new failure beyond the now-confirmed non-email prompt-body wording gap
+- reopening the just-compressed success-state explanation density without a concrete new failure beyond a newly confirmed prompt-output regression
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
 - polishing the same email success-state copy again before broader regression testing proves it is still the main failure pattern
 
@@ -296,9 +293,9 @@ Current repo assumptions:
 
 Thread goal:
 - Prefer the next boundary candidate in this order:
-  1. one upstream seam that still feeds spec-shaped wording into live prompt output, using the PRD as the product contract
+  1. prompt question metadata consumption boundary
   2. one remaining active-surface mismatch only if manual testing finds a concrete PRD violation in the current `ExperiencedWorkspace`
-  3. prompt renderer upstream validation-ready handoff boundary
+  3. one other upstream validation-ready handoff or prompt-output blocker only if the product boundary no longer clears the entry rule
 - Choose exactly one boundary.
 - Do not mix both.
 
@@ -312,7 +309,7 @@ Thread entry rule:
 
 Boundary guidance:
 - Do not reopen the just-aligned `ExperiencedWorkspace` boundary for generic polish. Only touch it again if you can point to one concrete PRD violation.
-- If you inspect the upstream prompt-output seam, treat `docs/vibe-to-prompt-prd.md` as the user-facing contract and judge whether live copy still reads like a spec or feature checklist.
+- Treat the resolved `intentIr.delivery.must_haves` wording seam as already handled unless new manual validation shows a separate upstream leak.
 - The broader result-stage architecture boundary has now been used again to clarify prompt first, review guidance, reusable next-time learning, and collapsed trace. Do not reopen it for copy-only polish.
 - If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
 
