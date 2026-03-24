@@ -14,6 +14,10 @@ test('ExperiencedWorkspace still exposes prompt rationale and prompt validation 
   assert.ok(source.includes('promptOutput.rewrite_rationale'));
   assert.ok(source.includes('buildReadyToUseSuccessState'));
   assert.ok(source.includes('buildPromptValidationTrustChecklist'));
+  assert.ok(source.includes('buildPromptChangeHighlights'));
+  assert.ok(source.includes('derived?.clarifyLoop?.questionDetails'));
+  assert.ok(source.includes('readyToUseSuccessState?.reusablePattern'));
+  assert.ok(source.includes('clarifyQuestionDetailByText'));
   assert.ok(source.includes("technique.id !== 'zero_shot_pass_through'"));
   assert.ok(source.includes('promptValidation.summary'));
   assert.ok(source.includes('promptValidation.summary_code'));
@@ -25,7 +29,8 @@ test('ExperiencedWorkspace still exposes prompt rationale and prompt validation 
 test('ExperiencedWorkspace orders the success-state cards around prompt-first primary information', () => {
   const promptIndex = source.indexOf('<h3>최종 프롬프트</h3>');
   const trustIndex = source.indexOf('<h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>');
-  const rationaleIndex = source.indexOf('<h3>이번 구조화 판단 요약</h3>');
+  const rationaleIndex = source.indexOf('<h3>이번엔 이렇게 다듬었어요</h3>');
+  const reusablePatternIndex = source.indexOf('<h3>직접 써볼 표현 패턴</h3>');
   const representativeTechniqueIndex = source.indexOf('<h3>대표 구조화 기법</h3>');
   const questionsIndex = source.indexOf('<h3>추가 확인이 필요한 질문</h3>');
   const detailsIndex = source.indexOf('상세 구조화 메모 보기');
@@ -33,12 +38,15 @@ test('ExperiencedWorkspace orders the success-state cards around prompt-first pr
   assert.ok(promptIndex !== -1);
   assert.ok(trustIndex !== -1);
   assert.ok(rationaleIndex !== -1);
+  assert.ok(reusablePatternIndex !== -1);
   assert.ok(representativeTechniqueIndex !== -1);
   assert.ok(questionsIndex !== -1);
   assert.ok(detailsIndex !== -1);
   assert.ok(promptIndex < representativeTechniqueIndex);
   assert.ok(trustIndex < detailsIndex);
   assert.ok(rationaleIndex < representativeTechniqueIndex);
+  assert.ok(rationaleIndex < reusablePatternIndex);
+  assert.ok(reusablePatternIndex < representativeTechniqueIndex);
   assert.ok(representativeTechniqueIndex < detailsIndex);
   assert.ok(questionsIndex < detailsIndex);
   assert.ok(source.includes('experienced-priority-sequence'));
@@ -47,9 +55,11 @@ test('ExperiencedWorkspace orders the success-state cards around prompt-first pr
 
 test('ExperiencedWorkspace keeps ready-to-use supporting trace collapsed for first-run quick success evaluation', () => {
   assert.ok(
-    source.includes('성공 상태에서는 먼저 왜 바로 써도 되는지 한 문장으로 확인하고, 필요할 때만 상세 메모를 펼쳐봅니다.'),
+    source.includes('원래 표현은 살리고, AI가 더 안정적으로 이해할 수 있도록 바뀐 점만 먼저 짚어줍니다.'),
   );
   assert.ok(source.includes('성공 상태에서 먼저 읽으면 되는 핵심 기법만 3개까지 남겼습니다.'));
+  assert.ok(source.includes('왜 필요한가: {whyThisQuestion}'));
+  assert.ok(source.includes('답하면 좋아지는 점: {promptImprovement}'));
   assert.ok(source.includes('<details className="experienced-summary-card experienced-secondary-details">'));
   assert.ok(source.includes('원문 입력, 전체 적용 기법, 판단 신호, 검증 메모는 필요할 때만 펼쳐봅니다.'));
 });

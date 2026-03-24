@@ -195,6 +195,36 @@ function buildPromptValidationTrustChecklist({ status, reasonCodes, warnings, qu
   return checklist.slice(0, 3);
 }
 
+function buildPromptChangeHighlights({ appliedTechniques = [], rewriteReasons = [] } = {}) {
+  const highlights = [];
+
+  appliedTechniques.forEach((technique) => {
+    const effect = String(technique?.learning_effect || '').trim();
+    const why = String(technique?.why || '').trim();
+
+    if (effect && why) {
+      highlights.push(`${effect}: ${why}`);
+      return;
+    }
+
+    if (effect) {
+      highlights.push(effect);
+      return;
+    }
+
+    if (why) {
+      highlights.push(why);
+    }
+  });
+
+  rewriteReasons.forEach((reason) => {
+    const normalized = String(reason || '').trim();
+    if (normalized) highlights.push(normalized);
+  });
+
+  return Array.from(new Set(highlights)).slice(0, 3);
+}
+
 const PROMPT_WORKFLOW_STEPS = [
   {
     title: '1. 자연어 입력',
@@ -329,7 +359,21 @@ export default function ExperiencedWorkspace({
     : null;
   const representativeTechniques = readyToUseSuccessState?.representativeTechniques || [];
   const hiddenTechniqueCount = readyToUseSuccessState?.hiddenTechniqueCount || 0;
+  const reusablePattern = readyToUseSuccessState?.reusablePattern || '';
   const learningNarrative = readyToUseSuccessState?.learningNarrative || rewriteRationaleSummary;
+  const clarifyQuestionDetails = Array.isArray(derived?.clarifyLoop?.questionDetails) ? derived.clarifyLoop.questionDetails : [];
+  const clarifyQuestionDetailByText = useMemo(
+    () => new Map(
+      clarifyQuestionDetails
+        .filter((detail) => detail && typeof detail === 'object' && typeof detail.question === 'string')
+        .map((detail) => [detail.question, detail]),
+    ),
+    [clarifyQuestionDetails],
+  );
+  const promptChangeHighlights = buildPromptChangeHighlights({
+    appliedTechniques: isReadyToUseSuccessState ? representativeTechniques : localizedAppliedTechniques,
+    rewriteReasons: rewriteRationaleReasons,
+  });
   const hasValidationMemo = (
     validationReasons.length > 0
     || fallbackValidationReasons.length > 0
@@ -527,23 +571,32 @@ export default function ExperiencedWorkspace({
 
                   <section className="experienced-summary-card experienced-priority-card">
                     <p className="experienced-card-kicker experienced-card-kicker-success">구조화 이유</p>
-                    <h3>이번 구조화 판단 요약</h3>
+                    <h3>이번엔 이렇게 다듬었어요</h3>
                     <p className="small-muted">
                       {isReadyToUseSuccessState
-                        ? '성공 상태에서는 먼저 왜 바로 써도 되는지 한 문장으로 확인하고, 필요할 때만 상세 메모를 펼쳐봅니다.'
-                        : '왜 이런 형태를 선택했는지 짧게 읽고 필요하면 아래 세부 카드로 내려갑니다.'}
+                        ? '원래 표현은 살리고, AI가 더 안정적으로 이해할 수 있도록 바뀐 점만 먼저 짚어줍니다.'
+                        : '아직 모호한 부분이 남아 있어 무엇을 더 보강해야 하는지부터 먼저 보여줍니다.'}
                     </p>
                     <p>{learningNarrative}</p>
-                    {!isReadyToUseSuccessState && (
-                      <ul className="experienced-summary-list">
-                        {(rewriteRationaleReasons.length > 0
-                          ? rewriteRationaleReasons
-                          : ['세부 판단 근거는 아래 판단 신호 카드에서 이어서 확인할 수 있습니다.'])
-                          .slice(0, 4)
-                          .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
-                      </ul>
-                    )}
+                    <ul className="experienced-summary-list">
+                      {(promptChangeHighlights.length > 0
+                        ? promptChangeHighlights
+                        : ['이번 구조화 판단 근거는 아래 상세 메모에서 이어서 확인할 수 있습니다.'])
+                        .slice(0, 4)
+                        .map((item, idx) => <li key={String(item) + '-' + String(idx)}>{item}</li>)}
+                    </ul>
                   </section>
+
+                  {isReadyToUseSuccessState && reusablePattern && (
+                    <section className="experienced-summary-card experienced-priority-card">
+                      <p className="experienced-card-kicker experienced-card-kicker-success">다음엔 이렇게</p>
+                      <h3>직접 써볼 표현 패턴</h3>
+                      <p className="small-muted">다음 요청에서 이 한 줄만 보태도 결과 형식과 지시가 훨씬 덜 흔들립니다.</p>
+                      <pre className="mono-block compact-delivery-block">
+                        {reusablePattern}
+                      </pre>
+                    </section>
+                  )}
 
                   {isReadyToUseSuccessState && representativeTechniques.length > 0 && (
                     <section className="experienced-summary-card experienced-priority-card">
@@ -553,8 +606,9 @@ export default function ExperiencedWorkspace({
                       <ul className="experienced-summary-list">
                         {representativeTechniques.map((technique, idx) => (
                           <li key={String(technique.id || technique.label) + '-' + String(idx)}>
-                            <strong>{technique.label}</strong>
-                            {technique.learning_effect ? `: ${technique.learning_effect}` : ''}
+                            <strong>{technique.learning_effect || technique.label}</strong>
+                            {technique.why ? `: ${technique.why}` : ''}
+                            {technique.reusable_pattern ? ` / 다음엔 "${technique.reusable_pattern}"처럼 바로 써볼 수 있습니다.` : ''}
                           </li>
                         ))}
                       </ul>
@@ -579,18 +633,34 @@ export default function ExperiencedWorkspace({
                       <span className="pill">질문 수: {validationQuestions.length}</span>
                     </div>
                     <div className="form-group">
-                      {validationQuestions.map((question) => (
-                        <div key={question} className="form-group">
-                          <label>{question}</label>
-                          <textarea
-                            rows={2}
-                            value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
-                            onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
-                            placeholder="확정된 정보만 짧게 입력하세요."
-                            disabled={state.status === 'processing'}
-                          />
-                        </div>
-                      ))}
+                      {validationQuestions.map((question) => {
+                        const detail = clarifyQuestionDetailByText.get(question);
+                        const intentLabel = typeof detail?.intent_label === 'string' ? detail.intent_label.trim() : '';
+                        const sourceLabel = typeof detail?.source_label === 'string' ? detail.source_label.trim() : '';
+                        const whyThisQuestion = typeof detail?.why_this_question === 'string' ? detail.why_this_question.trim() : '';
+                        const promptImprovement = typeof detail?.prompt_improvement === 'string' ? detail.prompt_improvement.trim() : '';
+
+                        return (
+                          <div key={question} className="form-group">
+                            <label>{question}</label>
+                            {(intentLabel || sourceLabel) && (
+                              <p className="small-muted">
+                                보강 포인트: {intentLabel || '일반'}
+                                {sourceLabel ? ` | 판단 출처: ${sourceLabel}` : ''}
+                              </p>
+                            )}
+                            {whyThisQuestion && <p className="small-muted">왜 필요한가: {whyThisQuestion}</p>}
+                            {promptImprovement && <p className="small-muted">답하면 좋아지는 점: {promptImprovement}</p>}
+                            <textarea
+                              rows={2}
+                              value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
+                              onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
+                              placeholder="확정된 정보만 짧게 입력하세요."
+                              disabled={state.status === 'processing'}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="stack-actions">
                       <button

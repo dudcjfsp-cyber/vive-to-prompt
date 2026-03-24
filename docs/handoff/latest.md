@@ -1,9 +1,9 @@
 # Session Handoff (Latest)
 
-- Updated: 2026-03-17
+- Updated: 2026-03-24
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
 - Branch: `main`
-- Scope: prompt-first product transition, reusable engine extraction, compatibility-harness cleanup
+- Scope: prompt-first product transition, reusable engine extraction, PRD-aligned active-surface refinement
 
 ## Current Working Definition
 This repository is now best understood as:
@@ -87,6 +87,22 @@ The current discussion also clarified a stronger long-term reading:
 - archive and clearly non-current docs were removed
 - placeholder support files were removed
 - spec-era app surface is no longer the primary UX
+
+### Product-contract and active-surface work completed
+- a working product contract now exists in `docs/vibe-to-prompt-prd.md`
+- that PRD now makes the current product contract explicit:
+  - not a generic prompt generator
+  - not a spec-authoring workflow
+  - but a hybrid prompt-learning track with one prompt result plus one reusable next-time lesson
+- the active `ExperiencedWorkspace` surface now aligns more closely with that contract by:
+  - keeping the final prompt first
+  - keeping the ready/review judgment first-class
+  - reframing the main rewrite summary around "what changed and why"
+  - surfacing one reusable next-time phrasing pattern in `ready_to_use` states
+  - surfacing `why_this_question` and `prompt_improvement` directly inside the active review question flow
+  - keeping deeper trace content collapsed as secondary detail
+- focused source/helper tests were updated for that surface contract
+- build verification also passed after the PRD-aligned surface changes
 
 ## Current Technical Judgment
 ### What is now solid
@@ -260,27 +276,29 @@ Current docs:
 - docs/handoff/latest.md
 - docs/refactor-stop-checklist.md
 - docs/vibe-to-prompt-context.md
+- docs/vibe-to-prompt-prd.md
 
 Current repo assumptions:
 - This repo is a Vibe-to-Prompt workspace and a reusable engine-extraction workspace.
 - The original Vibe-to-Spec V2 product repo is preserved elsewhere.
 - The active UX is one natural-language input, one final prompt result, and an explanation of why it was structured that way.
+- The active product contract is now also documented in `docs/vibe-to-prompt-prd.md`.
 - The previous thread already separated the first-entry input stage from the post-submit result stage.
 - The previous thread already moved the success-state result hierarchy so the final prompt, use/review judgment, and rewrite-why summary are what users read first.
 - The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
 - The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
 - The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
+- The previous thread also added a PRD and aligned the active `ExperiencedWorkspace` with it by surfacing one reusable next-time pattern and by turning review questions into prompt-native coaching instead of bare textareas.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
 
 Thread goal:
 - Prefer the next boundary candidate in this order:
-  1. broader short/common manual regression checks across multiple input types
-  2. one still-misleading final-prompt scaffold only if manual testing shows a remaining real mismatch
-  3. prompt question metadata consumption boundary
-  4. prompt renderer upstream validation-ready handoff boundary
+  1. one upstream seam that still feeds spec-shaped wording into live prompt output, using the PRD as the product contract
+  2. one remaining active-surface mismatch only if manual testing finds a concrete PRD violation in the current `ExperiencedWorkspace`
+  3. prompt renderer upstream validation-ready handoff boundary
 - Choose exactly one boundary.
 - Do not mix both.
 
@@ -293,9 +311,9 @@ Thread entry rule:
 - Pick exactly one real engine blocker or one real prompt-first UX improvement.
 
 Boundary guidance:
-- If you choose the remaining final-prompt scaffold boundary, keep it thin: remove only one still-misleading label or block from `ready_to_use` copyable output without broad renderer redesign.
-- If you choose the question metadata boundary, keep it thin: the goal is to make the app read question metadata more explicitly, not to do copy polish or broad UI redesign.
-- The broader result-stage architecture boundary has now been used to clarify primary output vs immediate action vs supporting trace. Do not reopen it for copy-only polish.
+- Do not reopen the just-aligned `ExperiencedWorkspace` boundary for generic polish. Only touch it again if you can point to one concrete PRD violation.
+- If you inspect the upstream prompt-output seam, treat `docs/vibe-to-prompt-prd.md` as the user-facing contract and judge whether live copy still reads like a spec or feature checklist.
+- The broader result-stage architecture boundary has now been used again to clarify prompt first, review guidance, reusable next-time learning, and collapsed trace. Do not reopen it for copy-only polish.
 - If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
 
 At the end, always summarize:
