@@ -41,6 +41,7 @@ It is usually safe to skip when all of these are true:
 Before writing the `Next Thread Prompt`, reread only the baseline docs needed for the current repo state:
 - `docs/long-term-context.md`
 - `docs/vibe-to-prompt-context.md`
+- `docs/vibe-to-prompt-prd.md`
 - `docs/handoff/latest.md`
 - `AGENTS.md`
 

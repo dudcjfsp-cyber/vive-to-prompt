@@ -8,6 +8,7 @@ Use it to decide which focused document to read, not as a catch-all dumping grou
 When starting or resuming product or engine work, read these first:
 - `docs/long-term-context.md`
 - `docs/vibe-to-prompt-context.md`
+- `docs/vibe-to-prompt-prd.md`
 - `docs/handoff/latest.md`
 
 Use those docs as the current baseline for:
