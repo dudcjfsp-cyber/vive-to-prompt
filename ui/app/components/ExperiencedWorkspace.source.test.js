@@ -61,8 +61,8 @@ test('ExperiencedWorkspace keeps ready-to-use supporting trace collapsed for fir
   assert.ok(source.includes("detail?.coaching_focus"));
   assert.ok(source.includes('왜 이 질문이 필요한가: {whyThisQuestion}'));
   assert.ok(source.includes('답하면 프롬프트가 이렇게 좋아집니다: {promptImprovement}'));
-  assert.ok(source.includes('보강 포인트: {intentLabel || \'일반\'}'));
-  assert.ok(source.includes('판단 출처: {sourceLabel}'));
+  assert.ok(source.includes('보강 포인트: {intentLabel}'));
+  assert.ok(!source.includes('판단 출처: {sourceLabel}'));
   assert.ok(source.includes('<details className="experienced-summary-card experienced-secondary-details">'));
   assert.ok(source.includes('원문 입력, 전체 적용 기법, 판단 신호, 검증 메모는 필요할 때만 펼쳐봅니다.'));
 });

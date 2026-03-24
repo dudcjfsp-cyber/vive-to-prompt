@@ -637,7 +637,6 @@ export default function ExperiencedWorkspace({
                         const detail = clarifyQuestionDetailByText.get(question);
                         const coachingFocus = typeof detail?.coaching_focus === 'string' ? detail.coaching_focus.trim() : '';
                         const intentLabel = typeof detail?.intent_label === 'string' ? detail.intent_label.trim() : '';
-                        const sourceLabel = typeof detail?.source_label === 'string' ? detail.source_label.trim() : '';
                         const whyThisQuestion = typeof detail?.why_this_question === 'string' ? detail.why_this_question.trim() : '';
                         const promptImprovement = typeof detail?.prompt_improvement === 'string' ? detail.prompt_improvement.trim() : '';
 
@@ -645,10 +644,9 @@ export default function ExperiencedWorkspace({
                           <div key={question} className="form-group">
                             <label>{question}</label>
                             {coachingFocus && <p className="small-muted">{coachingFocus}</p>}
-                            {(intentLabel || sourceLabel) && (
+                            {intentLabel && (
                               <div className="signal-pills">
-                                <span className="pill">보강 포인트: {intentLabel || '일반'}</span>
-                                {sourceLabel && <span className="pill">판단 출처: {sourceLabel}</span>}
+                                <span className="pill">보강 포인트: {intentLabel}</span>
                               </div>
                             )}
                             {whyThisQuestion && <p className="small-muted">왜 이 질문이 필요한가: {whyThisQuestion}</p>}

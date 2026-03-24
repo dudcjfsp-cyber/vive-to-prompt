@@ -98,6 +98,7 @@ The current discussion also clarified a stronger long-term reading:
   - reframing the main rewrite summary around "what changed and why"
   - surfacing one reusable next-time phrasing pattern in `ready_to_use` states
   - surfacing `why_this_question` and `prompt_improvement` directly inside the active review question flow
+  - removing review-question provenance chips that exposed internal validation/source labels on the active coaching surface
   - keeping deeper trace content collapsed as secondary detail
 - focused source/helper tests were updated for that surface contract
 - build verification also passed after the PRD-aligned surface changes
@@ -117,6 +118,7 @@ The current discussion also clarified a stronger long-term reading:
 - prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
 - prompt-first validation consumption is now centralized behind one app-side adapter instead of split between raw `prompt_output.validation` and raw `validation_report` reads
 - the active prompt-first explanation cards now read more naturally in Korean without changing engine behavior
+- the active review question cards now keep prompt-improvement coaching visible without surfacing internal provenance labels such as validation source names
 - the broader success-state result hierarchy is now better defined as:
   - final prompt first
   - use/review judgment next
@@ -261,6 +263,7 @@ Avoid choosing a new thread for:
 - reopening the just-compressed success-state explanation density without a concrete new failure beyond a newly confirmed prompt-output regression
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
 - polishing the same email success-state copy again before broader regression testing proves it is still the main failure pattern
+- reintroducing review-question provenance chips or other internal source labels on the active coaching surface unless manual validation proves users need them
 
 ## Suggested Start Prompt For The Next Thread
 ```text
@@ -287,6 +290,7 @@ Current repo assumptions:
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
 - The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
 - The previous thread also added a PRD and aligned the active `ExperiencedWorkspace` with it by surfacing one reusable next-time pattern and by turning review questions into prompt-native coaching instead of bare textareas.
+- The latest thin review-surface fix also removed internal review-question provenance labels from the active coaching cards while preserving `why_this_question`, `prompt_improvement`, and the visible prompt-improvement axis.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
@@ -311,6 +315,7 @@ Boundary guidance:
 - Do not reopen the just-aligned `ExperiencedWorkspace` boundary for generic polish. Only touch it again if you can point to one concrete PRD violation.
 - Treat the resolved `intentIr.delivery.must_haves` wording seam as already handled unless new manual validation shows a separate upstream leak.
 - The broader result-stage architecture boundary has now been used again to clarify prompt first, review guidance, reusable next-time learning, and collapsed trace. Do not reopen it for copy-only polish.
+- Do not reintroduce internal provenance labels on review questions unless a new manual validation pass finds a concrete PRD-level comprehension gap.
 - If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
 
 At the end, always summarize:
@@ -319,3 +324,10 @@ At the end, always summarize:
 - what is still transitional compatibility
 - why another thread is or is not needed
 ```
+
+Boundary health: Green
+This thread type: boundary reinforcement
+Why:
+the change stayed in active review-surface consumption and removed one PRD-misaligned internal-provenance cue without leaning harder on spec-shaped upstream behavior
+Next move:
+leave the review coaching surface alone unless a new manual pass finds another concrete PRD violation, then choose exactly one boundary again
