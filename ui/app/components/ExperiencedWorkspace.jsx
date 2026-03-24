@@ -635,6 +635,7 @@ export default function ExperiencedWorkspace({
                     <div className="form-group">
                       {validationQuestions.map((question) => {
                         const detail = clarifyQuestionDetailByText.get(question);
+                        const coachingFocus = typeof detail?.coaching_focus === 'string' ? detail.coaching_focus.trim() : '';
                         const intentLabel = typeof detail?.intent_label === 'string' ? detail.intent_label.trim() : '';
                         const sourceLabel = typeof detail?.source_label === 'string' ? detail.source_label.trim() : '';
                         const whyThisQuestion = typeof detail?.why_this_question === 'string' ? detail.why_this_question.trim() : '';
@@ -643,14 +644,15 @@ export default function ExperiencedWorkspace({
                         return (
                           <div key={question} className="form-group">
                             <label>{question}</label>
+                            {coachingFocus && <p className="small-muted">{coachingFocus}</p>}
                             {(intentLabel || sourceLabel) && (
-                              <p className="small-muted">
-                                보강 포인트: {intentLabel || '일반'}
-                                {sourceLabel ? ` | 판단 출처: ${sourceLabel}` : ''}
-                              </p>
+                              <div className="signal-pills">
+                                <span className="pill">보강 포인트: {intentLabel || '일반'}</span>
+                                {sourceLabel && <span className="pill">판단 출처: {sourceLabel}</span>}
+                              </div>
                             )}
-                            {whyThisQuestion && <p className="small-muted">왜 필요한가: {whyThisQuestion}</p>}
-                            {promptImprovement && <p className="small-muted">답하면 좋아지는 점: {promptImprovement}</p>}
+                            {whyThisQuestion && <p className="small-muted">왜 이 질문이 필요한가: {whyThisQuestion}</p>}
+                            {promptImprovement && <p className="small-muted">답하면 프롬프트가 이렇게 좋아집니다: {promptImprovement}</p>}
                             <textarea
                               rows={2}
                               value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}

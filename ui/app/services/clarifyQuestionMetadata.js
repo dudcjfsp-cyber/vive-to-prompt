@@ -125,6 +125,45 @@ function getSourceLabel(source) {
   return QUESTION_SOURCE_LABELS[normalized] || '수동 보완';
 }
 
+function buildQuestionCoachingFocus({
+  intentKey = 'general',
+  source = 'manual_loop',
+  reasonCode = '',
+  missingInformation = '',
+} = {}) {
+  const normalizedIntentKey = toText(intentKey, 'general');
+  const intentLabel = getIntentMeta(normalizedIntentKey).label;
+  const sourceLabel = getSourceLabel(source);
+  const normalizedReasonCode = toText(reasonCode);
+  const normalizedMissingInformation = toText(missingInformation);
+
+  if (normalizedReasonCode === 'empty_prompt') {
+    return `${sourceLabel}에서 최종 프롬프트가 아직 실제 작업 지시로 충분히 정리되지 않아 먼저 보완하는 질문입니다.`;
+  }
+
+  if (normalizedReasonCode === 'loses_source_vibe') {
+    return `${sourceLabel}에서 원래 요청의 뉘앙스를 지키려면 ${intentLabel}부터 다시 확인하는 편이 좋다고 판단했습니다.`;
+  }
+
+  if (normalizedReasonCode === 'missing_technique_trace') {
+    return `${sourceLabel}에서 ${intentLabel}를 더 직접적으로 고정해야 프롬프트 구조가 안정된다고 판단했습니다.`;
+  }
+
+  if (normalizedReasonCode.startsWith('validation_missing_')) {
+    return `${sourceLabel}에서 ${intentLabel} 정보가 아직 비어 있어 먼저 채우는 편이 좋다고 판단했습니다.`;
+  }
+
+  if (normalizedMissingInformation) {
+    return `${sourceLabel}에서 '${normalizedMissingInformation}' 정보가 아직 비어 있어 먼저 보완하는 질문입니다.`;
+  }
+
+  if (normalizedIntentKey !== 'general') {
+    return `${sourceLabel}에서 ${intentLabel}를 먼저 또렷하게 잡아야 프롬프트를 안정적으로 다듬을 수 있어 묻는 질문입니다.`;
+  }
+
+  return `${sourceLabel}에서 비어 있는 맥락을 추가로 확인해 프롬프트 구조를 더 분명하게 만들기 위한 질문입니다.`;
+}
+
 function buildQuestionWhyNarrative({
   source = 'manual_loop',
   reasonCode = '',
@@ -218,6 +257,12 @@ function decorateQuestionDetail(detail) {
     ...normalized,
     intent_label: intentMeta.label,
     source_label: getSourceLabel(normalized.source),
+    coaching_focus: buildQuestionCoachingFocus({
+      intentKey: normalized.intent_key,
+      source: normalized.source,
+      reasonCode,
+      missingInformation,
+    }),
     why_this_question: buildQuestionWhyNarrative({
       source: normalized.source,
       reasonCode,
