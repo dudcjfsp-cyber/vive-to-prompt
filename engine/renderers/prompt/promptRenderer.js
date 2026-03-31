@@ -158,107 +158,15 @@ function isPromptMateriallyTransformed(sourceVibe = '', finalPrompt = '') {
   return true;
 }
 
-function buildSourceDrivenClarificationQuestionDetails(sourceVibe = '') {
-  const normalizedSource = toText(sourceVibe);
-  if (!normalizedSource) return [];
-
-  const details = [];
-  const pushDetail = (detail, matcher = null) => {
-    pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
-  };
-
-  if (/(점검 유형|정기 점검|긴급 점검)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
-        intentKey: 'requirements',
-        source: 'missing_information',
-        missingInformation: '점검 유형',
-      },
-      /(점검 유형|정기 점검|긴급 점검)/i,
-    );
-  }
-
-  if (/(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '점검 일시와 예상 소요 시간은 어떻게 되나요?',
-        intentKey: 'schedule',
-        source: 'missing_information',
-        missingInformation: '점검 일시와 예상 소요 시간',
-      },
-      /(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i,
-    );
-  }
-
-  if (/(영향 범위|영향을 받는 기능|영향 기능)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
-        intentKey: 'requirements',
-        source: 'missing_information',
-        missingInformation: '영향 범위',
-      },
-      /(영향 범위|영향을 받는 기능|영향 기능)/i,
-    );
-  }
-
-  if (/(여행 기간|며칠|2박\s*3일|3박\s*4일)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '여행 기간은 며칠인가요?',
-        intentKey: 'schedule',
-        source: 'missing_information',
-        missingInformation: '여행 기간',
-      },
-      /(여행 기간|며칠|2박\s*3일|3박\s*4일)/i,
-    );
-  }
-
-  if (/(관심사|쇼핑|문화|음식|맛집)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
-        intentKey: 'requirements',
-        source: 'missing_information',
-        missingInformation: '관심사',
-      },
-      /(관심사|쇼핑|문화|음식|맛집)/i,
-    );
-  }
-
-  if (/(예산)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '예산은 대략 어느 정도로 생각하고 있나요?',
-        intentKey: 'requirements',
-        source: 'missing_information',
-        missingInformation: '예산',
-      },
-      /(예산)/i,
-    );
-  }
-
-  if (/(쿠키 종류|특징|타겟 고객)/i.test(normalizedSource)) {
-    pushDetail(
-      {
-        question: '문구에 꼭 반영해야 할 쿠키 종류나 핵심 특징은 무엇인가요?',
-        intentKey: 'requirements',
-        source: 'missing_information',
-        missingInformation: '쿠키 종류와 특징',
-      },
-      /(쿠키 종류|특징|타겟 고객)/i,
-    );
-  }
-
-  return details.slice(0, 3);
+function buildSourceDrivenClarificationQuestionDetails_legacyBroken(sourceVibe = '') {
+  void sourceVibe;
+  return [];
 }
-
 function hasConcreteScheduleValue(text = '') {
   const normalized = toText(text);
   if (!normalized) return false;
 
-  return /(\d{1,2}:\d{2}|\d{4}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}월\s*\d{1,2}일|\bAM\b|\bPM\b)/i.test(normalized);
+  return /(\d{1,2}:\d{2}|\d{4}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}월\s*\d{1,2}일|\d{1,2}시(?:\s*반)?|\bAM\b|\bPM\b|오늘\s*(밤|저녁|오전|오후|새벽)|내일\s*(밤|저녁|오전|오후|새벽))/i.test(normalized);
 }
 
 function hasConcreteTravelDuration(text = '') {
@@ -273,6 +181,120 @@ function hasConcreteBudgetValue(text = '') {
   if (!normalized) return false;
 
   return /(\d[\d,]*\s*(원|만원|천원)|\$[\d,]+|under\s*\$?\d+)/i.test(normalized);
+}
+
+function hasConcreteMaintenanceType(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return false;
+
+  return /(정기\s*점검|긴급\s*점검|정기|긴급)/i.test(normalized);
+}
+
+function hasConcreteMaintenanceImpact(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return false;
+
+  return /(로그인|결제|주문|검색|알림|채팅|API|DB|앱|웹|모바일|예약|프로필|서비스 전체|서비스 일부)/i.test(normalized);
+}
+
+function buildPlaceholderDrivenClarificationQuestionDetails_legacyBroken({
+  sourceVibe = '',
+  finalPrompt = '',
+} = {}) {
+  void sourceVibe;
+  void finalPrompt;
+  return [];
+}
+
+function buildSourceDrivenClarificationQuestionDetails(sourceVibe = '') {
+  const normalizedSource = toText(sourceVibe);
+  if (!normalizedSource) return [];
+
+  const details = [];
+  const pushDetail = (detail, matcher = null) => {
+    pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
+  };
+
+  const maintenanceTypePattern = /(\uC810\uAC80\s*\uC720\uD615|\uC815\uAE30\s*\uC810\uAC80|\uAE34\uAE09\s*\uC810\uAC80)/i;
+  const maintenanceSchedulePattern = /(\uC77C\uC2DC|\uC2DC\uC791\/\uC885\uB8CC\s*(\uC2DC\uAC04|\uC77C\uC2DC)?|\uC608\uC0C1\s*\uC18C\uC694\s*\uC2DC\uAC04)/i;
+  const maintenanceImpactPattern = /(\uC601\uD5A5\s*\uBC94\uC704|\uC601\uD5A5\uBC1B\uB294\s*\uAE30\uB2A5|\uC601\uD5A5\s*\uAE30\uB2A5)/i;
+  const travelDurationPattern = /(\uC5EC\uD589\s*\uAE30\uAC04|\uBA70\uCE60|2\uBC15\s*3\uC77C|3\uBC15\s*4\uC77C)/i;
+  const travelInterestPattern = /(\uAD00\uC2EC\uC0AC|\uC1FC\uD551|\uBB38\uD654|\uC74C\uC2DD|\uB9DB\uC9D1)/i;
+  const budgetPattern = /(\uC608\uC0B0)/i;
+
+  if (maintenanceTypePattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC810\uAC80 \uC720\uD615\uC740 \uC815\uAE30 \uC810\uAC80\uC778\uAC00\uC694, \uAE34\uAE09 \uC810\uAC80\uC778\uAC00\uC694?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '\uC810\uAC80 \uC720\uD615',
+      },
+      maintenanceTypePattern,
+    );
+  }
+
+  if (maintenanceSchedulePattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC810\uAC80 \uC77C\uC2DC\uC640 \uC608\uC0C1 \uC18C\uC694 \uC2DC\uAC04\uC740 \uC5B4\uB5BB\uAC8C \uB418\uB098\uC694?',
+        intentKey: 'schedule',
+        source: 'missing_information',
+        missingInformation: '\uC810\uAC80 \uC77C\uC2DC\uC640 \uC608\uC0C1 \uC18C\uC694 \uC2DC\uAC04',
+      },
+      maintenanceSchedulePattern,
+    );
+  }
+
+  if (maintenanceImpactPattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC5B4\uB5A4 \uAE30\uB2A5\uC774\uB098 \uC11C\uBE44\uC2A4\uAC00 \uC601\uD5A5\uC744 \uBC1B\uB294\uC9C0 \uAD6C\uCCB4\uC801\uC73C\uB85C \uC801\uC5B4\uC904 \uC218 \uC788\uB098\uC694?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '\uC601\uD5A5 \uBC94\uC704',
+      },
+      maintenanceImpactPattern,
+    );
+  }
+
+  if (travelDurationPattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC5EC\uD589 \uAE30\uAC04\uC740 \uBA70\uCE60\uC778\uAC00\uC694?',
+        intentKey: 'schedule',
+        source: 'missing_information',
+        missingInformation: '\uC5EC\uD589 \uAE30\uAC04',
+      },
+      travelDurationPattern,
+    );
+  }
+
+  if (travelInterestPattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC1FC\uD551, \uBB38\uD654, \uC74C\uC2DD \uC911 \uC5B4\uB5A4 \uAD00\uC2EC\uC0AC\uAC00 \uAC00\uC7A5 \uC911\uC694\uD55C\uAC00\uC694?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '\uAD00\uC2EC\uC0AC',
+      },
+      travelInterestPattern,
+    );
+  }
+
+  if (budgetPattern.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '\uC608\uC0B0\uC740 \uB300\uB7B5 \uC5B4\uB290 \uC815\uB3C4\uB85C \uC0DD\uAC01\uD558\uACE0 \uC788\uB098\uC694?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '\uC608\uC0B0',
+      },
+      budgetPattern,
+    );
+  }
+
+  return details.slice(0, 3);
 }
 
 function buildPlaceholderDrivenClarificationQuestionDetails({
@@ -290,108 +312,122 @@ function buildPlaceholderDrivenClarificationQuestionDetails({
     pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
   };
 
-  const isMaintenancePrompt = /(점검|안내문)/i.test(combinedText);
-  const hasGenericMaintenanceSlots = (
-    /(점검\s*유형|정기\/긴급|시작\/종료\s*(일시|시간)?|점검\s*일시|예상\s*소요\s*시간|영향\s*범위|영향을\s*받는\s*기능)/i
-      .test(normalizedPrompt)
-    || /(에디터\s*기능|조회\s*및\s*수정|저장\s*및\s*불러오기)/i.test(normalizedPrompt)
+  const maintenancePromptPattern = /(\uC810\uAC80|\uC548\uB0B4\uBB38)/i;
+  const maintenanceTypePattern = /(\uC810\uAC80\s*\uC720\uD615|\uC815\uAE30\/\uAE34\uAE09|\uC815\uAE30\s*\uC810\uAC80|\uAE34\uAE09\s*\uC810\uAC80)/i;
+  const maintenanceSchedulePattern = /(\uC77C\uC2DC|\uC2DC\uC791\/\uC885\uB8CC\s*(\uC77C\uC2DC|\uC2DC\uAC04)?|\uC608\uC0C1\s*\uC18C\uC694\s*\uC2DC\uAC04)/i;
+  const maintenanceImpactPattern = /(\uC601\uD5A5\s*\uBC94\uC704|\uC601\uD5A5\uBC1B\uB294\s*\uAE30\uB2A5|\uC601\uD5A5\s*\uAE30\uB2A5)/i;
+  const maintenanceSourcePattern = /((\uC11C\uBE44\uC2A4\s*)?\uC810\uAC80\s*\uC548\uB0B4\uBB38|\uC810\uAC80\s*\uACF5\uC9C0|\uC810\uAC80\s*\uC548\uB0B4)/i;
+  const maintenanceManagementPattern = /(\uC218\uC815\s*\/\s*\uC0AD\uC81C|\uC218\uC815|\uC0AD\uC81C|\uAC8C\uC2DC|\uACF5\uAC1C\s*\uC5EC\uBD80|\uACF5\uC9C0\s*\uAD00\uB9AC\s*\uD750\uB984|\uC5D0\uB514\uD130\s*\uAE30\uB2A5|\uC870\uD68C\s*\uBC0F\s*\uC218\uC815|\uC800\uC7A5\s*\uBC0F\s*\uBD88\uB7EC\uC624\uAE30)/i;
+  const isMaintenancePrompt = maintenancePromptPattern.test(combinedText);
+  const sourceNeedsMaintenanceGrounding = Boolean(
+    isMaintenancePrompt
+    && !hasConcreteMaintenanceType(normalizedSource)
+    && !hasConcreteScheduleValue(normalizedSource)
+    && !hasConcreteMaintenanceImpact(normalizedSource)
+    && maintenanceSourcePattern.test(normalizedSource)
+  );
+  const sourceNeedsMaintenanceTypeGrounding = Boolean(
+    isMaintenancePrompt
+    && !hasConcreteMaintenanceType(normalizedSource)
+    && maintenanceSourcePattern.test(normalizedSource)
+  );
+  const hasGenericMaintenanceSlots = Boolean(
+    maintenanceTypePattern.test(normalizedPrompt)
+    || maintenanceSchedulePattern.test(normalizedPrompt)
+    || maintenanceImpactPattern.test(normalizedPrompt)
+    || maintenanceManagementPattern.test(normalizedPrompt)
+    || sourceNeedsMaintenanceGrounding
+    || sourceNeedsMaintenanceTypeGrounding
   );
 
   if (isMaintenancePrompt && hasGenericMaintenanceSlots) {
-    if (
-      /(점검\s*유형|정기\/긴급)/i.test(normalizedPrompt)
-      || !/(정기\s*점검|긴급\s*점검)/i.test(normalizedSource)
-    ) {
+    if (!hasConcreteMaintenanceType(normalizedSource)) {
       pushDetail(
         {
-          question: '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+          question: '\uC810\uAC80 \uC720\uD615\uC740 \uC815\uAE30 \uC810\uAC80\uC778\uAC00\uC694, \uAE34\uAE09 \uC810\uAC80\uC778\uAC00\uC694?',
           intentKey: 'requirements',
           source: 'missing_information',
-          missingInformation: '점검 유형',
+          missingInformation: '\uC810\uAC80 \uC720\uD615',
         },
-        /(점검 유형|정기 점검|긴급 점검)/i,
+        /(\uC810\uAC80 \uC720\uD615|\uC815\uAE30 \uC810\uAC80|\uAE34\uAE09 \uC810\uAC80)/i,
       );
     }
 
-    if (
-      /(일시|시작\/종료\s*(일시|시간)?|예상\s*소요\s*시간)/i.test(normalizedPrompt)
-      || !hasConcreteScheduleValue(normalizedSource)
-    ) {
+    if (!hasConcreteScheduleValue(normalizedSource) && (maintenanceSchedulePattern.test(normalizedPrompt) || sourceNeedsMaintenanceGrounding)) {
       pushDetail(
         {
-          question: '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+          question: '\uC810\uAC80 \uC77C\uC2DC\uC640 \uC608\uC0C1 \uC18C\uC694 \uC2DC\uAC04\uC740 \uC5B4\uB5BB\uAC8C \uB418\uB098\uC694?',
           intentKey: 'schedule',
           source: 'missing_information',
-          missingInformation: '점검 일시와 예상 소요 시간',
+          missingInformation: '\uC810\uAC80 \uC77C\uC2DC\uC640 \uC608\uC0C1 \uC18C\uC694 \uC2DC\uAC04',
         },
-        /(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i,
+        /(\uC77C\uC2DC|\uC2DC\uC791\/\uC885\uB8CC \uC2DC\uAC04|\uC2DC\uC791 \uC2DC\uAC04|\uC885\uB8CC \uC2DC\uAC04|\uC608\uC0C1 \uC18C\uC694 \uC2DC\uAC04)/i,
       );
     }
 
     if (
-      /(영향\s*범위|영향을\s*받는\s*기능|영향\s*기능)/i.test(normalizedPrompt)
-      || !/(로그인|결제|주문|검색|알림|채팅|API|DB|예약|프로필|댓글|일부\s*서비스|전체\s*서비스)/i.test(normalizedSource)
+      !hasConcreteMaintenanceImpact(normalizedSource)
+      && (maintenanceImpactPattern.test(normalizedPrompt) || sourceNeedsMaintenanceGrounding)
     ) {
       pushDetail(
         {
-          question: '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+          question: '\uC5B4\uB5A4 \uAE30\uB2A5\uC774\uB098 \uC11C\uBE44\uC2A4\uAC00 \uC601\uD5A5\uC744 \uBC1B\uB294\uC9C0 \uAD6C\uCCB4\uC801\uC73C\uB85C \uC801\uC5B4\uC904 \uC218 \uC788\uB098\uC694?',
           intentKey: 'requirements',
           source: 'missing_information',
-          missingInformation: '영향 범위',
+          missingInformation: '\uC601\uD5A5 \uBC94\uC704',
         },
-        /(영향 범위|영향을 받는 기능|영향 기능)/i,
+        /(\uC601\uD5A5 \uBC94\uC704|\uC601\uD5A5\uBC1B\uB294 \uAE30\uB2A5|\uC601\uD5A5 \uAE30\uB2A5)/i,
       );
     }
   }
 
-  const isTravelPrompt = /(도쿄|여행|일정)/i.test(combinedText);
-  const sourceHasConcreteTravelInterest = /(쇼핑|문화|음식|맛집|미식|휴식|자연|사진|애니|역사|야경|키즈|아이와|가족|커플)/i
-    .test(normalizedSource);
-  const promptHasGenericTravelInterestCue = /(여행\s*조건|관심사|관광지|맛집|쇼핑\s*장소)/i.test(normalizedPrompt);
-  const sourceHasConcreteBudget = hasConcreteBudgetValue(normalizedSource);
-  const promptHasGenericBudgetCue = /(예산|총\s*예상\s*경비|경비|이동\s*시간)/i.test(normalizedPrompt);
+  const travelPromptPattern = /(\uB3C4\uCFC4|\uC5EC\uD589|\uC77C\uC815)/i;
+  const travelDurationPattern = /(\uC5EC\uD589\s*\uAE30\uAC04|\uC77C\uC815|\uBA70\uCE60)/i;
+  const travelInterestPattern = /(\uC5EC\uD589\s*\uC870\uAC74|\uAD00\uC2EC\uC0AC|\uAD00\uAD11\uC9C0|\uB9DB\uC9D1|\uC1FC\uD551\s*\uC7A5\uC18C)/i;
+  const travelInterestValuePattern = /(\uC1FC\uD551|\uBB38\uD654|\uC74C\uC2DD|\uD734\uC2DD|\uB9DB\uC9D1|\uBBF8\uC2DD|\uC57C\uACBD|\uC790\uC5F0|\uC0AC\uC9C4|\uB514\uC988\uB2C8|\uC5ED\uC0AC|\uD48D\uACBD|\uC7AC\uC988|\uC544\uC774\uC640|\uAC00\uC871|\uCEE4\uD50C)/i;
+  const travelBudgetPattern = /(\uC608\uC0B0|\uCD1D\s*\uC608\uC0C1\s*\uACBD\uBE44|\uACBD\uBE44|\uC774\uB3D9\s*\uC2DC\uAC04)/i;
+  const isTravelPrompt = travelPromptPattern.test(combinedText);
 
   if (isTravelPrompt) {
-    if (!hasConcreteTravelDuration(normalizedSource) && /(여행\s*기간|일정|며칠)/i.test(normalizedPrompt)) {
+    if (!hasConcreteTravelDuration(normalizedSource) && travelDurationPattern.test(normalizedPrompt)) {
       pushDetail(
         {
-          question: '여행 기간은 며칠인가요?',
+          question: '\uC5EC\uD589 \uAE30\uAC04\uC740 \uBA70\uCE60\uC778\uAC00\uC694?',
           intentKey: 'schedule',
           source: 'missing_information',
-          missingInformation: '여행 기간',
+          missingInformation: '\uC5EC\uD589 \uAE30\uAC04',
         },
-        /(여행 기간|며칠|2박\s*3일|3박\s*4일)/i,
+        /(\uC5EC\uD589 \uAE30\uAC04|\uBA70\uCE60|2\uBC15\s*3\uC77C|3\uBC15\s*4\uC77C)/i,
       );
     }
 
-    if (promptHasGenericTravelInterestCue || !sourceHasConcreteTravelInterest) {
+    if (travelInterestPattern.test(normalizedPrompt) || !travelInterestValuePattern.test(normalizedSource)) {
       pushDetail(
         {
-          question: '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+          question: '\uC1FC\uD551, \uBB38\uD654, \uC74C\uC2DD \uC911 \uC5B4\uB5A4 \uAD00\uC2EC\uC0AC\uAC00 \uAC00\uC7A5 \uC911\uC694\uD55C\uAC00\uC694?',
           intentKey: 'requirements',
           source: 'missing_information',
-          missingInformation: '관심사',
+          missingInformation: '\uAD00\uC2EC\uC0AC',
         },
-        /(관심사|쇼핑|문화|음식|맛집)/i,
+        /(\uAD00\uC2EC\uC0AC|\uC1FC\uD551|\uBB38\uD654|\uC74C\uC2DD|\uB9DB\uC9D1)/i,
       );
     }
 
-    if (promptHasGenericBudgetCue || !sourceHasConcreteBudget) {
+    if (travelBudgetPattern.test(normalizedPrompt) || !hasConcreteBudgetValue(normalizedSource)) {
       pushDetail(
         {
-          question: '예산은 대략 어느 정도로 생각하고 있나요?',
+          question: '\uC608\uC0B0\uC740 \uB300\uB7B5 \uC5B4\uB290 \uC815\uB3C4\uB85C \uC0DD\uAC01\uD558\uACE0 \uC788\uB098\uC694?',
           intentKey: 'requirements',
           source: 'missing_information',
-          missingInformation: '예산',
+          missingInformation: '\uC608\uC0B0',
         },
-        /(예산|경비)/i,
+        /(\uC608\uC0B0|\uACBD\uBE44)/i,
       );
     }
   }
 
   return details.slice(0, 3);
 }
-
 function toLevel(score) {
   if (score >= 2) return 'high';
   if (score >= 1) return 'medium';
@@ -1367,12 +1403,10 @@ export function buildPromptValidation({
   const promptUserJob = toText(intentIr.intent?.user_job);
   const promptNativeValidationSignals = collectPromptNativeValidationSignals(validationReport);
   const sourceDrivenQuestionCount = buildSourceDrivenClarificationQuestionDetails(normalizedSource).length;
-  const placeholderQuestionDetails = rewriteMode !== 'pass_through'
-    ? buildPlaceholderDrivenClarificationQuestionDetails({
-      sourceVibe: normalizedSource,
-      finalPrompt: normalizedPrompt,
-    })
-    : [];
+  const placeholderQuestionDetails = buildPlaceholderDrivenClarificationQuestionDetails({
+    sourceVibe: normalizedSource,
+    finalPrompt: normalizedPrompt,
+  });
   const missingInformationCount = toStringArray(analysis.missing_information).length;
   const preservesSourceVibe = rewriteMode === 'pass_through'
     ? normalizedPrompt === normalizedSource
@@ -1404,7 +1438,7 @@ export function buildPromptValidation({
     warnings.push('구조화 판단은 있었지만 최종 프롬프트에는 그 변화가 충분히 반영되지 않았습니다.');
     reasonCodes.push('rewrite_not_materialized');
   }
-  if (rewriteMode !== 'pass_through' && refinementMaterialized && placeholderQuestionDetails.length > 0) {
+  if (placeholderQuestionDetails.length > 0) {
     warnings.push('핵심 입력 조건이 아직 일반적인 항목명 수준에 머물러 있습니다.');
     reasonCodes.push('placeholder_inputs_need_grounding');
   }

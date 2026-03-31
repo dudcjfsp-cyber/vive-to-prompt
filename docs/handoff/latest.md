@@ -103,9 +103,18 @@ The current discussion also clarified a stronger long-term reading:
   - a follow-up thin output-polish pass then removed the separate `추천 진행 순서` scaffold block from the review-state final prompt body without touching review judgment, follow-up question quality, or question-metadata consumption
   - focused renderer and prompt-pipeline regressions still keep maintenance/travel review cases in `review_before_use` with the same concrete follow-up question order after that local prompt-body change
   - later fresh live manual validation then exposed one new boundary split:
-    - direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` can still regress to `ready_to_use`
-    - that path can also reintroduce spec-like CRUD/publication wording such as 수정/삭제/게시/공개 여부 into the visible prompt body
-    - that means the next thread should stop treating the maintenance review boundary as fully closed and trace this direct-input regression before doing one more local prompt-body polish pass
+    - direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` could still regress to `ready_to_use`
+    - that path could also reintroduce spec-like CRUD/publication wording such as 수정/삭제/게시/공개 여부 into the visible prompt body
+  - the current thread then reinforced exactly that maintenance validation boundary without reopening question-metadata work or broad result-surface design:
+    - direct natural-language maintenance input no longer escapes to `ready_to_use` while generic placeholder-style maintenance wording remains
+    - partially grounded maintenance input such as `서비스 점검 안내문 작성해줘. 오늘 밤 11시부터 새벽 1시까지 로그인과 결제 기능이 점검 대상이야` now stays in `review_before_use` but narrows follow-up to the still-missing maintenance type instead of re-asking schedule or impact scope
+    - prompt validation now treats direct maintenance input, CRUD/publication wording, and compacted pass-through cases as one prompt-output review boundary rather than silently dropping placeholder review when compaction returns close to the source vibe
+    - focused renderer regressions now lock direct maintenance review, CRUD/publication review preservation, and partial-grounding maintenance question narrowing
+    - full renderer regression runs now pass again after restoring the settled travel question wording during the same boundary pass
+  - fresh manual validation at the end of the thread then exposed the next narrow regression:
+    - non-maintenance announcement requests such as `카페 오픈 안내문 써줘. 이번 주 토요일 오전 10시에 오픈하고 선착순 이벤트도 같이 알려줘` can still inherit a maintenance follow-up question
+    - that false positive appears when broad maintenance detection meets spec-like management wording such as 등록/수정 기능
+    - the next thread should therefore target maintenance-detection overreach, not reopen the now-restored direct-maintenance review leak
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -176,7 +185,7 @@ The current discussion also clarified a stronger long-term reading:
 - upstream `validation_report` still exists as a compatibility/support signal beneath the prompt-first validation contract
 - some compatibility surfaces still retain question-string arrays and fallback answer lookup around the now-stable active question-detail contract
 - review-state final prompt bodies can still read more like a structured scaffold than a fully prompt-first execution prompt
-- direct natural-language maintenance requests can still bypass `review_before_use` and inherit spec-like CRUD/publication wording on one live path
+- maintenance detection can still overfire on non-maintenance announcement requests when broad 안내문/관리 wording is present alongside spec-shaped compatibility text
 
 ### What is no longer the main blocker
 - adding a prompt renderer from scratch
@@ -186,6 +195,7 @@ The current discussion also clarified a stronger long-term reading:
 - success-state overclaim for short/common PM-style inputs where the final prompt effectively stayed pass-through after compaction
 - active prompt-first review/clarify consumption depending on brittle question-string matching for metadata joins
 - mixed English scaffold labels inside the visible Korean review-state final prompt
+- the direct-maintenance `ready_to_use` leak and placeholder-review drop for partially grounded maintenance inputs
 
 ### What is now the main loop risk
 The next low-value trap is internal cleanup that mostly renames or reshuffles spec-era leftovers without improving:
@@ -194,9 +204,9 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - renderer reuse
 - removal of a real remaining engine blocker
 
-The other rising loop risk is continuing one-more-copy-polish work on the review final prompt body even after fresh live validation showed a direct-input maintenance regression in judgment and wording.
-That is no longer a clean local output seam by default.
-The clearer next risk is masking an upstream or handoff issue with another renderer-only wording tweak.
+The other rising loop risk is continuing one-more-copy-polish work on prompt bodies after the direct-maintenance leak was already fixed and the next confirmed issue is now non-maintenance false positives in maintenance detection.
+That would risk treating a domain-detection boundary as if it were only a copy problem.
+The clearer next risk is hiding overbroad maintenance matching behind more local wording tweaks.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -287,9 +297,9 @@ Current recommended interpretation:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. trace why direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` still regresses to `ready_to_use` and reintroduces spec-like CRUD/publication wording
-2. only if that issue proves to be local renderer output rather than upstream normalization or validation, isolate one narrow review-body seam after the regression is understood
-3. otherwise stop and avoid reopening the active review UI for wording-only polish
+1. narrow maintenance detection so non-maintenance announcement requests such as `카페 오픈 안내문 써줘...` no longer receive maintenance-only follow-up questions
+2. keep the direct-maintenance review boundary, partial-grounding question narrowing, travel review behavior, and short/common ready behavior locked while making that change
+3. stop if the fix starts turning into a broad domain-classification redesign or another generic wording-polish pass
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -325,29 +335,32 @@ What the previous thread already completed:
 - maintenance-notice and Tokyo-travel review outputs no longer bypass review when the final prompt still leaves placeholder-style inputs behind
 - review-state prompt scaffold labels now render in Korean rather than mixing English template headings into the visible final prompt
 - the review-state final prompt body no longer includes a separate `추천 진행 순서` workflow block, so the copied prompt reads a bit more prompt-first without changing review judgment or question order
-- a fresh live regression still remains for direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘`, which can incorrectly return `ready_to_use` and surface spec-like CRUD/publication wording
-- do not reopen settled review-question metadata, travel review recovery, or success-state coherence boundaries
+- direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` no longer regresses to `ready_to_use` while generic CRUD/publication wording remains
+- partially grounded maintenance input now keeps `review_before_use` but narrows follow-up questions to only the still-missing maintenance type instead of re-asking schedule or impact
+- full prompt renderer regression tests pass after locking that boundary and restoring the settled travel question wording
+- do not reopen settled review-question metadata, travel review recovery, direct-maintenance ready leak, or success-state coherence boundaries
 
 Recommended next boundary:
-- trace the direct-input maintenance regression first and decide whether it is caused by upstream normalization, prompt validation, or one renderer-side seam
+- trace why non-maintenance announcement requests can still trigger maintenance-only follow-up questions and close exactly that detection boundary
 
 Exact task:
-- explain why `서비스 점검 안내문 작성해줘` is still reaching `ready_to_use`
-- identify where 수정/삭제/게시/공개 여부 같은 spec-like wording is re-entering the prompt body
-- fix exactly one boundary that resolves that regression without reopening question-metadata work or broad result-surface redesign
+- explain why `카페 오픈 안내문 써줘. 이번 주 토요일 오전 10시에 오픈하고 선착순 이벤트도 같이 알려줘` is still receiving the maintenance question `점검 유형은 정기 점검인가요, 긴급 점검인가요?`
+- identify whether the false positive comes from overly broad maintenance detection, spec-like management wording in compatibility text, or one renderer-side seam
+- fix exactly one narrow boundary so non-maintenance 안내문 requests no longer inherit maintenance follow-up questions without reopening the restored maintenance review leak or broad result-surface design
 
 Do not reopen:
 - review-state prompt/explanation/question coherence for the already-restored travel case
 - prompt question metadata consumption
 - success-state prompt/explanation coherence for the validated short/common cases
+- the resolved direct-maintenance `ready_to_use` regression and partial-grounding maintenance question narrowing
 - the resolved `intentIr.delivery.must_haves` wording seam
 - the already-settled result-stage hierarchy and collapsed-detail structure
 
 Validation points:
-- `서비스 점검 안내문 작성해줘` must no longer return `ready_to_use` while generic CRUD/publication wording remains
-- maintenance direct-input should either stay in `review_before_use` with concrete follow-up questions or prove why it is genuinely ready
-- `도쿄 2박 3일 일정 짜줘` and the previously restored maintenance/travel review cases must keep their current concrete follow-up questions and review judgment
-- stop if the fix starts spreading into broad renderer redesign instead of one traced regression boundary
+- `카페 오픈 안내문 써줘. 이번 주 토요일 오전 10시에 오픈하고 선착순 이벤트도 같이 알려줘` must no longer surface maintenance-only follow-up questions
+- `오늘 밤 서비스 점검 공지 써줘. 로그인은 안 되고 결제는 지연될 수 있어` and `서비스 점검 안내문 작성해줘. 오늘 밤 11시부터 새벽 1시까지 로그인과 결제 기능이 점검 대상이야` must keep their current maintenance review judgment and narrowed follow-up behavior
+- `도쿄 2박 3일 일정 짜줘` and the validated short/common ready cases must keep their current concrete follow-up questions and readiness judgment
+- stop if the fix starts spreading into broad domain-classification redesign instead of one traced regression boundary
 
 End the thread with:
 - why this work was not a loop
@@ -361,8 +374,8 @@ End the thread with:
 ```
 
 Boundary health: Yellow
-This thread type: upstream split needed
+This thread type: boundary reinforcement
 Why:
-fresh live validation showed that direct natural-language maintenance input still bypasses review and reintroduces spec-like wording, so one more local output polish would likely hide a deeper seam
+the direct-maintenance leak is now closed, but repeated maintenance-wording exceptions show the detection boundary is still slightly too broad and should be narrowed before more copy polish
 Next move:
-open the next thread around the direct-input maintenance regression first, then return to local review-body polish only if that path proves truly local
+open one more narrow thread for non-maintenance maintenance-detection false positives, then stop if that fix starts turning into domain-classification redesign

@@ -918,6 +918,168 @@ test('prompt validation reviews materially transformed travel prompts when gener
   ]);
 });
 
+test('prompt renderer keeps direct natural-language maintenance input in review until concrete grounding is provided', () => {
+  const renderer = createPromptRenderer();
+  const sourceVibe = '서비스 점검 안내문 작성해줘';
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe,
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: sourceVibe,
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'high',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.final_prompt, sourceVibe);
+  assert.equal(result.validation.status, 'review');
+  assert.equal(result.validation.summary_code, 'review_before_use');
+  assert.deepEqual(result.validation.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.validation.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+    '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+    '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+  ]);
+});
+
+test('prompt validation reviews maintenance prompts when CRUD and publication wording remains despite preserving the source vibe', () => {
+  const sourceVibe = '서비스 점검 안내문 작성해줘';
+  const finalPrompt = `${sourceVibe}
+
+조건:
+- 수정/삭제가 가능한 공지 관리 흐름을 반영한다.
+- 게시 시점과 공개 여부가 분명히 드러나게 작성한다.`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt,
+    rewriteMode: 'light_refine',
+    appliedTechniques: [{ id: 'constraint_expansion' }],
+    refinementMaterialized: true,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      validationReport: {
+        severity: 'low',
+        needs_clarification: false,
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: false,
+          severity: 'low',
+          warning_count: 0,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.preserves_source_vibe, true);
+  assert.equal(result.status, 'review');
+  assert.equal(result.summary_code, 'review_before_use');
+  assert.deepEqual(result.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+    '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+    '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+  ]);
+});
+
+test('prompt renderer does not re-ask maintenance schedule or impact once they are already grounded in the source vibe', () => {
+  const renderer = createPromptRenderer();
+  const sourceVibe = '서비스 점검 안내문 작성해줘. 오늘 밤 11시부터 새벽 1시까지 로그인과 결제 기능이 점검 대상이야';
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe,
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: sourceVibe,
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'review');
+  assert.deepEqual(result.validation.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.validation.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+  ]);
+});
+
 test('prompt validation keeps already-usable short structured inputs ready when no concrete follow-up is needed', () => {
   const sourceVibe = `신입 PM 면접 준비 중인데, "좋은 PM의 핵심 역량 5가지"를 한국어 bullet list로 정리해달라는 프롬프트 만들어줘. 너무 길지 않게.
 
