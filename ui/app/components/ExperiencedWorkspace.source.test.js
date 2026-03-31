@@ -15,6 +15,7 @@ test('ExperiencedWorkspace still exposes prompt rationale and prompt validation 
   assert.ok(source.includes('buildReadyToUseSuccessState'));
   assert.ok(source.includes('buildPromptValidationTrustChecklist'));
   assert.ok(source.includes('buildPromptChangeHighlights'));
+  assert.ok(source.includes('hasMaterializedRefinement'));
   assert.ok(source.includes('derived?.clarifyLoop?.questionDetails'));
   assert.ok(source.includes('readyToUseSuccessState?.reusablePattern'));
   assert.ok(source.includes('clarifyQuestionDetailByText'));
@@ -65,4 +66,12 @@ test('ExperiencedWorkspace keeps ready-to-use supporting trace collapsed for fir
   assert.ok(!source.includes('판단 출처: {sourceLabel}'));
   assert.ok(source.includes('<details className="experienced-summary-card experienced-secondary-details">'));
   assert.ok(source.includes('원문 입력, 전체 적용 기법, 판단 신호, 검증 메모는 필요할 때만 펼쳐봅니다.'));
+});
+
+test('ExperiencedWorkspace suppresses technique-heavy explanation when refinement was not materialized', () => {
+  assert.ok(source.includes('hasMaterializedRefinement'));
+  assert.ok(source.includes('? getRewriteRationaleSummary(rewriteRationale.summary_code, rewriteMode)'));
+  assert.ok(source.includes(': validationSummary;'));
+  assert.ok(source.includes('(hasMaterializedRefinement ? appliedTechniques : []).map((technique) => ({'));
+  assert.ok(source.includes('(hasMaterializedRefinement ? skippedTechniques : []).map((technique) => ({'));
 });

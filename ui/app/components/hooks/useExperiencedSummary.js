@@ -52,7 +52,11 @@ export function useExperiencedSummary({
   const clarifyLoopTurn = Number(clarify.loopTurn || 0);
   const canSubmitClarification = clarify.canSubmit === true;
   const rewriteMode = toText(promptOutput.rewrite_mode);
-  const appliedTechniqueCount = Array.isArray(promptOutput.applied_techniques)
+  const validationReasonCodes = Array.isArray(promptOutput?.validation?.reason_codes)
+    ? promptOutput.validation.reason_codes
+    : [];
+  const hasMaterializedRefinement = !validationReasonCodes.includes('rewrite_not_materialized');
+  const appliedTechniqueCount = hasMaterializedRefinement && Array.isArray(promptOutput.applied_techniques)
     ? promptOutput.applied_techniques.length
     : 0;
 
@@ -62,6 +66,7 @@ export function useExperiencedSummary({
     quickAiPrompt,
     rewriteMode,
     appliedTechniqueCount,
+    hasMaterializedRefinement,
     promptCopyStatus,
     handleCopyExperiencedPrompt,
     validationQuestions,

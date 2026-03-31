@@ -79,6 +79,17 @@ The current discussion also clarified a stronger long-term reading:
 - real dev-server verification had previously shown renderer-only normalization was insufficient because live prompt output still inherited spec-style feature wording through `intentIr.delivery.must_haves`
 - the current thread then fixed that seam in the shared intent-IR path instead of adding one more renderer-only patch
 - current boundary health after that upstream fix is `Green`
+- a later live manual-validation thread then resolved one concrete prompt-output coherence boundary instead of reopening broad output polish:
+  - `review_before_use` clarification questions now prioritize concrete missing information such as maintenance type, schedule, impact scope, travel duration, interests, and budget when refinement did not materially change the final prompt
+  - review-state rationale now explicitly says when structure judgments were made but the final prompt still stayed close to the source input
+  - short/common inputs with no concrete follow-up need are no longer pushed into review only because refinement did not materially land
+  - `ready_to_use` outputs that compact back to the original prompt now downgrade rewrite mode and suppress overclaimed technique/rationale metadata instead of pretending a stronger rewrite happened
+  - focused renderer and prompt-first UI source tests now lock both review-state and success-state coherence for that path
+- manual dev-server checks in the current thread confirmed the new baseline across:
+  - maintenance notice input
+  - Tokyo travel planning input
+  - short PM interview-prep input
+  and those checks showed the main remaining follow-up boundary is no longer prompt-output coherence itself but question-metadata consumption
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -136,6 +147,7 @@ The current discussion also clarified a stronger long-term reading:
 - renderer-focused lexical normalization is no longer the main remaining blocker by itself
 - one previously confirmed live blocker is now reduced: shared intent-IR normalization rewrites one repeated `핵심_기능.필수` seam before prompt rendering, so live `ready_to_use` prompts are less likely to collapse back into app-feature checklists for short/common non-email inputs
 - focused tests exist for the prompt renderer and prompt-first UI source paths
+- live review-state and success-state explanation cards now stay materially closer to what the final prompt actually did in the tested maintenance, travel, and PM cases
 
 ### What is still transitional
 - intent IR still depends on spec-shaped normalization upstream
@@ -143,11 +155,14 @@ The current discussion also clarified a stronger long-term reading:
 - some internal helpers and compatibility state still use spec-era naming
 - spec compatibility paths still exist behind the prompt-first product surface
 - upstream `validation_report` still exists as a compatibility/support signal beneath the prompt-first validation contract
+- prompt question metadata is generated in the engine, but active UI consumption is still not fully centered on stable question-detail objects end to end
 
 ### What is no longer the main blocker
 - adding a prompt renderer from scratch
 - exposing rewrite and readiness rationale in the UI
 - separating provider/model runtime from the old spec facade
+- review-state prompt/explanation/question coherence for the concrete maintenance and travel cases already validated in the live surface
+- success-state overclaim for short/common PM-style inputs where the final prompt effectively stayed pass-through after compaction
 
 ### What is now the main loop risk
 The next low-value trap is internal cleanup that mostly renames or reshuffles spec-era leftovers without improving:
@@ -156,10 +171,9 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - renderer reuse
 - removal of a real remaining engine blocker
 
-The other rising loop risk is polishing the same success-state surface repeatedly after explanation compression and prompt-body compaction are already in place.
-That broader regression step has now been done.
-The new loop risk is continuing copy-only tweaks after the remaining issue has become a clearly separate non-email constraint-normalization boundary.
-After real dev-server verification, the clearer loop risk is continuing renderer copy polish after the live issue has already been identified as an upstream spec-shaped generation seam.
+The other rising loop risk is reopening the same prompt-output coherence surface with one more round of copy polish after live manual validation already confirmed that boundary is behaving.
+That broader coherence pass has now been done.
+The clearer next risk is skipping the already-generated question metadata and doing more wording-only tweaks in the UI instead of contractizing question-detail consumption directly.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -251,7 +265,7 @@ Current recommended interpretation:
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
 1. move to prompt question metadata consumption boundary
-2. or inspect one remaining upstream engine blocker only if real prompt output still exposes a concrete PRD violation outside the resolved `must_haves` seam
+2. or inspect one remaining upstream engine blocker only if fresh manual validation exposes a concrete PRD violation outside the resolved coherence and `must_haves` seams
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -268,62 +282,53 @@ Avoid choosing a new thread for:
 
 ## Suggested Start Prompt For The Next Thread
 ```text
-Before starting work, read only these docs and use them as the current source of truth.
+Before starting work, read only these docs and use them as the current source of truth:
 
-Current docs:
+- AGENTS.md
 - docs/long-term-context.md
-- docs/engine-refactor-plan.md
-- docs/intent-ir.md
-- docs/handoff/latest.md
-- docs/refactor-stop-checklist.md
 - docs/vibe-to-prompt-context.md
 - docs/vibe-to-prompt-prd.md
+- docs/handoff/latest.md
 
-Current repo assumptions:
-- This repo is a Vibe-to-Prompt workspace and a reusable engine-extraction workspace.
-- The original Vibe-to-Spec V2 product repo is preserved elsewhere.
-- The active UX is one natural-language input, one final prompt result, and an explanation of why it was structured that way.
-- The active product contract is now also documented in `docs/vibe-to-prompt-prd.md`.
-- The previous thread already separated the first-entry input stage from the post-submit result stage.
-- The previous thread already moved the success-state result hierarchy so the final prompt, use/review judgment, and rewrite-why summary are what users read first.
-- The previous thread already compressed `ready_to_use` explanation density into one short learning narrative, representative techniques capped at 3, and collapsed detail trace.
-- The previous thread also hid `zero_shot_pass_through` from skipped-technique display when refinement was actually used.
-- The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
-- The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
-- The previous thread also added a PRD and aligned the active `ExperiencedWorkspace` with it by surfacing one reusable next-time pattern and by turning review questions into prompt-native coaching instead of bare textareas.
-- The latest thin review-surface fixes removed internal review-question provenance labels and one remaining source-derived `coaching_focus` sentence from the active coaching cards while preserving `why_this_question`, `prompt_improvement`, and the visible prompt-improvement axis.
-- Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
-- The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
-- The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
+Current repo interpretation:
+- This repo is a Vibe-to-Prompt learning-track workspace and reusable engine-extraction workspace.
+- The active contract is one natural-language input, one final prompt result, and one explanation layer.
+- The current product is prompt-first and learning-oriented, not a spec-authoring workflow.
 
-Thread goal:
-- Prefer the next boundary candidate in this order:
-  1. prompt question metadata consumption boundary
-  2. one remaining active-surface mismatch only if manual testing finds a concrete PRD violation in the current `ExperiencedWorkspace`
-  3. one other upstream validation-ready handoff or prompt-output blocker only if the product boundary no longer clears the entry rule
-- Choose exactly one boundary.
-- Do not mix both.
+What the previous thread already completed:
+- review-state prompt/explanation/question coherence was fixed for live maintenance-notice and Tokyo-travel cases
+- success-state overclaim was fixed for short/common PM-style ready outputs when the final prompt compacted back to near pass-through
+- prompt-output explanation cards now admit when refinement did not materially land instead of pretending a stronger rewrite happened
+- concrete missing-information questions now surface before generic “original intent” fallback questions in the tested review flows
 
-Thread entry rule:
-- First judge the current candidate work against these three questions:
-  - Does it make the product more prompt-first?
-  - Does it create visible user value?
-  - Does it reduce a real remaining engine blocker?
-- If it is mostly internal cleanup, stop and explain why.
-- Pick exactly one real engine blocker or one real prompt-first UX improvement.
+Recommended next boundary:
+- move to the prompt question metadata consumption boundary
 
-Boundary guidance:
-- Do not reopen the just-aligned `ExperiencedWorkspace` boundary for generic polish. Only touch it again if you can point to one concrete PRD violation.
-- Treat the resolved `intentIr.delivery.must_haves` wording seam as already handled unless new manual validation shows a separate upstream leak.
-- The broader result-stage architecture boundary has now been used again to clarify prompt first, review guidance, reusable next-time learning, and collapsed trace. Do not reopen it for copy-only polish.
-- Do not reintroduce internal provenance labels on review questions unless a new manual validation pass finds a concrete PRD-level comprehension gap.
-- If neither product boundary clears the entry rule, only then inspect one upstream validation-ready handoff blocker.
+Exact task:
+- make the active app consume prompt question metadata through stable question-detail objects rather than relying on question-string matching where that still remains
+- keep the work narrow to the active prompt-first clarify/review path
+- do not turn the thread into broad copy polish or a general UI redesign
 
-At the end, always summarize:
-- why this thread was not a loop
+Do not reopen:
+- review-state prompt/explanation coherence
+- success-state prompt/explanation coherence for the validated PM short-input case
+- the resolved `intentIr.delivery.must_haves` wording seam
+- the already-settled result-stage hierarchy and collapsed-detail structure
+
+Validation points:
+- wording changes to a question should not break the UI’s ability to preserve question intent, reason, or follow-up guidance
+- `why_this_question`, `prompt_improvement`, and question ordering should still follow metadata rather than brittle text comparisons
+- maintenance/travel review cases should keep their current concrete follow-up questions after the refactor
+
+End the thread with:
+- why this work was not a loop
 - what became more prompt-first
 - what is still transitional compatibility
 - why another thread is or is not needed
+- Boundary health: Green | Yellow | Red
+- This thread type: thin output polish | boundary reinforcement | upstream split needed
+- Why: one sentence
+- Next move: one sentence
 ```
 
 Boundary health: Green

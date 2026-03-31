@@ -17,9 +17,12 @@ test('useExperiencedSummary reads prompt-first data from a normalized summary mo
   assert.match(source, /const quickRequest = useMemo\(/);
   assert.match(source, /toText\(delivery\.quickRequestBase\)/);
   assert.match(source, /const rewriteMode = toText\(promptOutput\.rewrite_mode\);/);
-  assert.match(source, /const appliedTechniqueCount = Array\.isArray\(promptOutput\.applied_techniques\)/);
+  assert.match(source, /const validationReasonCodes = Array\.isArray\(promptOutput\?\.validation\?\.reason_codes\)/);
+  assert.match(source, /const hasMaterializedRefinement = !validationReasonCodes\.includes\('rewrite_not_materialized'\);/);
+  assert.match(source, /const appliedTechniqueCount = hasMaterializedRefinement && Array\.isArray\(promptOutput\.applied_techniques\)/);
   assert.match(source, /rewriteMode,/);
   assert.match(source, /appliedTechniqueCount,/);
+  assert.match(source, /hasMaterializedRefinement,/);
   assert.doesNotMatch(source, /standardOutput/);
   assert.doesNotMatch(source, /todayActions/);
   assert.doesNotMatch(source, /completionScore/);

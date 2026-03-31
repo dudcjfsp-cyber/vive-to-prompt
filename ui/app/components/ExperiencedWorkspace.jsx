@@ -87,6 +87,7 @@ function getRewriteRationaleSummary(summaryCode, rewriteMode) {
     pass_through_clear_enough: '입력이 이미 충분히 분명해서, 불필요한 재작성 없이 거의 그대로 통과했습니다.',
     light_refine_add_structure: '핵심 요청은 살아 있었지만, 바로 쓰기 좋게 약한 구조만 덧붙였습니다.',
     structured_refine_reduce_risk: '모호함과 누락 정보를 줄이기 위해 더 강한 구조화 정제를 선택했습니다.',
+    refine_not_materialized: '핵심 입력이 아직 덜 정해져 있어, 더 강하게 다듬기보다 먼저 보완 질문이 필요한 상태로 남았습니다.',
   };
 
   const normalizedCode = String(summaryCode || '').trim();
@@ -107,6 +108,7 @@ function getRewriteRationaleReason(reasonCode) {
     goal_needs_clarification: '목표나 성공 조건을 더 선명하게 드러낼 필요가 있었습니다.',
     high_ambiguity: '모호성 신호가 높아서 그대로 쓰면 결과 편차가 커질 수 있었습니다.',
     missing_information: '누락된 정보가 보여서 질문이나 안전장치가 필요했습니다.',
+    rewrite_not_materialized: '핵심 입력이 아직 덜 정해져 있어, 프롬프트를 더 다듬기 전에 보완 정보가 먼저 필요했습니다.',
     validation_flags: '검증 경고 또는 차단 신호가 있어 더 안전한 구조가 필요했습니다.',
     goal_partially_clear: '핵심 요청은 보였지만 바로 실행하기에는 목표 설명이 조금 부족했습니다.',
     structure_would_help: '출력 형식이나 제약 조건을 더 분명히 적는 편이 안정적이었습니다.',
@@ -289,6 +291,7 @@ export default function ExperiencedWorkspace({
     quickAiPrompt,
     rewriteMode,
     appliedTechniqueCount,
+    hasMaterializedRefinement,
     promptCopyStatus,
     handleCopyExperiencedPrompt,
     validationQuestions,
@@ -326,16 +329,20 @@ export default function ExperiencedWorkspace({
     warnings: validationWarnings,
     questions: validationQuestions,
   });
-  const rewriteRationaleSummary = getRewriteRationaleSummary(rewriteRationale.summary_code, rewriteMode);
-  const rewriteRationaleReasons = (Array.isArray(rewriteRationale.reason_codes) ? rewriteRationale.reason_codes : [])
+  const rewriteRationaleSummary = hasMaterializedRefinement
+    ? getRewriteRationaleSummary(rewriteRationale.summary_code, rewriteMode)
+    : validationSummary;
+  const rewriteRationaleReasons = (hasMaterializedRefinement
+    ? (Array.isArray(rewriteRationale.reason_codes) ? rewriteRationale.reason_codes : [])
+    : validationReasonCodes)
     .map((code) => getRewriteRationaleReason(code))
     .filter(Boolean);
-  const localizedAppliedTechniques = appliedTechniques.map((technique) => ({
+  const localizedAppliedTechniques = (hasMaterializedRefinement ? appliedTechniques : []).map((technique) => ({
     ...technique,
     label: getTechniqueLabel(technique.label),
     why: getTechniqueWhy(technique.why),
   }));
-  const localizedSkippedTechniques = skippedTechniques.map((technique) => ({
+  const localizedSkippedTechniques = (hasMaterializedRefinement ? skippedTechniques : []).map((technique) => ({
     ...technique,
     label: getTechniqueLabel(technique.label),
     why: getTechniqueWhy(technique.why),
@@ -372,7 +379,7 @@ export default function ExperiencedWorkspace({
   );
   const promptChangeHighlights = buildPromptChangeHighlights({
     appliedTechniques: isReadyToUseSuccessState ? representativeTechniques : localizedAppliedTechniques,
-    rewriteReasons: rewriteRationaleReasons,
+    rewriteReasons: rewriteRationaleReasons.length > 0 ? rewriteRationaleReasons : validationReasons,
   });
   const hasValidationMemo = (
     validationReasons.length > 0

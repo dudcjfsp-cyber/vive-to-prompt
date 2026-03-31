@@ -13,6 +13,14 @@ function toStringArray(value) {
   return value.map((item) => toText(item)).filter(Boolean);
 }
 
+function normalizePromptForComparison(value) {
+  return toText(value)
+    .replace(/\r/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function pushUniqueText(list, value) {
   const text = toText(value);
   if (!text || list.includes(text)) return;
@@ -134,6 +142,116 @@ function pushSuggestedQuestionDetail(list, detail, matcher = null) {
   if (matcher && list.some((item) => matcher.test(toText(item?.question)))) return;
   if (list.some((item) => toText(item?.question) === question)) return;
   list.push(safeDetail);
+}
+
+function isPromptMateriallyTransformed(sourceVibe = '', finalPrompt = '') {
+  const normalizedSource = normalizePromptForComparison(sourceVibe);
+  const normalizedPrompt = normalizePromptForComparison(finalPrompt);
+
+  if (!normalizedSource || !normalizedPrompt) return false;
+  if (normalizedSource === normalizedPrompt) return false;
+
+  const sourceLines = normalizedSource.split('\n').filter(Boolean);
+  const promptLines = normalizedPrompt.split('\n').filter(Boolean);
+  if (promptLines.length <= sourceLines.length) return false;
+
+  return true;
+}
+
+function buildSourceDrivenClarificationQuestionDetails(sourceVibe = '') {
+  const normalizedSource = toText(sourceVibe);
+  if (!normalizedSource) return [];
+
+  const details = [];
+  const pushDetail = (detail, matcher = null) => {
+    pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
+  };
+
+  if (/(점검 유형|정기 점검|긴급 점검)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '점검 유형',
+      },
+      /(점검 유형|정기 점검|긴급 점검)/i,
+    );
+  }
+
+  if (/(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+        intentKey: 'schedule',
+        source: 'missing_information',
+        missingInformation: '점검 일시와 예상 소요 시간',
+      },
+      /(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i,
+    );
+  }
+
+  if (/(영향 범위|영향을 받는 기능|영향 기능)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '영향 범위',
+      },
+      /(영향 범위|영향을 받는 기능|영향 기능)/i,
+    );
+  }
+
+  if (/(여행 기간|며칠|2박\s*3일|3박\s*4일)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '여행 기간은 며칠인가요?',
+        intentKey: 'schedule',
+        source: 'missing_information',
+        missingInformation: '여행 기간',
+      },
+      /(여행 기간|며칠|2박\s*3일|3박\s*4일)/i,
+    );
+  }
+
+  if (/(관심사|쇼핑|문화|음식|맛집)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '관심사',
+      },
+      /(관심사|쇼핑|문화|음식|맛집)/i,
+    );
+  }
+
+  if (/(예산)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '예산은 대략 어느 정도로 생각하고 있나요?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '예산',
+      },
+      /(예산)/i,
+    );
+  }
+
+  if (/(쿠키 종류|특징|타겟 고객)/i.test(normalizedSource)) {
+    pushDetail(
+      {
+        question: '문구에 꼭 반영해야 할 쿠키 종류나 핵심 특징은 무엇인가요?',
+        intentKey: 'requirements',
+        source: 'missing_information',
+        missingInformation: '쿠키 종류와 특징',
+      },
+      /(쿠키 종류|특징|타겟 고객)/i,
+    );
+  }
+
+  return details.slice(0, 3);
 }
 
 function toLevel(score) {
@@ -782,6 +900,7 @@ function buildPromptClarificationQuestions({
   reasonCodes,
   promptNativeValidationSignals,
 }) {
+  const sourceVibe = toText(sharedRuntimeHandoff?.sourceVibe);
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
   const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
   const validationReport = isPlainObject(sharedRuntimeHandoff?.validationReport)
@@ -789,6 +908,7 @@ function buildPromptClarificationQuestions({
     : {};
   const clarificationQuestions = toStringArray(analysis.clarification_questions);
   const missingInformation = toStringArray(analysis.missing_information);
+  const sourceDrivenQuestionDetails = buildSourceDrivenClarificationQuestionDetails(sourceVibe);
   const fallbackQuestions = toStringArray(validationReport.suggested_questions);
   const translatedValidationQuestionDetails = Array.isArray(promptNativeValidationSignals?.question_details)
     ? promptNativeValidationSignals.question_details
@@ -801,15 +921,6 @@ function buildPromptClarificationQuestions({
       intentKey: 'deliverable',
       source: 'prompt_validation',
       reasonCode: 'empty_prompt',
-    }));
-  }
-
-  if (reasonCodes.includes('loses_source_vibe')) {
-    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
-      question: '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
-      intentKey: 'source_vibe',
-      source: 'prompt_validation',
-      reasonCode: 'loses_source_vibe',
     }));
   }
 
@@ -943,6 +1054,27 @@ function buildPromptClarificationQuestions({
     }));
   });
 
+  sourceDrivenQuestionDetails.forEach((detail) => {
+    pushSuggestedQuestionDetail(suggestionDetails, detail);
+  });
+
+  if (
+    reasonCodes.includes('loses_source_vibe')
+    && suggestionDetails.length <= Number(reasonCodes.includes('empty_prompt'))
+    && sourceDrivenQuestionDetails.length === 0
+    && clarificationQuestions.length === 0
+    && missingInformation.length === 0
+    && translatedValidationQuestionDetails.length === 0
+    && fallbackQuestions.length === 0
+  ) {
+    pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
+      question: '최종 프롬프트에 반드시 남아야 하는 핵심 의도나 요구 1~2개를 짧게 적어 주세요.',
+      intentKey: 'source_vibe',
+      source: 'prompt_validation',
+      reasonCode: 'loses_source_vibe',
+    }));
+  }
+
   if (reasonCodes.includes('missing_technique_trace')) {
     pushSuggestedQuestionDetail(suggestionDetails, buildSuggestedQuestionDetail({
       question: '이 프롬프트에서 반드시 지켜야 할 구조나 형식은 무엇인가요?',
@@ -993,6 +1125,8 @@ function buildPromptValidationNarrative({
   if (warnings.length > 0) {
     if (reasonCodes.includes('empty_prompt')) {
       summary = '최종 프롬프트가 비어 있어 바로 사용할 수 없습니다.';
+    } else if (reasonCodes.includes('rewrite_not_materialized')) {
+      summary = '핵심 입력 조건이 아직 덜 정해져 있어 구조화 판단이 최종 프롬프트에 충분히 반영되지 않았습니다.';
     } else if (toStringArray(promptNativeValidationSignals?.reason_codes).length > 0) {
       summary = '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.';
     } else if (reasonCodes.includes('loses_source_vibe') && reasonCodes.includes('missing_technique_trace')) {
@@ -1010,6 +1144,9 @@ function buildPromptValidationNarrative({
     }
     if (reasonCodes.includes('loses_source_vibe')) {
       pushUniqueText(reasonDetails, '원문 요청의 핵심 의도가 최종 프롬프트 안에서 약해졌을 수 있습니다.');
+    }
+    if (reasonCodes.includes('rewrite_not_materialized')) {
+      pushUniqueText(reasonDetails, '구조화 판단은 있었지만 실제로 복사해 쓸 최종 프롬프트는 아직 원문과 크게 다르지 않습니다.');
     }
     if (reasonCodes.includes('missing_technique_trace')) {
       pushUniqueText(reasonDetails, '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.');
@@ -1069,6 +1206,7 @@ export function buildPromptValidation({
   finalPrompt,
   rewriteMode,
   appliedTechniques,
+  refinementMaterialized = true,
   sharedRuntimeHandoff = null,
 }) {
   const warnings = [];
@@ -1079,9 +1217,12 @@ export function buildPromptValidation({
     ? sharedRuntimeHandoff.validationReport
     : {};
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
+  const analysis = isPlainObject(intentIr.analysis) ? intentIr.analysis : {};
   const promptSummary = toText(intentIr.summary);
   const promptUserJob = toText(intentIr.intent?.user_job);
   const promptNativeValidationSignals = collectPromptNativeValidationSignals(validationReport);
+  const sourceDrivenQuestionCount = buildSourceDrivenClarificationQuestionDetails(normalizedSource).length;
+  const missingInformationCount = toStringArray(analysis.missing_information).length;
   const preservesSourceVibe = rewriteMode === 'pass_through'
     ? normalizedPrompt === normalizedSource
     : Boolean(
@@ -1099,7 +1240,19 @@ export function buildPromptValidation({
     warnings.push('\uC815\uB9AC \uACFC\uC815\uC5D0\uC11C \uC6D0\uBB38 \uC758\uB3C4\uAC00 \uD750\uB824\uC84C\uC2B5\uB2C8\uB2E4.');
     reasonCodes.push('loses_source_vibe');
   }
-  if (rewriteMode !== 'pass_through' && appliedTechniques.length === 0) {
+  if (
+    rewriteMode !== 'pass_through'
+    && !refinementMaterialized
+    && (
+      sourceDrivenQuestionCount > 0
+      || missingInformationCount > 0
+      || promptNativeValidationSignals.requires_review
+    )
+  ) {
+    warnings.push('구조화 판단은 있었지만 최종 프롬프트에는 그 변화가 충분히 반영되지 않았습니다.');
+    reasonCodes.push('rewrite_not_materialized');
+  }
+  if (rewriteMode !== 'pass_through' && refinementMaterialized && appliedTechniques.length === 0) {
     warnings.push('\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
     reasonCodes.push('missing_technique_trace');
   }
@@ -1158,39 +1311,63 @@ export function buildPromptValidation({
 export function createPromptRenderer() {
   function buildPromptOutput(sharedRuntimeHandoff) {
     const selectionSignals = buildSelectionSignals(sharedRuntimeHandoff);
-    const rewriteMode = selectRewriteMode(selectionSignals);
-    const rewriteRationale = buildRewriteRationale(sharedRuntimeHandoff, selectionSignals, rewriteMode);
-    const appliedTechniques = selectTechniques(sharedRuntimeHandoff, selectionSignals, rewriteMode);
-    const skippedTechniques = PROMPT_TECHNIQUE_REGISTRY
-      .filter((technique) => !appliedTechniques.some((item) => item.id === technique.id))
+    const initialRewriteMode = selectRewriteMode(selectionSignals);
+    const baseRewriteRationale = buildRewriteRationale(sharedRuntimeHandoff, selectionSignals, initialRewriteMode);
+    const selectedTechniques = selectTechniques(sharedRuntimeHandoff, selectionSignals, initialRewriteMode);
+    const rawSkippedTechniques = PROMPT_TECHNIQUE_REGISTRY
+      .filter((technique) => !selectedTechniques.some((item) => item.id === technique.id))
       .map((technique) => ({
         id: technique.id,
         label: technique.label,
-        why: rewriteMode === 'pass_through'
+        why: initialRewriteMode === 'pass_through'
           ? 'Pass-through mode avoids unnecessary rewriting.'
           : 'This technique was not necessary for the current intent signals.',
       }));
-    const rawFinalPrompt = rewriteMode === 'pass_through'
+    const rawFinalPrompt = initialRewriteMode === 'pass_through'
       ? toText(sharedRuntimeHandoff?.sourceVibe)
-      : buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode);
-    let finalPrompt = rawFinalPrompt;
+      : buildRefinedPrompt(sharedRuntimeHandoff, selectedTechniques, initialRewriteMode);
+    const refinementMaterialized = initialRewriteMode === 'pass_through'
+      ? true
+      : isPromptMateriallyTransformed(sharedRuntimeHandoff?.sourceVibe, rawFinalPrompt);
+    let finalPrompt = toText(rawFinalPrompt);
+    let rewriteMode = initialRewriteMode;
+    let rewriteRationale = refinementMaterialized
+      ? baseRewriteRationale
+      : {
+        summary_code: 'refine_not_materialized',
+        reason_codes: ['missing_information'],
+      };
+    let appliedTechniques = refinementMaterialized ? selectedTechniques : [];
+    let skippedTechniques = refinementMaterialized ? rawSkippedTechniques : [];
     let validation = buildPromptValidation({
       sourceVibe: sharedRuntimeHandoff?.sourceVibe,
       finalPrompt,
-      rewriteMode,
+      rewriteMode: initialRewriteMode,
       appliedTechniques,
+      refinementMaterialized,
       sharedRuntimeHandoff,
     });
 
-    if (rewriteMode !== 'pass_through' && validation.status === 'ready') {
+    if (initialRewriteMode !== 'pass_through' && validation.status === 'ready') {
       const compactedPrompt = compactReadyToUsePrompt(rawFinalPrompt, sharedRuntimeHandoff?.sourceVibe);
       if (compactedPrompt && compactedPrompt !== rawFinalPrompt) {
-        finalPrompt = compactedPrompt;
+        finalPrompt = toText(compactedPrompt);
+        const finalRefinementMaterialized = isPromptMateriallyTransformed(sharedRuntimeHandoff?.sourceVibe, finalPrompt);
+        if (!finalRefinementMaterialized) {
+          rewriteMode = 'pass_through';
+          rewriteRationale = {
+            summary_code: 'pass_through_clear_enough',
+            reason_codes: ['light_touch_enough'],
+          };
+          appliedTechniques = [];
+          skippedTechniques = [];
+        }
         validation = buildPromptValidation({
           sourceVibe: sharedRuntimeHandoff?.sourceVibe,
           finalPrompt,
           rewriteMode,
           appliedTechniques,
+          refinementMaterialized: finalRefinementMaterialized,
           sharedRuntimeHandoff,
         });
       }

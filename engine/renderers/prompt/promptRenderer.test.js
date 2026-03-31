@@ -574,6 +574,280 @@ test('prompt renderer keeps short announcement prompts compact and prompt-like',
   assert.doesNotMatch(result.final_prompt, /안내문 미리보기/);
 });
 
+test('prompt renderer avoids overclaiming refinement when the final prompt stays effectively unchanged', () => {
+  const renderer = createPromptRenderer();
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe: '요약해줘',
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: '요약해줘',
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.rewrite_mode, 'pass_through');
+  assert.equal(result.final_prompt, '요약해줘');
+  assert.deepEqual(result.applied_techniques, []);
+  assert.deepEqual(result.skipped_techniques, []);
+  assert.equal(result.rewrite_rationale.summary_code, 'pass_through_clear_enough');
+  assert.equal(result.validation.status, 'ready');
+  assert.deepEqual(result.validation.reason_codes, ['preserves_source_vibe', 'ready_for_direct_use']);
+});
+
+test('prompt renderer suppresses success-state technique metadata when compaction returns to the original prompt', () => {
+  const renderer = createPromptRenderer();
+  const sourceVibe = `신입 PM 면접 준비 중인데, "좋은 PM의 핵심 역량 5가지"를 한국어 bullet list로 정리해달라는 프롬프트 만들어줘. 너무 길지 않게.
+
+조건:
+- '좋은 PM의 핵심 역량 5가지'를 한국어 불릿 리스트로 요청하는 프롬프트 형태로 작성한다.
+- 프롬프트 길이 제한 기능
+
+출력 형식:
+- 항목별 목록`;
+
+  const handoff = createSharedRuntimeHandoff({
+    sourceVibe,
+    validationReport: {
+      severity: 'low',
+      needs_clarification: false,
+      warning_count: 1,
+      blocking_issue_count: 0,
+    },
+    intentIr: {
+      summary: sourceVibe,
+      intent: {
+        target_user: '',
+        usage_moment: '',
+        user_job: '',
+        problem_context: '',
+        success_signal: '',
+      },
+      delivery: {
+        must_haves: [],
+        nice_to_haves: [],
+      },
+      analysis: {
+        risks: [],
+        missing_information: [],
+        clarification_questions: [],
+      },
+      signals: {
+        confidence: 'medium',
+        needs_clarification: false,
+        severity: 'low',
+        warning_count: 1,
+        blocking_issue_count: 0,
+      },
+    },
+  });
+
+  const result = renderer.buildPromptOutput(handoff);
+
+  assert.equal(result.validation.status, 'ready');
+  assert.equal(result.rewrite_mode, 'pass_through');
+  assert.equal(result.final_prompt, sourceVibe);
+  assert.deepEqual(result.applied_techniques, []);
+  assert.deepEqual(result.skipped_techniques, []);
+  assert.equal(result.rewrite_rationale.summary_code, 'pass_through_clear_enough');
+  assert.deepEqual(result.rewrite_rationale.reason_codes, ['light_touch_enough']);
+});
+
+test('prompt validation prioritizes maintenance input questions when refinement did not materially change the output', () => {
+  const sourceVibe = `공지문 써야 해. 점검 안내문 프롬프트 만들어줘. 너무 딱딱하지 않게.
+
+조건:
+- 점검 유형, 일시, 예상 소요 시간, 영향 범위 등 필수 정보 필드 제공 정보를 반영한다.
+- 된 정보를 바탕으로 '딱딱하지 않은' 어조의 점검 안내문 초안 자동 생성 정보를 반영한다.
+- 사용자에게 바로 보여줄 수 있는 자연스러운 문장으로 작성한다.`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt: sourceVibe,
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [],
+    refinementMaterialized: false,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: true,
+          severity: 'medium',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'review');
+  assert.equal(result.summary, '핵심 입력 조건이 아직 덜 정해져 있어 구조화 판단이 최종 프롬프트에 충분히 반영되지 않았습니다.');
+  assert.deepEqual(result.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+    '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+    '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+  ]);
+});
+
+test('prompt validation prioritizes travel input questions when refinement did not materially change the output', () => {
+  const sourceVibe = `도쿄 여행 일정 짜는 프롬프트 만들어줘.
+
+조건:
+- 여행 기간, 관심사(쇼핑, 문화, 음식 등), 예산 정보를 반영한다.
+- 기반 도쿄 여행 일정 자동 생성 정보를 반영한다.
+- 된 일정 조회 및 수정 형태로 작성한다.
+- 일정 저장 및 불러오기`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt: sourceVibe,
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [],
+    refinementMaterialized: false,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: true,
+          severity: 'medium',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'review');
+  assert.deepEqual(result.suggested_questions, [
+    '여행 기간은 며칠인가요?',
+    '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+    '예산은 대략 어느 정도로 생각하고 있나요?',
+  ]);
+});
+
+test('prompt validation keeps already-usable short structured inputs ready when no concrete follow-up is needed', () => {
+  const sourceVibe = `신입 PM 면접 준비 중인데, "좋은 PM의 핵심 역량 5가지"를 한국어 bullet list로 정리해달라는 프롬프트 만들어줘. 너무 길지 않게.
+
+조건:
+- '좋은 PM의 핵심 역량 5가지'를 한국어 불릿 리스트로 요청하는 프롬프트 형태로 작성한다.
+- 프롬프트 길이 제한 기능
+
+출력 형식:
+- 항목별 목록`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt: sourceVibe,
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [],
+    refinementMaterialized: false,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      validationReport: {
+        severity: 'low',
+        needs_clarification: false,
+        warning_count: 1,
+        blocking_issue_count: 0,
+      },
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: false,
+          severity: 'low',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'ready');
+  assert.equal(result.summary_code, 'ready_to_use');
+  assert.deepEqual(result.reason_codes, ['preserves_source_vibe']);
+  assert.deepEqual(result.suggested_questions, []);
+});
+
 
 test('prompt validation marks empty prompt as review_before_use', () => {
   const result = buildPromptValidation({
