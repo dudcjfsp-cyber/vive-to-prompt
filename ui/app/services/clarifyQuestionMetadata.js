@@ -13,6 +13,25 @@ function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function normalizeIdentityToken(value) {
+  return toText(value).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+export function buildClarifyQuestionDetailId(detail = {}) {
+  const intentKey = toText(detail?.intent_key, 'general');
+  const reasonCode = normalizeIdentityToken(detail?.reason_code);
+  const missingInformation = normalizeIdentityToken(detail?.missing_information);
+  const source = normalizeIdentityToken(detail?.source);
+  const question = normalizeIdentityToken(detail?.question);
+
+  if (reasonCode) return `${intentKey}::reason::${reasonCode}`;
+  if (missingInformation) return `${intentKey}::missing::${missingInformation}`;
+  if (intentKey !== 'general') return `${intentKey}::intent`;
+  if (source && question) return `${source}::question::${question}`;
+  if (question) return `manual_loop::question::${question}`;
+  return 'manual_loop::general';
+}
+
 const QUESTION_INTENT_META = Object.freeze({
   audience: {
     label: '대상',
@@ -243,6 +262,7 @@ function decorateQuestionDetail(detail) {
     question: toText(detail.question),
     intent_key: toText(detail.intent_key, 'general'),
     source: toText(detail.source, 'manual_loop'),
+    question_id: buildClarifyQuestionDetailId(detail),
   };
 
   const reasonCode = toText(detail.reason_code);
@@ -280,16 +300,28 @@ export function buildClarifyQuestionDetails({
   suggestedQuestionDetails = [],
 } = {}) {
   const detailByQuestion = new Map();
+  const detailById = new Map();
 
   normalizeQuestionDetails(suggestedQuestionDetails).forEach((detail) => {
+    const decorated = decorateQuestionDetail(detail);
+    if (!detailById.has(decorated.question_id)) {
+      detailById.set(decorated.question_id, decorated);
+    }
     if (!detailByQuestion.has(detail.question)) {
-      detailByQuestion.set(detail.question, decorateQuestionDetail(detail));
+      detailByQuestion.set(detail.question, decorated);
     }
   });
 
-  return toStringArray(questions).map((question) => detailByQuestion.get(question) || decorateQuestionDetail({
-    question,
-    intent_key: 'general',
-    source: 'manual_loop',
-  }));
+  return toStringArray(questions).map((question) => {
+    const matchedByQuestion = detailByQuestion.get(question);
+    if (matchedByQuestion) return matchedByQuestion;
+
+    const fallbackDetail = decorateQuestionDetail({
+      question,
+      intent_key: 'general',
+      source: 'manual_loop',
+    });
+
+    return detailById.get(fallbackDetail.question_id) || fallbackDetail;
+  });
 }

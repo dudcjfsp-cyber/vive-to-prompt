@@ -42,8 +42,8 @@ test('buildPromptFirstValidationReport keeps prompt validation primary while pre
   assert.deepEqual(report?.suggested_questions, ['Prompt question 1', 'Prompt question 2', 'Spec question 1']);
   assert.deepEqual(report?.suggested_question_details, [
     { question: 'Prompt question 1', intent_key: 'requirements', source: 'prompt_output.validation' },
-    { question: 'Spec question 1', intent_key: 'general', source: 'validation_report' },
     { question: 'Prompt question 2', intent_key: 'general', source: 'prompt_output.validation' },
+    { question: 'Spec question 1', intent_key: 'general', source: 'validation_report' },
   ]);
   assert.deepEqual(report?.upstream_validation, {
     severity: 'high',
@@ -65,4 +65,52 @@ test('buildPromptFirstValidationReportFromResult returns fallback report when pr
   assert.equal(report?.source, 'validation_report');
   assert.equal(report?.severity, 'medium');
   assert.deepEqual(report?.suggested_questions, ['Spec question 1']);
+});
+
+test('buildPromptFirstValidationReport keeps metadata-backed question wording ahead of raw string fallbacks', () => {
+  const report = buildPromptFirstValidationReport({
+    promptValidation: {
+      needs_clarification: true,
+      suggested_questions: ['Raw prompt wording'],
+      suggested_question_details: [
+        {
+          question: 'Canonical prompt wording',
+          intent_key: 'audience',
+          source: 'prompt_output.validation',
+          reason_code: 'validation_missing_audience_or_role',
+        },
+      ],
+    },
+    validationReport: {
+      needs_clarification: true,
+      suggested_questions: ['Raw spec wording'],
+      suggested_question_details: [
+        {
+          question: 'Canonical spec wording',
+          intent_key: 'output_format',
+          source: 'validation_report',
+          missing_information: 'output format',
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(report?.suggested_questions, [
+    'Canonical prompt wording',
+    'Canonical spec wording',
+  ]);
+  assert.deepEqual(report?.suggested_question_details, [
+    {
+      question: 'Canonical prompt wording',
+      intent_key: 'audience',
+      source: 'prompt_output.validation',
+      reason_code: 'validation_missing_audience_or_role',
+    },
+    {
+      question: 'Canonical spec wording',
+      intent_key: 'output_format',
+      source: 'validation_report',
+      missing_information: 'output format',
+    },
+  ]);
 });

@@ -90,6 +90,22 @@ The current discussion also clarified a stronger long-term reading:
   - Tokyo travel planning input
   - short PM interview-prep input
   and those checks showed the main remaining follow-up boundary is no longer prompt-output coherence itself but question-metadata consumption
+- a follow-up boundary-reinforcement thread then resolved that question-metadata consumption gap on the active prompt-first review path:
+  - prompt-first validation question merging now prefers canonical metadata-backed question-detail objects before raw string fallback
+  - active clarify consumption now carries stable `question_id` identity derived from `intent_key` / `reason_code` / `missing_information` instead of relying on question-text equality alone
+  - the active `ExperiencedWorkspace` review UI now renders question-detail objects directly and binds answer state through `question_id` with question-text fallback for transitional compatibility
+  - wording changes to a review question no longer need to break `why_this_question`, `prompt_improvement`, or visible question ordering on the active prompt-first coaching surface
+- the current thread then stayed inside that same review boundary only long enough to close two live regressions exposed by manual validation:
+  - maintenance notice and Tokyo travel review outputs no longer incorrectly pass as `ready_to_use` when the final prompt is materially transformed but still leaves generic placeholder inputs behind
+  - renderer-side review validation now turns those placeholder-style prompts back into `review_before_use` with concrete metadata-backed follow-up questions for maintenance type, schedule, impact scope, interests, and budget
+  - review-state final-prompt scaffold labels and instructional copy now render in Korean instead of mixing `Original request`, `Task`, `Output format`, or `Suggested workflow` into the visible prompt
+  - focused renderer and prompt-pipeline regressions now lock both the restored maintenance/travel review behavior and the Korean scaffold output contract
+  - a follow-up thin output-polish pass then removed the separate `추천 진행 순서` scaffold block from the review-state final prompt body without touching review judgment, follow-up question quality, or question-metadata consumption
+  - focused renderer and prompt-pipeline regressions still keep maintenance/travel review cases in `review_before_use` with the same concrete follow-up question order after that local prompt-body change
+  - later fresh live manual validation then exposed one new boundary split:
+    - direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` can still regress to `ready_to_use`
+    - that path can also reintroduce spec-like CRUD/publication wording such as 수정/삭제/게시/공개 여부 into the visible prompt body
+    - that means the next thread should stop treating the maintenance review boundary as fully closed and trace this direct-input regression before doing one more local prompt-body polish pass
 
 ### Cleanup already performed
 - deploy/managed API paths were removed from this repo copy
@@ -131,6 +147,7 @@ The current discussion also clarified a stronger long-term reading:
 - prompt-first validation consumption is now centralized behind one app-side adapter instead of split between raw `prompt_output.validation` and raw `validation_report` reads
 - the active prompt-first explanation cards now read more naturally in Korean without changing engine behavior
 - the active review question cards now keep prompt-improvement coaching visible without surfacing internal provenance labels or source-derived coaching sentences such as validation-source phrasing
+- the active prompt-first clarify path now consumes stable question-detail identity rather than using question-string matching as the primary join key for metadata and answers
 - the broader success-state result hierarchy is now better defined as:
   - final prompt first
   - use/review judgment next
@@ -148,6 +165,8 @@ The current discussion also clarified a stronger long-term reading:
 - one previously confirmed live blocker is now reduced: shared intent-IR normalization rewrites one repeated `핵심_기능.필수` seam before prompt rendering, so live `ready_to_use` prompts are less likely to collapse back into app-feature checklists for short/common non-email inputs
 - focused tests exist for the prompt renderer and prompt-first UI source paths
 - live review-state and success-state explanation cards now stay materially closer to what the final prompt actually did in the tested maintenance, travel, and PM cases
+- active review questions now preserve intent and coaching metadata through stable detail identity even when their wording changes, and maintenance/travel review outputs no longer regress through placeholder-style prompts or mixed English scaffold labels
+- the active review-state final prompt no longer inserts a separate workflow-style `추천 진행 순서` block, so the copyable prompt reads less like an engine scaffold while keeping the rest of the review structure intact
 
 ### What is still transitional
 - intent IR still depends on spec-shaped normalization upstream
@@ -155,7 +174,9 @@ The current discussion also clarified a stronger long-term reading:
 - some internal helpers and compatibility state still use spec-era naming
 - spec compatibility paths still exist behind the prompt-first product surface
 - upstream `validation_report` still exists as a compatibility/support signal beneath the prompt-first validation contract
-- prompt question metadata is generated in the engine, but active UI consumption is still not fully centered on stable question-detail objects end to end
+- some compatibility surfaces still retain question-string arrays and fallback answer lookup around the now-stable active question-detail contract
+- review-state final prompt bodies can still read more like a structured scaffold than a fully prompt-first execution prompt
+- direct natural-language maintenance requests can still bypass `review_before_use` and inherit spec-like CRUD/publication wording on one live path
 
 ### What is no longer the main blocker
 - adding a prompt renderer from scratch
@@ -163,6 +184,8 @@ The current discussion also clarified a stronger long-term reading:
 - separating provider/model runtime from the old spec facade
 - review-state prompt/explanation/question coherence for the concrete maintenance and travel cases already validated in the live surface
 - success-state overclaim for short/common PM-style inputs where the final prompt effectively stayed pass-through after compaction
+- active prompt-first review/clarify consumption depending on brittle question-string matching for metadata joins
+- mixed English scaffold labels inside the visible Korean review-state final prompt
 
 ### What is now the main loop risk
 The next low-value trap is internal cleanup that mostly renames or reshuffles spec-era leftovers without improving:
@@ -171,9 +194,9 @@ The next low-value trap is internal cleanup that mostly renames or reshuffles sp
 - renderer reuse
 - removal of a real remaining engine blocker
 
-The other rising loop risk is reopening the same prompt-output coherence surface with one more round of copy polish after live manual validation already confirmed that boundary is behaving.
-That broader coherence pass has now been done.
-The clearer next risk is skipping the already-generated question metadata and doing more wording-only tweaks in the UI instead of contractizing question-detail consumption directly.
+The other rising loop risk is continuing one-more-copy-polish work on the review final prompt body even after fresh live validation showed a direct-input maintenance regression in judgment and wording.
+That is no longer a clean local output seam by default.
+The clearer next risk is masking an upstream or handoff issue with another renderer-only wording tweak.
 
 ## Current Product Surface Summary
 The app should now be understood as:
@@ -264,8 +287,9 @@ Current recommended interpretation:
 
 ## Recommended Next Thread Types
 Only start a new thread if the goal is clearly one of these:
-1. move to prompt question metadata consumption boundary
-2. or inspect one remaining upstream engine blocker only if fresh manual validation exposes a concrete PRD violation outside the resolved coherence and `must_haves` seams
+1. trace why direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘` still regresses to `ready_to_use` and reintroduces spec-like CRUD/publication wording
+2. only if that issue proves to be local renderer output rather than upstream normalization or validation, isolate one narrow review-body seam after the regression is understood
+3. otherwise stop and avoid reopening the active review UI for wording-only polish
 
 ## Work To Avoid In The Immediate Next Thread
 Avoid choosing a new thread for:
@@ -279,6 +303,7 @@ Avoid choosing a new thread for:
 - reopening the new input-stage / result-stage split unless manual validation finds a real regression
 - polishing the same email success-state copy again before broader regression testing proves it is still the main failure pattern
 - reintroducing review-question provenance chips or other internal source labels on the active coaching surface unless manual validation proves users need them
+- reopening prompt question metadata consumption or the travel review recovery boundary when the fresh regression is isolated to direct-input maintenance behavior
 
 ## Suggested Start Prompt For The Next Thread
 ```text
@@ -296,29 +321,33 @@ Current repo interpretation:
 - The current product is prompt-first and learning-oriented, not a spec-authoring workflow.
 
 What the previous thread already completed:
-- review-state prompt/explanation/question coherence was fixed for live maintenance-notice and Tokyo-travel cases
-- success-state overclaim was fixed for short/common PM-style ready outputs when the final prompt compacted back to near pass-through
-- prompt-output explanation cards now admit when refinement did not materially land instead of pretending a stronger rewrite happened
-- concrete missing-information questions now surface before generic “original intent” fallback questions in the tested review flows
+- active review question consumption now uses stable question-detail metadata rather than brittle question-string matching
+- maintenance-notice and Tokyo-travel review outputs no longer bypass review when the final prompt still leaves placeholder-style inputs behind
+- review-state prompt scaffold labels now render in Korean rather than mixing English template headings into the visible final prompt
+- the review-state final prompt body no longer includes a separate `추천 진행 순서` workflow block, so the copied prompt reads a bit more prompt-first without changing review judgment or question order
+- a fresh live regression still remains for direct natural-language maintenance input such as `서비스 점검 안내문 작성해줘`, which can incorrectly return `ready_to_use` and surface spec-like CRUD/publication wording
+- do not reopen settled review-question metadata, travel review recovery, or success-state coherence boundaries
 
 Recommended next boundary:
-- move to the prompt question metadata consumption boundary
+- trace the direct-input maintenance regression first and decide whether it is caused by upstream normalization, prompt validation, or one renderer-side seam
 
 Exact task:
-- make the active app consume prompt question metadata through stable question-detail objects rather than relying on question-string matching where that still remains
-- keep the work narrow to the active prompt-first clarify/review path
-- do not turn the thread into broad copy polish or a general UI redesign
+- explain why `서비스 점검 안내문 작성해줘` is still reaching `ready_to_use`
+- identify where 수정/삭제/게시/공개 여부 같은 spec-like wording is re-entering the prompt body
+- fix exactly one boundary that resolves that regression without reopening question-metadata work or broad result-surface redesign
 
 Do not reopen:
-- review-state prompt/explanation coherence
-- success-state prompt/explanation coherence for the validated PM short-input case
+- review-state prompt/explanation/question coherence for the already-restored travel case
+- prompt question metadata consumption
+- success-state prompt/explanation coherence for the validated short/common cases
 - the resolved `intentIr.delivery.must_haves` wording seam
 - the already-settled result-stage hierarchy and collapsed-detail structure
 
 Validation points:
-- wording changes to a question should not break the UI’s ability to preserve question intent, reason, or follow-up guidance
-- `why_this_question`, `prompt_improvement`, and question ordering should still follow metadata rather than brittle text comparisons
-- maintenance/travel review cases should keep their current concrete follow-up questions after the refactor
+- `서비스 점검 안내문 작성해줘` must no longer return `ready_to_use` while generic CRUD/publication wording remains
+- maintenance direct-input should either stay in `review_before_use` with concrete follow-up questions or prove why it is genuinely ready
+- `도쿄 2박 3일 일정 짜줘` and the previously restored maintenance/travel review cases must keep their current concrete follow-up questions and review judgment
+- stop if the fix starts spreading into broad renderer redesign instead of one traced regression boundary
 
 End the thread with:
 - why this work was not a loop
@@ -331,9 +360,9 @@ End the thread with:
 - Next move: one sentence
 ```
 
-Boundary health: Green
-This thread type: boundary reinforcement
+Boundary health: Yellow
+This thread type: upstream split needed
 Why:
-the change stayed in active review-surface consumption and removed one PRD-misaligned internal-provenance cue without leaning harder on spec-shaped upstream behavior
+fresh live validation showed that direct natural-language maintenance input still bypasses review and reintroduces spec-like wording, so one more local output polish would likely hide a deeper seam
 Next move:
-leave the review coaching surface alone unless a new manual pass finds another concrete PRD violation, then choose exactly one boundary again
+open the next thread around the direct-input maintenance regression first, then return to local review-body polish only if that path proves truly local

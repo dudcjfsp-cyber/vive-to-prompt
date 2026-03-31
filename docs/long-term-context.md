@@ -269,6 +269,9 @@ As of 2026-03-17:
 - `zero_shot_pass_through` no longer shows up as a skipped-technique distraction when the engine actually chose refinement
 - compatibility spec paths still exist beneath the surface
 - the next risk area is overextending the same success-state polish lane once the remaining problem becomes broader non-email constraint normalization rather than one more thin scaffold fix
-- the next useful boundary after this thread is either:
-  - prompt question metadata consumption
-  - or one other upstream blocker only if real prompt output still exposes a concrete PRD violation outside the resolved `must_haves` seam
+- active review question consumption now also uses stable question-detail metadata rather than brittle question-string matching
+- live maintenance/travel review cases no longer regress to `ready_to_use` when materially transformed prompts still leave generic placeholder inputs behind
+- review-state prompt scaffold copy now renders in Korean instead of mixing English section headers into the final prompt
+- the next useful boundary after this thread is narrower:
+  - only inspect one remaining review-state final-prompt body/scaffold seam if live validation still shows that the copyable prompt reads too much like a spec or engine scaffold
+  - otherwise stop rather than reopening settled review/success coherence or question-metadata work

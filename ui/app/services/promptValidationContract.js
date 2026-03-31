@@ -1,3 +1,5 @@
+import { buildClarifyQuestionDetailId } from './clarifyQuestionMetadata.js';
+
 function toText(value, fallback = '') {
   return typeof value === 'string' ? value.trim() : fallback;
 }
@@ -51,48 +53,104 @@ function mergeSuggestedQuestionDetails({
   suggestedQuestions = [],
 } = {}) {
   const merged = [];
+  const mergedIds = new Set();
   const promptQuestionSet = new Set(toStringArray(promptQuestions));
   const validationQuestionSet = new Set(toStringArray(validationQuestions));
+  const explicitQuestions = Array.isArray(suggestedQuestions) ? toStringArray(suggestedQuestions) : null;
+  const normalizedPromptQuestionDetails = normalizeSuggestedQuestionDetails(promptQuestionDetails, 'prompt_output.validation');
+  const normalizedValidationQuestionDetails = normalizeSuggestedQuestionDetails(validationQuestionDetails, 'validation_report');
+  const detailByQuestion = new Map();
   const pushDetail = (detail) => {
     if (!isPlainObject(detail)) return;
     const question = toText(detail.question);
-    if (!question || merged.some((item) => item.question === question)) return;
+    if (!question) return;
+    const detailId = buildClarifyQuestionDetailId(detail);
+    if (mergedIds.has(detailId)) return;
+    mergedIds.add(detailId);
     merged.push(detail);
   };
+  const indexDetailByQuestion = (detail) => {
+    const question = toText(detail?.question);
+    if (!question || detailByQuestion.has(question)) return;
+    detailByQuestion.set(question, detail);
+  };
 
-  normalizeSuggestedQuestionDetails(promptQuestionDetails, 'prompt_output.validation').forEach(pushDetail);
-  normalizeSuggestedQuestionDetails(validationQuestionDetails, 'validation_report').forEach(pushDetail);
+  normalizedPromptQuestionDetails.forEach((detail) => {
+    indexDetailByQuestion(detail);
+  });
+  normalizedValidationQuestionDetails.forEach((detail) => {
+    indexDetailByQuestion(detail);
+  });
 
-  toStringArray(suggestedQuestions).forEach((question) => {
-    if (merged.some((item) => item.question === question)) return;
-    merged.push({
+  if (explicitQuestions) {
+    explicitQuestions.forEach((question) => {
+      const existingDetail = detailByQuestion.get(question);
+      if (existingDetail) {
+        pushDetail(existingDetail);
+        return;
+      }
+
+      pushDetail({
+        question,
+        intent_key: 'general',
+        source: promptQuestionSet.has(question)
+          ? 'prompt_output.validation'
+          : (validationQuestionSet.has(question) ? 'validation_report' : 'prompt_output.validation'),
+      });
+    });
+
+    return merged.slice(0, 3);
+  }
+
+  toStringArray(promptQuestions).forEach((question, index) => {
+    const indexedDetail = normalizedPromptQuestionDetails[index];
+    const existingDetail = detailByQuestion.get(question);
+
+    if (indexedDetail) {
+      pushDetail(indexedDetail);
+      return;
+    }
+    if (existingDetail) {
+      pushDetail(existingDetail);
+      return;
+    }
+
+    pushDetail({
       question,
       intent_key: 'general',
-      source: promptQuestionSet.has(question)
-        ? 'prompt_output.validation'
-        : (validationQuestionSet.has(question) ? 'validation_report' : 'prompt_output.validation'),
+      source: 'prompt_output.validation',
     });
   });
 
+  normalizedPromptQuestionDetails.forEach((detail) => {
+    pushDetail(detail);
+  });
+
+  toStringArray(validationQuestions).forEach((question, index) => {
+    const indexedDetail = normalizedValidationQuestionDetails[index];
+    const existingDetail = detailByQuestion.get(question);
+
+    if (indexedDetail) {
+      pushDetail(indexedDetail);
+      return;
+    }
+    if (existingDetail) {
+      pushDetail(existingDetail);
+      return;
+    }
+
+    pushDetail({
+      question,
+      intent_key: 'general',
+      source: 'validation_report',
+    });
+  });
+
+  normalizedValidationQuestionDetails.forEach((detail) => {
+    pushDetail(detail);
+  });
+
   return merged.slice(0, 3);
-}
-
-function buildSuggestedQuestions({
-  promptValidation = null,
-  validationReport = null,
-  suggestedQuestions = null,
-} = {}) {
-  if (Array.isArray(suggestedQuestions)) {
-    return toStringArray(suggestedQuestions).slice(0, 3);
-  }
-
-  const promptQuestions = toStringArray(promptValidation?.suggested_questions);
-  const fallbackQuestions = toStringArray(validationReport?.suggested_questions);
-
-  return Array.from(new Set([
-    ...promptQuestions,
-    ...fallbackQuestions,
-  ])).slice(0, 3);
 }
 
 export function buildPromptFirstValidationReport({
@@ -102,11 +160,6 @@ export function buildPromptFirstValidationReport({
 } = {}) {
   const safePromptValidation = isPlainObject(promptValidation) ? promptValidation : null;
   const safeValidationReport = isPlainObject(validationReport) ? validationReport : null;
-  const normalizedQuestions = buildSuggestedQuestions({
-    promptValidation: safePromptValidation,
-    validationReport: safeValidationReport,
-    suggestedQuestions,
-  });
   const promptQuestions = toStringArray(safePromptValidation?.suggested_questions);
   const validationQuestions = toStringArray(safeValidationReport?.suggested_questions);
   const mergedQuestionDetails = mergeSuggestedQuestionDetails({
@@ -114,8 +167,12 @@ export function buildPromptFirstValidationReport({
     validationQuestionDetails: safeValidationReport?.suggested_question_details,
     promptQuestions,
     validationQuestions,
-    suggestedQuestions: normalizedQuestions,
+    suggestedQuestions,
   });
+  const normalizedQuestions = mergedQuestionDetails
+    .map((detail) => toText(detail?.question))
+    .filter(Boolean)
+    .slice(0, 3);
 
   if (safePromptValidation) {
     const promptStatus = toText(safePromptValidation.status, 'ready');

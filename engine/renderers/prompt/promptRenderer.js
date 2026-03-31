@@ -254,6 +254,144 @@ function buildSourceDrivenClarificationQuestionDetails(sourceVibe = '') {
   return details.slice(0, 3);
 }
 
+function hasConcreteScheduleValue(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return false;
+
+  return /(\d{1,2}:\d{2}|\d{4}[./-]\d{1,2}[./-]\d{1,2}|\d{1,2}월\s*\d{1,2}일|\bAM\b|\bPM\b)/i.test(normalized);
+}
+
+function hasConcreteTravelDuration(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return false;
+
+  return /(\d+\s*박\s*\d+\s*일|당일치기)/i.test(normalized);
+}
+
+function hasConcreteBudgetValue(text = '') {
+  const normalized = toText(text);
+  if (!normalized) return false;
+
+  return /(\d[\d,]*\s*(원|만원|천원)|\$[\d,]+|under\s*\$?\d+)/i.test(normalized);
+}
+
+function buildPlaceholderDrivenClarificationQuestionDetails({
+  sourceVibe = '',
+  finalPrompt = '',
+} = {}) {
+  const normalizedSource = toText(sourceVibe);
+  const normalizedPrompt = toText(finalPrompt);
+  const combinedText = `${normalizedSource}\n${normalizedPrompt}`.trim();
+
+  if (!normalizedPrompt) return [];
+
+  const details = [];
+  const pushDetail = (detail, matcher = null) => {
+    pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
+  };
+
+  const isMaintenancePrompt = /(점검|안내문)/i.test(combinedText);
+  const hasGenericMaintenanceSlots = (
+    /(점검\s*유형|정기\/긴급|시작\/종료\s*(일시|시간)?|점검\s*일시|예상\s*소요\s*시간|영향\s*범위|영향을\s*받는\s*기능)/i
+      .test(normalizedPrompt)
+    || /(에디터\s*기능|조회\s*및\s*수정|저장\s*및\s*불러오기)/i.test(normalizedPrompt)
+  );
+
+  if (isMaintenancePrompt && hasGenericMaintenanceSlots) {
+    if (
+      /(점검\s*유형|정기\/긴급)/i.test(normalizedPrompt)
+      || !/(정기\s*점검|긴급\s*점검)/i.test(normalizedSource)
+    ) {
+      pushDetail(
+        {
+          question: '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+          intentKey: 'requirements',
+          source: 'missing_information',
+          missingInformation: '점검 유형',
+        },
+        /(점검 유형|정기 점검|긴급 점검)/i,
+      );
+    }
+
+    if (
+      /(일시|시작\/종료\s*(일시|시간)?|예상\s*소요\s*시간)/i.test(normalizedPrompt)
+      || !hasConcreteScheduleValue(normalizedSource)
+    ) {
+      pushDetail(
+        {
+          question: '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+          intentKey: 'schedule',
+          source: 'missing_information',
+          missingInformation: '점검 일시와 예상 소요 시간',
+        },
+        /(일시|시작\/종료 시간|시작 시간|종료 시간|예상 소요 시간)/i,
+      );
+    }
+
+    if (
+      /(영향\s*범위|영향을\s*받는\s*기능|영향\s*기능)/i.test(normalizedPrompt)
+      || !/(로그인|결제|주문|검색|알림|채팅|API|DB|예약|프로필|댓글|일부\s*서비스|전체\s*서비스)/i.test(normalizedSource)
+    ) {
+      pushDetail(
+        {
+          question: '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+          intentKey: 'requirements',
+          source: 'missing_information',
+          missingInformation: '영향 범위',
+        },
+        /(영향 범위|영향을 받는 기능|영향 기능)/i,
+      );
+    }
+  }
+
+  const isTravelPrompt = /(도쿄|여행|일정)/i.test(combinedText);
+  const sourceHasConcreteTravelInterest = /(쇼핑|문화|음식|맛집|미식|휴식|자연|사진|애니|역사|야경|키즈|아이와|가족|커플)/i
+    .test(normalizedSource);
+  const promptHasGenericTravelInterestCue = /(여행\s*조건|관심사|관광지|맛집|쇼핑\s*장소)/i.test(normalizedPrompt);
+  const sourceHasConcreteBudget = hasConcreteBudgetValue(normalizedSource);
+  const promptHasGenericBudgetCue = /(예산|총\s*예상\s*경비|경비|이동\s*시간)/i.test(normalizedPrompt);
+
+  if (isTravelPrompt) {
+    if (!hasConcreteTravelDuration(normalizedSource) && /(여행\s*기간|일정|며칠)/i.test(normalizedPrompt)) {
+      pushDetail(
+        {
+          question: '여행 기간은 며칠인가요?',
+          intentKey: 'schedule',
+          source: 'missing_information',
+          missingInformation: '여행 기간',
+        },
+        /(여행 기간|며칠|2박\s*3일|3박\s*4일)/i,
+      );
+    }
+
+    if (promptHasGenericTravelInterestCue || !sourceHasConcreteTravelInterest) {
+      pushDetail(
+        {
+          question: '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+          intentKey: 'requirements',
+          source: 'missing_information',
+          missingInformation: '관심사',
+        },
+        /(관심사|쇼핑|문화|음식|맛집)/i,
+      );
+    }
+
+    if (promptHasGenericBudgetCue || !sourceHasConcreteBudget) {
+      pushDetail(
+        {
+          question: '예산은 대략 어느 정도로 생각하고 있나요?',
+          intentKey: 'requirements',
+          source: 'missing_information',
+          missingInformation: '예산',
+        },
+        /(예산|경비)/i,
+      );
+    }
+  }
+
+  return details.slice(0, 3);
+}
+
 function toLevel(score) {
   if (score >= 2) return 'high';
   if (score >= 1) return 'medium';
@@ -280,13 +418,13 @@ function hasAudienceHints(sourceVibe) {
 
 function inferOutputInstruction(sourceVibe) {
   const source = toText(sourceVibe).toLowerCase();
-  if (source.includes('json')) return 'Return valid JSON only.';
-  if (source.includes('table') || source.includes('표')) return 'Return a compact markdown table.';
-  if (source.includes('email') || source.includes('메일')) return 'Return a ready-to-send result with clear subject and body sections.';
+  if (source.includes('json')) return '유효한 JSON만 반환합니다.';
+  if (source.includes('table') || source.includes('표')) return '간결한 마크다운 표 형식으로 작성합니다.';
+  if (source.includes('email') || source.includes('메일')) return '제목과 본문이 분명한 바로 보낼 수 있는 형태로 작성합니다.';
   if (source.includes('list') || source.includes('bullet') || source.includes('목록') || source.includes('리스트')) {
-    return 'Return a concise bullet list.';
+    return '간결한 불릿 목록으로 작성합니다.';
   }
-  return 'Return a structured answer with clear headings and concise bullets.';
+  return '구조가 분명한 제목과 간결한 불릿으로 답합니다.';
 }
 
 function buildCompactOutputFormatLines(sourceVibe = '') {
@@ -519,24 +657,24 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   );
 
   if (!shouldUseCompactPromptTemplate) {
-    sections.push('Original request:');
-    sections.push(sourceVibe || '(empty)');
+    sections.push('원문 요청:');
+    sections.push(sourceVibe || '(비어 있음)');
   }
 
   if (!shouldUseCompactPromptTemplate && selectedIds.has('role_assignment') && toText(intent.target_user)) {
     sections.push('');
-    sections.push('Role:');
-    sections.push(`Act as a focused assistant for ${intent.target_user}.`);
+    sections.push('역할:');
+    sections.push(`${intent.target_user}를 위한 집중형 도우미처럼 답합니다.`);
   }
 
   if (selectedIds.has('goal_clarification')) {
     const taskLines = [];
     if (summary) taskLines.push(summary);
     if (!shouldUseCompactPromptTemplate && toText(intent.user_job)) {
-      taskLines.push(`Primary job to be done: ${intent.user_job}`);
+      taskLines.push(`핵심 작업: ${intent.user_job}`);
     }
     if (!shouldUseCompactPromptTemplate && toText(intent.success_signal)) {
-      taskLines.push(`Success condition: ${intent.success_signal}`);
+      taskLines.push(`성공 기준: ${intent.success_signal}`);
     }
 
     if (taskLines.length > 0) {
@@ -544,7 +682,7 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
       if (shouldUseCompactPromptTemplate) {
         sections.push(taskLines[0]);
       } else {
-        sections.push('Task:');
+        sections.push('작업:');
         taskLines.forEach((line) => sections.push(line));
       }
     }
@@ -553,18 +691,18 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
   if (!shouldUseCompactPromptTemplate && selectedIds.has('context_structuring')) {
     const contextLines = [];
     if (toText(intent.target_user)) {
-      contextLines.push(`- Target user: ${intent.target_user}`);
+      contextLines.push(`- 대상: ${intent.target_user}`);
     }
     if (toText(intent.usage_moment)) {
-      contextLines.push(`- Usage moment: ${intent.usage_moment}`);
+      contextLines.push(`- 사용 시점: ${intent.usage_moment}`);
     }
     if (toText(intent.problem_context)) {
-      contextLines.push(`- Problem context: ${intent.problem_context}`);
+      contextLines.push(`- 문제 맥락: ${intent.problem_context}`);
     }
 
     if (contextLines.length > 0) {
       sections.push('');
-      sections.push('Context:');
+      sections.push('맥락:');
       contextLines.forEach((line) => sections.push(line));
     }
   }
@@ -573,18 +711,18 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
     const constraintLines = [];
     if (mustHaves.length > 0) {
       mustHaves.slice(0, rewriteMode === 'structured_refine' ? 4 : 3).forEach((item) => {
-        constraintLines.push(`- Must: ${item}`);
+        constraintLines.push(`- 필수: ${item}`);
       });
     } else if (!shouldUseCompactPromptTemplate) {
-      constraintLines.push('- Preserve the original goal without adding unrelated scope.');
+      constraintLines.push('- 원래 목표를 유지하고 불필요한 범위는 덧붙이지 않습니다.');
     }
 
-    niceToHaves.slice(0, 2).forEach((item) => constraintLines.push(`- Nice to have: ${item}`));
-    risks.slice(0, 2).forEach((item) => constraintLines.push(`- Avoid: ${item}`));
+    niceToHaves.slice(0, 2).forEach((item) => constraintLines.push(`- 있으면 좋음: ${item}`));
+    risks.slice(0, 2).forEach((item) => constraintLines.push(`- 피할 것: ${item}`));
 
     if (constraintLines.length > 0) {
       sections.push('');
-      sections.push(shouldUseCompactPromptTemplate ? '조건:' : 'Constraints and priorities:');
+      sections.push('조건:');
       constraintLines.forEach((line) => sections.push(line));
     }
   }
@@ -599,30 +737,22 @@ function buildRefinedPrompt(sharedRuntimeHandoff, appliedTechniques, rewriteMode
       }
     } else {
       sections.push('');
-      sections.push('Output format:');
+      sections.push('출력 형식:');
       sections.push(`- ${inferOutputInstruction(sourceVibe)}`);
-      sections.push('- Keep the answer concise, explicit, and immediately usable.');
+      sections.push('- 답변은 간결하고 분명하며 바로 쓸 수 있게 정리합니다.');
     }
-  }
-
-  if (!shouldUseCompactPromptTemplate && selectedIds.has('step_decomposition')) {
-    sections.push('');
-    sections.push('Suggested workflow:');
-    sections.push('1. Identify the exact deliverable the user is asking for.');
-    sections.push('2. Fill in only the missing structure needed to make the response actionable.');
-    sections.push('3. Produce the final answer in the requested format without unnecessary detours.');
   }
 
   if (!shouldUseCompactPromptTemplate && selectedIds.has('quality_checklist_injection')) {
     sections.push('');
-    sections.push('Before finalizing:');
-    sections.push('- Do not hide missing assumptions. State them clearly if you must infer.');
-    sections.push('- Keep constraints and requested format intact.');
+    sections.push('마무리 전 확인:');
+    sections.push('- 비어 있는 가정을 숨기지 말고, 추정이 필요하면 분명히 밝힙니다.');
+    sections.push('- 요청된 조건과 형식을 끝까지 유지합니다.');
     if (missingInformation.length > 0) {
-      missingInformation.slice(0, 3).forEach((item) => sections.push(`- Missing information to handle carefully: ${item}`));
+      missingInformation.slice(0, 3).forEach((item) => sections.push(`- 특히 조심해서 다뤄야 할 누락 정보: ${item}`));
     }
     if (clarificationQuestions.length > 0) {
-      clarificationQuestions.slice(0, 2).forEach((item) => sections.push(`- If the answer depends on an unknown, surface this question: ${item}`));
+      clarificationQuestions.slice(0, 2).forEach((item) => sections.push(`- 답변이 미확정 정보에 달리면 이 질문을 먼저 드러냅니다: ${item}`));
     }
   }
 
@@ -660,13 +790,13 @@ function compactReadyToUsePrompt(finalPrompt = '', sourceVibe = '') {
     currentSection.lines.push(line);
   });
 
-  const taskSection = sections.find((section) => section.header === 'Task:')
+  const taskSection = sections.find((section) => section.header === '작업:')
     || sections.find((section) => !section.header && section.lines.some((line) => toText(line)));
   const constraintsSection = sections.find((section) => (
-    section.header === 'Constraints and priorities:' || section.header === '조건:'
+    section.header === '조건:'
   ));
   const outputFormatSection = sections.find((section) => (
-    section.header === 'Output format:' || section.header === '출력 형식:'
+    section.header === '출력 형식:'
   ));
 
   const compactLines = [];
@@ -710,7 +840,7 @@ function isEmailWritingTask(sourceVibe = '') {
 function normalizeConstraintLine(line = '') {
   return toText(line)
     .replace(/^- /, '')
-    .replace(/^(Must|Nice to have|Avoid):\s*/i, '')
+    .replace(/^(Must|Nice to have|Avoid|필수|있으면 좋음|피할 것):\s*/i, '')
     .trim();
 }
 
@@ -899,6 +1029,7 @@ function buildPromptClarificationQuestions({
   sharedRuntimeHandoff,
   reasonCodes,
   promptNativeValidationSignals,
+  placeholderQuestionDetails = [],
 }) {
   const sourceVibe = toText(sharedRuntimeHandoff?.sourceVibe);
   const intentIr = isPlainObject(sharedRuntimeHandoff?.intentIr) ? sharedRuntimeHandoff.intentIr : {};
@@ -908,7 +1039,12 @@ function buildPromptClarificationQuestions({
     : {};
   const clarificationQuestions = toStringArray(analysis.clarification_questions);
   const missingInformation = toStringArray(analysis.missing_information);
-  const sourceDrivenQuestionDetails = buildSourceDrivenClarificationQuestionDetails(sourceVibe);
+  const preferredPlaceholderQuestionDetails = Array.isArray(placeholderQuestionDetails)
+    ? placeholderQuestionDetails
+    : [];
+  const sourceDrivenQuestionDetails = preferredPlaceholderQuestionDetails.length > 0
+    ? []
+    : buildSourceDrivenClarificationQuestionDetails(sourceVibe);
   const fallbackQuestions = toStringArray(validationReport.suggested_questions);
   const translatedValidationQuestionDetails = Array.isArray(promptNativeValidationSignals?.question_details)
     ? promptNativeValidationSignals.question_details
@@ -1054,6 +1190,10 @@ function buildPromptClarificationQuestions({
     }));
   });
 
+  preferredPlaceholderQuestionDetails.forEach((detail) => {
+    pushSuggestedQuestionDetail(suggestionDetails, detail);
+  });
+
   sourceDrivenQuestionDetails.forEach((detail) => {
     pushSuggestedQuestionDetail(suggestionDetails, detail);
   });
@@ -1127,6 +1267,8 @@ function buildPromptValidationNarrative({
       summary = '최종 프롬프트가 비어 있어 바로 사용할 수 없습니다.';
     } else if (reasonCodes.includes('rewrite_not_materialized')) {
       summary = '핵심 입력 조건이 아직 덜 정해져 있어 구조화 판단이 최종 프롬프트에 충분히 반영되지 않았습니다.';
+    } else if (reasonCodes.includes('placeholder_inputs_need_grounding')) {
+      summary = '현재 프롬프트는 핵심 입력 조건이 아직 일반적인 항목명 수준이라 한 번 검토하고 쓰는 편이 안전합니다.';
     } else if (toStringArray(promptNativeValidationSignals?.reason_codes).length > 0) {
       summary = '현재 프롬프트는 결과 품질을 좌우하는 핵심 입력 조건이 아직 덜 고정돼 있어 한 번 검토하고 쓰는 편이 안전합니다.';
     } else if (reasonCodes.includes('loses_source_vibe') && reasonCodes.includes('missing_technique_trace')) {
@@ -1147,6 +1289,9 @@ function buildPromptValidationNarrative({
     }
     if (reasonCodes.includes('rewrite_not_materialized')) {
       pushUniqueText(reasonDetails, '구조화 판단은 있었지만 실제로 복사해 쓸 최종 프롬프트는 아직 원문과 크게 다르지 않습니다.');
+    }
+    if (reasonCodes.includes('placeholder_inputs_need_grounding')) {
+      pushUniqueText(reasonDetails, '핵심 조건이 아직 실제 값이 아니라 일반적인 항목명 수준으로 남아 있어 결과 편차가 클 수 있습니다.');
     }
     if (reasonCodes.includes('missing_technique_trace')) {
       pushUniqueText(reasonDetails, '정제된 결과인데 어떤 기준으로 구조화했는지 추적 정보가 부족합니다.');
@@ -1222,11 +1367,18 @@ export function buildPromptValidation({
   const promptUserJob = toText(intentIr.intent?.user_job);
   const promptNativeValidationSignals = collectPromptNativeValidationSignals(validationReport);
   const sourceDrivenQuestionCount = buildSourceDrivenClarificationQuestionDetails(normalizedSource).length;
+  const placeholderQuestionDetails = rewriteMode !== 'pass_through'
+    ? buildPlaceholderDrivenClarificationQuestionDetails({
+      sourceVibe: normalizedSource,
+      finalPrompt: normalizedPrompt,
+    })
+    : [];
   const missingInformationCount = toStringArray(analysis.missing_information).length;
   const preservesSourceVibe = rewriteMode === 'pass_through'
     ? normalizedPrompt === normalizedSource
     : Boolean(
       normalizedPrompt.includes('Original request:')
+      || normalizedPrompt.includes('원문 요청:')
       || (normalizedSource && normalizedPrompt.includes(normalizedSource))
       || (promptSummary && normalizedPrompt.includes(promptSummary))
       || (promptUserJob && normalizedPrompt.includes(promptUserJob))
@@ -1251,6 +1403,10 @@ export function buildPromptValidation({
   ) {
     warnings.push('구조화 판단은 있었지만 최종 프롬프트에는 그 변화가 충분히 반영되지 않았습니다.');
     reasonCodes.push('rewrite_not_materialized');
+  }
+  if (rewriteMode !== 'pass_through' && refinementMaterialized && placeholderQuestionDetails.length > 0) {
+    warnings.push('핵심 입력 조건이 아직 일반적인 항목명 수준에 머물러 있습니다.');
+    reasonCodes.push('placeholder_inputs_need_grounding');
   }
   if (rewriteMode !== 'pass_through' && refinementMaterialized && appliedTechniques.length === 0) {
     warnings.push('\uC815\uC81C\uB41C \uD504\uB86C\uD504\uD2B8\uC778\uB370 \uAE30\uB85D\uB41C \uAE30\uBC95\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
@@ -1280,7 +1436,12 @@ export function buildPromptValidation({
   }
 
   const suggestedQuestionDetails = warnings.length > 0
-    ? buildPromptClarificationQuestions({ sharedRuntimeHandoff, reasonCodes, promptNativeValidationSignals })
+    ? buildPromptClarificationQuestions({
+      sharedRuntimeHandoff,
+      reasonCodes,
+      promptNativeValidationSignals,
+      placeholderQuestionDetails,
+    })
     : [];
   const suggestedQuestions = suggestedQuestionDetails.map((detail) => detail.question);
   const narrative = buildPromptValidationNarrative({

@@ -24,6 +24,7 @@ test('buildClarifyQuestionDetails translates prompt-native metadata into learnin
 
   assert.equal(details[0].intent_key, 'audience');
   assert.equal(details[0].source, 'prompt_output.validation');
+  assert.equal(details[0].question_id, 'audience::reason::validation_missing_audience_or_role');
   assert.equal(details[0].intent_label, '대상');
   assert.equal(details[0].source_label, '프롬프트 검토');
   assert.ok(details[0].coaching_focus.includes(details[0].intent_label));
@@ -53,6 +54,34 @@ test('buildClarifyQuestionDetails translates prompt-native metadata into learnin
   assert.notEqual(details[0].coaching_focus, genericAudienceDetails[0].coaching_focus);
 });
 
+test('buildClarifyQuestionDetails keeps the same question_id when wording changes but reason metadata stays the same', () => {
+  const first = buildClarifyQuestionDetails({
+    questions: ['누구를 위한 안내문인가요?'],
+    suggestedQuestionDetails: [
+      {
+        question: '누구를 위한 안내문인가요?',
+        intent_key: 'audience',
+        source: 'prompt_output.validation',
+        reason_code: 'validation_missing_audience_or_role',
+      },
+    ],
+  });
+  const second = buildClarifyQuestionDetails({
+    questions: ['누구를 위한 공지인가요?'],
+    suggestedQuestionDetails: [
+      {
+        question: '누구를 위한 공지인가요?',
+        intent_key: 'audience',
+        source: 'prompt_output.validation',
+        reason_code: 'validation_missing_audience_or_role',
+      },
+    ],
+  });
+
+  assert.equal(first[0].question_id, second[0].question_id);
+  assert.equal(first[0].question_id, 'audience::reason::validation_missing_audience_or_role');
+});
+
 test('buildClarifyQuestionDetails falls back to manual-loop metadata for synthesized questions', () => {
   const details = buildClarifyQuestionDetails({
     questions: ['What needs manual review first?'],
@@ -64,6 +93,7 @@ test('buildClarifyQuestionDetails falls back to manual-loop metadata for synthes
       question: 'What needs manual review first?',
       intent_key: 'general',
       source: 'manual_loop',
+      question_id: 'manual_loop::question::what needs manual review first?',
       intent_label: '일반',
       source_label: '수동 보완',
       coaching_focus: '수동 보완에서 비어 있는 맥락을 추가로 확인해 프롬프트 구조를 더 분명하게 만들기 위한 질문입니다.',
@@ -111,6 +141,8 @@ test('buildClarifyQuestionDetails consumes actual review-state metadata from pro
 
   assert.equal(reviewValidation?.summary_code, 'review_before_use');
   assert.equal(details.length, 2);
+  assert.equal(details[0].question_id, 'audience::reason::validation_missing_audience_or_role');
+  assert.match(details[1].question_id, /^output_format::missing::/);
   assert.ok(details.every((detail) => typeof detail.coaching_focus === 'string' && detail.coaching_focus.length > 0));
   assert.ok(details.every((detail) => detail.coaching_focus.includes(detail.source_label)));
   assert.match(details[0].coaching_focus, /대상/);

@@ -174,6 +174,7 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
   const cases = [
     {
       label: 'summary',
+      expectedStatus: 'ready',
       sourceVibe: '회의록 3줄 요약 프롬프트 만들어줘',
       spec: {
         summary: '회의록 3줄 요약 프롬프트',
@@ -203,6 +204,7 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
     },
     {
       label: 'announcement',
+      expectedStatus: 'review',
       sourceVibe: '서비스 점검 안내문 작성 프롬프트 만들어줘',
       spec: {
         summary: '서비스 점검 안내문 프롬프트',
@@ -233,9 +235,15 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
         '점검 시작 시간과 종료 시간이 분명히 드러나게 쓴다.',
         '영향 범위와 영향을 받는 기능을 구체적으로 적는다.',
       ],
+      expectedQuestions: [
+        '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+        '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+        '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+      ],
     },
     {
       label: 'planning',
+      expectedStatus: 'review',
       sourceVibe: '도쿄 2박 3일 일정 짜는 프롬프트 만들어줘',
       spec: {
         summary: '도쿄 2박 3일 여행 계획 프롬프트',
@@ -263,11 +271,16 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
       expectedLines: [
         '여행 조건을 반영한 도쿄 2박 3일 일정을 짠다.',
         '날짜별로 오전과 오후 일정을 나누고 활동과 장소를 함께 제안한다.',
-        '관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다.',
+        '관광지, 맛집, 쇼핑 장소를 균형 있게 묶어 추천한다.',
+      ],
+      expectedQuestions: [
+        '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+        '예산은 대략 어느 정도로 생각하고 있나요?',
       ],
     },
     {
       label: 'marketing',
+      expectedStatus: 'ready',
       sourceVibe: '인스타 신제품 홍보 문구 프롬프트 만들어줘',
       spec: {
         summary: '인스타그램 신제품 홍보 문구 프롬프트',
@@ -302,7 +315,7 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
   ];
   const bannedPattern = /(입력 필드|버튼|미리보기|create\/edit\/share\/copy|복사|공유|목록\s*\/\s*상세|list\s*\/\s*detail|publish|unpublish|게시|발행)/i;
 
-  cases.forEach(({ label, sourceVibe, spec, expectedLines }) => {
+  cases.forEach(({ label, sourceVibe, spec, expectedLines, expectedStatus, expectedQuestions = [] }) => {
     const { result } = buildPromptTransmuteResult({
       raw: {
         model: 'prompt-model',
@@ -322,11 +335,14 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
       renderer: createPromptRenderer(),
     });
 
-    assert.equal(result.prompt_output.validation.status, 'ready', `${label} should stay ready_to_use`);
+    assert.equal(result.prompt_output.validation.status, expectedStatus, `${label} should keep the expected validation state`);
     assert.doesNotMatch(result.prompt_output.final_prompt, /Original request:|Suggested workflow:|Before finalizing:/, `${label} should stay compact`);
     assert.doesNotMatch(result.prompt_output.final_prompt, bannedPattern, `${label} should avoid spec-shaped feature wording`);
     expectedLines.forEach((line) => {
       assert.match(result.prompt_output.final_prompt, new RegExp(line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${label} should include prompt-native line: ${line}`);
     });
+    if (expectedQuestions.length > 0) {
+      assert.deepEqual(result.prompt_output.validation.suggested_questions, expectedQuestions, `${label} should surface concrete follow-up questions`);
+    }
   });
 });

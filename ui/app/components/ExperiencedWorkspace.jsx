@@ -227,6 +227,17 @@ function buildPromptChangeHighlights({ appliedTechniques = [], rewriteReasons = 
   return Array.from(new Set(highlights)).slice(0, 3);
 }
 
+function getClarifyAnswerValue(answers, detail = {}) {
+  const questionId = typeof detail?.question_id === 'string' ? detail.question_id.trim() : '';
+  const question = typeof detail?.question === 'string' ? detail.question.trim() : '';
+
+  if (questionId && typeof answers?.[questionId] === 'string') {
+    return answers[questionId];
+  }
+
+  return question && typeof answers?.[question] === 'string' ? answers[question] : '';
+}
+
 const PROMPT_WORKFLOW_STEPS = [
   {
     title: '1. 자연어 입력',
@@ -369,13 +380,20 @@ export default function ExperiencedWorkspace({
   const reusablePattern = readyToUseSuccessState?.reusablePattern || '';
   const learningNarrative = readyToUseSuccessState?.learningNarrative || rewriteRationaleSummary;
   const clarifyQuestionDetails = Array.isArray(derived?.clarifyLoop?.questionDetails) ? derived.clarifyLoop.questionDetails : [];
-  const clarifyQuestionDetailByText = useMemo(
-    () => new Map(
-      clarifyQuestionDetails
-        .filter((detail) => detail && typeof detail === 'object' && typeof detail.question === 'string')
-        .map((detail) => [detail.question, detail]),
-    ),
-    [clarifyQuestionDetails],
+  const visibleClarifyQuestionDetails = useMemo(
+    () => {
+      const normalizedDetails = clarifyQuestionDetails
+        .filter((detail) => detail && typeof detail === 'object' && typeof detail.question === 'string');
+
+      if (normalizedDetails.length > 0) {
+        return normalizedDetails;
+      }
+
+      return validationQuestions
+        .filter((question) => typeof question === 'string' && question.trim())
+        .map((question) => ({ question }));
+    },
+    [clarifyQuestionDetails, validationQuestions],
   );
   const promptChangeHighlights = buildPromptChangeHighlights({
     appliedTechniques: isReadyToUseSuccessState ? representativeTechniques : localizedAppliedTechniques,
@@ -559,15 +577,15 @@ export default function ExperiencedWorkspace({
                       {promptValidation.status === 'review' && (
                         <span className="pill">검토 메모 {validationWarnings.length || validationReasons.length}개</span>
                       )}
-                      {validationQuestions.length > 0 && (
-                        <span className="pill">추가 질문 {validationQuestions.length}개</span>
+                      {visibleClarifyQuestionDetails.length > 0 && (
+                        <span className="pill">추가 질문 {visibleClarifyQuestionDetails.length}개</span>
                       )}
                     </div>
                     <p className="small-muted">
                       {getPromptValidationTrustLead(
                         promptValidation.status,
                         validationWarnings.length,
-                        validationQuestions.length,
+                        visibleClarifyQuestionDetails.length,
                       )}
                     </p>
                     <p>{validationSummary}</p>
@@ -628,7 +646,7 @@ export default function ExperiencedWorkspace({
                   )}
                 </div>
 
-                {validationQuestions.length > 0 && (
+                {visibleClarifyQuestionDetails.length > 0 && (
                   <section className="experienced-summary-card experienced-priority-card">
                     <p className="experienced-card-kicker experienced-card-kicker-warning">바로 보완</p>
                     <h3>추가 확인이 필요한 질문</h3>
@@ -637,17 +655,17 @@ export default function ExperiencedWorkspace({
                     </p>
                     <div className="stack-actions">
                       <span className="pill">보완 차수: {clarifyLoopTurn}</span>
-                      <span className="pill">질문 수: {validationQuestions.length}</span>
+                      <span className="pill">질문 수: {visibleClarifyQuestionDetails.length}</span>
                     </div>
                     <div className="form-group">
-                      {validationQuestions.map((question) => {
-                        const detail = clarifyQuestionDetailByText.get(question);
+                      {visibleClarifyQuestionDetails.map((detail, index) => {
+                        const question = typeof detail?.question === 'string' ? detail.question.trim() : '';
                         const intentLabel = typeof detail?.intent_label === 'string' ? detail.intent_label.trim() : '';
                         const whyThisQuestion = typeof detail?.why_this_question === 'string' ? detail.why_this_question.trim() : '';
                         const promptImprovement = typeof detail?.prompt_improvement === 'string' ? detail.prompt_improvement.trim() : '';
 
                         return (
-                          <div key={question} className="form-group">
+                          <div key={String(detail?.question_id || question || index)} className="form-group">
                             <label>{question}</label>
                             {intentLabel && (
                               <div className="signal-pills">
@@ -658,8 +676,8 @@ export default function ExperiencedWorkspace({
                             {promptImprovement && <p className="small-muted">답하면 프롬프트가 이렇게 좋아집니다: {promptImprovement}</p>}
                             <textarea
                               rows={2}
-                              value={typeof clarifyAnswers?.[question] === 'string' ? clarifyAnswers[question] : ''}
-                              onChange={(event) => actions.setClarifyAnswer(question, event.target.value)}
+                              value={getClarifyAnswerValue(clarifyAnswers, detail)}
+                              onChange={(event) => actions.setClarifyAnswer(detail, event.target.value)}
                               placeholder="확정된 정보만 짧게 입력하세요."
                               disabled={state.status === 'processing'}
                             />

@@ -128,10 +128,13 @@ test('prompt renderer escalates to structured refine when intent is vague and am
   const result = renderer.buildPromptOutput(handoff);
 
   assert.equal(result.rewrite_mode, 'structured_refine');
-  assert.match(result.final_prompt, /Original request:/);
-  assert.match(result.final_prompt, /Task:/);
-  assert.match(result.final_prompt, /Constraints and priorities:/);
-  assert.match(result.final_prompt, /Before finalizing:/);
+  assert.match(result.final_prompt, /원문 요청:/);
+  assert.match(result.final_prompt, /작업:/);
+  assert.match(result.final_prompt, /조건:/);
+  assert.match(result.final_prompt, /출력 형식:/);
+  assert.doesNotMatch(result.final_prompt, /추천 진행 순서:/);
+  assert.match(result.final_prompt, /마무리 전 확인:/);
+  assert.doesNotMatch(result.final_prompt, /Original request:|Task:|Constraints and priorities:|Output format:|Suggested workflow:|Before finalizing:/);
   assert.equal(result.applied_techniques.some((item) => item.id === 'goal_clarification'), true);
   assert.equal(result.applied_techniques.some((item) => item.id === 'quality_checklist_injection'), true);
   assert.equal(result.selection_signals.safe_to_pass_through, false);
@@ -396,7 +399,7 @@ test('prompt renderer keeps short summary prompts compact without email-style ou
   assert.doesNotMatch(result.final_prompt, /복사 기능/);
 });
 
-test('prompt renderer keeps short planning prompts compact without forcing email sections', () => {
+test('prompt renderer keeps short planning prompts compact but routes generic travel slots into review', () => {
   const renderer = createPromptRenderer();
   const handoff = createSharedRuntimeHandoff({
     sourceVibe: '도쿄 2박 3일 일정 짜는 프롬프트 만들어줘',
@@ -440,12 +443,18 @@ test('prompt renderer keeps short planning prompts compact without forcing email
 
   const result = renderer.buildPromptOutput(handoff);
 
-  assert.equal(result.validation.status, 'ready');
+  assert.equal(result.validation.status, 'review');
+  assert.equal(result.validation.summary_code, 'review_before_use');
+  assert.deepEqual(result.validation.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.validation.suggested_questions, [
+    '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+    '예산은 대략 어느 정도로 생각하고 있나요?',
+  ]);
   assert.match(result.final_prompt, /도쿄 2박 3일 여행 일정을 짜는 프롬프트를 만들어줘/);
   assert.match(result.final_prompt, /조건:/);
-  assert.match(result.final_prompt, /여행자 조건을 반영해 도쿄 2박 3일 일정을 짠다/);
-  assert.match(result.final_prompt, /날짜별로 오전과 오후 일정을 나눠 활동과 장소를 제안한다/);
-  assert.match(result.final_prompt, /관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다/);
+  assert.match(result.final_prompt, /사용자 입력 기반 2박 3일 도쿄 여행 일정 생성/);
+  assert.match(result.final_prompt, /날짜별, 시간대별\(오전\/오후\) 활동 및 장소 추천/);
+  assert.match(result.final_prompt, /주요 관광지, 맛집, 쇼핑 장소 등 카테고리별 추천/);
   assert.doesNotMatch(result.final_prompt, /Original request:/);
   assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
   assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
@@ -514,7 +523,7 @@ test('prompt renderer keeps short marketing prompts lightweight instead of falli
   assert.doesNotMatch(result.final_prompt, /문구 복사 기능/);
 });
 
-test('prompt renderer keeps short announcement prompts compact and prompt-like', () => {
+test('prompt renderer keeps short announcement prompts compact but routes generic maintenance slots into review', () => {
   const renderer = createPromptRenderer();
   const handoff = createSharedRuntimeHandoff({
     sourceVibe: '서비스 점검 안내문 작성 프롬프트 만들어줘',
@@ -559,12 +568,19 @@ test('prompt renderer keeps short announcement prompts compact and prompt-like',
 
   const result = renderer.buildPromptOutput(handoff);
 
-  assert.equal(result.validation.status, 'ready');
+  assert.equal(result.validation.status, 'review');
+  assert.equal(result.validation.summary_code, 'review_before_use');
+  assert.deepEqual(result.validation.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.validation.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+    '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+    '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+  ]);
   assert.match(result.final_prompt, /서비스 점검 안내문을 작성하는 프롬프트를 만들어줘/);
   assert.match(result.final_prompt, /조건:/);
-  assert.match(result.final_prompt, /점검 유형이 정기인지 긴급인지 분명히 반영한다/);
-  assert.match(result.final_prompt, /점검 시작 시간과 종료 시간을 명확히 넣는다/);
-  assert.match(result.final_prompt, /점검 영향 범위와 영향을 받는 기능을 구체적으로 적는다/);
+  assert.match(result.final_prompt, /점검 유형\(정기\/긴급\) 선택/);
+  assert.match(result.final_prompt, /점검 시작\/종료 시간 입력/);
+  assert.match(result.final_prompt, /점검 영향 범위\(전체\/일부 기능\) 선택 및 상세 입력/);
   assert.doesNotMatch(result.final_prompt, /Original request:/);
   assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
   assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
@@ -784,6 +800,119 @@ test('prompt validation prioritizes travel input questions when refinement did n
   assert.equal(result.status, 'review');
   assert.deepEqual(result.suggested_questions, [
     '여행 기간은 며칠인가요?',
+    '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
+    '예산은 대략 어느 정도로 생각하고 있나요?',
+  ]);
+});
+
+test('prompt validation reviews materially transformed maintenance prompts when generic placeholders remain', () => {
+  const sourceVibe = '서비스 점검 안내문 작성 프롬프트 만들어줘';
+  const finalPrompt = `서비스 점검 안내문 작성 프롬프트 만들어줘
+
+조건:
+- 점검 유형, 시작/종료 일시, 영향 범위 등 핵심 정보 필드 제공 정보를 반영한다.
+- 된 정보를 바탕으로 서비스 점검 안내문 초안 자동 생성 정보를 반영한다.한다.
+- 된 안내문 초안을 확인하고 수정할 수 있는 에디터 기능 형태로 작성한다.`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt,
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [{ id: 'constraint_expansion' }],
+    refinementMaterialized: true,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: true,
+          severity: 'medium',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'review');
+  assert.equal(result.summary_code, 'review_before_use');
+  assert.equal(result.summary, '현재 프롬프트는 핵심 입력 조건이 아직 일반적인 항목명 수준이라 한 번 검토하고 쓰는 편이 안전합니다.');
+  assert.deepEqual(result.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.suggested_questions, [
+    '점검 유형은 정기 점검인가요, 긴급 점검인가요?',
+    '점검 일시와 예상 소요 시간은 어떻게 되나요?',
+    '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
+  ]);
+});
+
+test('prompt validation reviews materially transformed travel prompts when generic placeholders remain', () => {
+  const sourceVibe = '도쿄 2박 3일 일정 짜는 프롬프트 만들어줘';
+  const finalPrompt = `도쿄 2박 3일 일정 짜는 프롬프트 만들어줘
+
+조건:
+- 여행 조건을 반영한 도쿄 2박 3일 일정을 짠다.
+- 일정별 추천 장소 및 간단한 설명 포함
+- 일정 요약 (예: 총 예상 경비, 이동 시간)`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt,
+    rewriteMode: 'structured_refine',
+    appliedTechniques: [{ id: 'constraint_expansion' }],
+    refinementMaterialized: true,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: true,
+          severity: 'medium',
+          warning_count: 1,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'review');
+  assert.equal(result.summary_code, 'review_before_use');
+  assert.equal(result.summary, '현재 프롬프트는 핵심 입력 조건이 아직 일반적인 항목명 수준이라 한 번 검토하고 쓰는 편이 안전합니다.');
+  assert.deepEqual(result.reason_codes, ['placeholder_inputs_need_grounding']);
+  assert.deepEqual(result.suggested_questions, [
     '쇼핑, 문화, 음식 중 어떤 관심사가 가장 중요한가요?',
     '예산은 대략 어느 정도로 생각하고 있나요?',
   ]);

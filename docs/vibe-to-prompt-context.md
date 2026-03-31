@@ -237,6 +237,8 @@ Current repo assumptions:
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks do not dominate the copyable result.
 - The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.
+- The previous thread also resolved prompt question metadata consumption on the active review path, so wording changes should no longer break `why_this_question`, `prompt_improvement`, or answer binding.
+- The previous thread also restored maintenance/travel review cases so generic placeholder prompts no longer incorrectly pass as `ready_to_use`, and review-state scaffold labels now render in Korean.
 
 Thread goal:
 - First judge the candidate against these three questions:
@@ -245,17 +247,15 @@ Thread goal:
   - Does it reduce a real remaining engine blocker?
 - If it is mostly internal cleanup, stop and explain why.
 - Prefer the next boundary candidate in this order:
-  1. broader short/common manual regression checks across multiple input types
-  2. one remaining final-prompt compaction mismatch only if those checks expose a real repeated failure
-  3. prompt question metadata consumption boundary
-  4. prompt renderer upstream validation-ready handoff boundary
+  1. one remaining review-state final-prompt body/scaffold mismatch only if live validation still shows the prompt reading too much like a spec or engine scaffold
+  2. one upstream validation or handoff seam only if that review-body issue clearly traces upstream
 - Pick exactly one boundary and resolve only that.
 
 Boundary rule:
 - Do not reopen the result-stage hierarchy boundary for copy-only polish once prompt, trust/action, rewrite-why, and compressed success-state explanation are already the primary reading order.
-- If you choose the remaining final-prompt compaction boundary, keep it thin: remove only one still-misleading scaffold or label from `ready_to_use` copyable output without redesigning renderer logic broadly.
-- If you choose the question metadata boundary, keep it thin: make the app read `intent_key` / `source` / `reason_code` more explicitly without turning the thread into copy polish or broad UI redesign.
-- Only inspect the upstream validation-ready handoff if the metadata boundary does not pass the entry rule.
+- Do not reopen question-metadata consumption, maintenance/travel review regression recovery, or the already-settled result hierarchy unless a fresh live regression appears.
+- If you choose the remaining review-state final-prompt boundary, keep it thin: remove only one still-misleading scaffold or one still-spec-like phrase from review-state prompt copy without redesigning the whole renderer or coaching surface.
+- Only inspect the upstream validation-ready handoff if the review-body issue does not pass the entry rule as a local output boundary.
 
 At the end, always summarize:
 - why this work was not a loop

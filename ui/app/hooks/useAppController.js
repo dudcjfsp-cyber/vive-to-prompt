@@ -57,6 +57,26 @@ function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function toObjectArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => isPlainObject(item));
+}
+
+function getClarifyQuestionAnswerValue({
+  answers = {},
+  question = '',
+  detail = null,
+} = {}) {
+  const safeAnswers = isPlainObject(answers) ? answers : {};
+  const questionId = toText(detail?.question_id);
+
+  if (questionId && typeof safeAnswers[questionId] === 'string') {
+    return safeAnswers[questionId];
+  }
+
+  return typeof safeAnswers[question] === 'string' ? safeAnswers[question] : '';
+}
+
 function buildGenerationRequestMeta(runtimeConfig) {
   return {
     promptPolicyMode: String(runtimeConfig?.promptPolicyMode || 'baseline'),
@@ -150,20 +170,6 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     setClarifyApplyNotice('');
   }, []);
 
-  const applyClarifyQuestionSet = useCallback((nextQuestions) => {
-    const normalizedQuestions = toStringArray(nextQuestions);
-
-    setClarifyQuestions(normalizedQuestions);
-    setClarifyAnswers((previous) => normalizedQuestions.reduce((acc, question) => {
-      if (Object.prototype.hasOwnProperty.call(previous, question)) {
-        acc[question] = previous[question];
-      }
-      return acc;
-    }, {}));
-
-    return normalizedQuestions;
-  }, []);
-
   const loadModelOptions = useCallback(async (nextApiKey, nextProvider) => {
     setIsModelOptionsLoading(true);
     try {
@@ -235,40 +241,6 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     void requestHybridStackGuide(result, vibe);
   }, [requestHybridStackGuide, result, vibe]);
 
-  const setClarifyAnswer = useCallback((question, value) => {
-    const normalizedQuestion = toText(question);
-    if (!normalizedQuestion) return;
-
-    setClarifyAnswers((previous) => ({
-      ...previous,
-      [normalizedQuestion]: String(value || ''),
-    }));
-  }, []);
-
-  const removeClarifyQuestion = useCallback((question) => {
-    const normalizedQuestion = toText(question);
-    if (!normalizedQuestion) return;
-
-    const nextQuestions = clarifyQuestions.filter((item) => item !== normalizedQuestion);
-    const nextAnswers = { ...clarifyAnswers };
-    delete nextAnswers[normalizedQuestion];
-
-    setClarifyQuestions(nextQuestions);
-    setClarifyAnswers(nextAnswers);
-
-    shadowWriteSpecState({
-      type: 'clarify_skipped',
-      currentNodeId: 'clarify_skipped',
-      clarificationAnswersPatch: nextAnswers,
-      pendingQuestions: nextQuestions,
-      loopTurn: clarifyLoopTurn,
-      payload: {
-        skipped_question: normalizedQuestion,
-        remaining_questions: nextQuestions.length,
-      },
-    });
-  }, [clarifyAnswers, clarifyLoopTurn, clarifyQuestions]);
-
   const clearClarifyQuestions = useCallback(() => {
     if (clarifyQuestions.length === 0) return;
 
@@ -298,6 +270,98 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     }),
     [clarifyQuestions, promptFirstValidationReport],
   );
+  const clarifyQuestionDetailByQuestion = useMemo(
+    () => new Map(
+      clarifyQuestionDetails
+        .filter((detail) => typeof detail?.question === 'string')
+        .map((detail) => [detail.question, detail]),
+    ),
+    [clarifyQuestionDetails],
+  );
+  const applyClarifyQuestionSet = useCallback((nextQuestions, nextSuggestedQuestionDetails = []) => {
+    const normalizedQuestions = toStringArray(nextQuestions);
+    const normalizedNextDetails = buildClarifyQuestionDetails({
+      questions: normalizedQuestions,
+      suggestedQuestionDetails: toObjectArray(nextSuggestedQuestionDetails),
+    });
+    const nextDetailByQuestion = new Map(
+      normalizedNextDetails
+        .filter((detail) => typeof detail?.question === 'string')
+        .map((detail) => [detail.question, detail]),
+    );
+
+    setClarifyQuestions(normalizedQuestions);
+    setClarifyAnswers((previous) => normalizedQuestions.reduce((acc, question) => {
+      const nextDetail = nextDetailByQuestion.get(question);
+      const previousDetail = clarifyQuestionDetailByQuestion.get(question);
+      const answer = getClarifyQuestionAnswerValue({
+        answers: previous,
+        question,
+        detail: nextDetail || previousDetail,
+      });
+
+      if (!answer) return acc;
+
+      const questionId = toText((nextDetail || previousDetail)?.question_id);
+      if (questionId) {
+        acc[questionId] = answer;
+      }
+      acc[question] = answer;
+      return acc;
+    }, {}));
+
+    return normalizedQuestions;
+  }, [clarifyQuestionDetailByQuestion]);
+  const setClarifyAnswer = useCallback((question, value) => {
+    const detail = isPlainObject(question)
+      ? question
+      : clarifyQuestionDetailByQuestion.get(toText(question));
+    const normalizedQuestion = toText(isPlainObject(question) ? question.question : question);
+    if (!normalizedQuestion) return;
+    const questionId = toText(detail?.question_id);
+
+    setClarifyAnswers((previous) => {
+      const nextValue = String(value || '');
+      const nextAnswers = {
+        ...previous,
+        [normalizedQuestion]: nextValue,
+      };
+
+      if (questionId) {
+        nextAnswers[questionId] = nextValue;
+      }
+
+      return nextAnswers;
+    });
+  }, [clarifyQuestionDetailByQuestion]);
+  const removeClarifyQuestion = useCallback((question) => {
+    const detail = isPlainObject(question)
+      ? question
+      : clarifyQuestionDetailByQuestion.get(toText(question));
+    const normalizedQuestion = toText(isPlainObject(question) ? question.question : question);
+    if (!normalizedQuestion) return;
+    const questionId = toText(detail?.question_id);
+
+    const nextQuestions = clarifyQuestions.filter((item) => item !== normalizedQuestion);
+    const nextAnswers = { ...clarifyAnswers };
+    delete nextAnswers[normalizedQuestion];
+    if (questionId) delete nextAnswers[questionId];
+
+    setClarifyQuestions(nextQuestions);
+    setClarifyAnswers(nextAnswers);
+
+    shadowWriteSpecState({
+      type: 'clarify_skipped',
+      currentNodeId: 'clarify_skipped',
+      clarificationAnswersPatch: nextAnswers,
+      pendingQuestions: nextQuestions,
+      loopTurn: clarifyLoopTurn,
+      payload: {
+        skipped_question: normalizedQuestion,
+        remaining_questions: nextQuestions.length,
+      },
+    });
+  }, [clarifyAnswers, clarifyLoopTurn, clarifyQuestionDetailByQuestion, clarifyQuestions]);
 
   const syncWarningToClarifyLoop = useCallback((warningContext = {}) => {
     if (resolvedRuntime.capabilities.loopMode !== 'manual') return [];
@@ -383,7 +447,7 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
     setStatus('success');
     setActiveModel((previous) => getSafeModelName(generated?.model, previous));
     setClarifyLoopTurn(nextLoopTurn);
-    applyClarifyQuestionSet(nextQuestions);
+    applyClarifyQuestionSet(nextQuestions, validationReport?.suggested_question_details);
 
     setSelectedModel((previous) => String(generated?.model || previous || '').trim());
     setModelOptions((previous) => {
@@ -547,8 +611,12 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
   const handleApplyClarifications = useCallback(() => {
     if (!result) return;
 
-    const answeredEntries = clarifyQuestions
-      .map((question) => [question, toText(clarifyAnswers[question])])
+    const answeredEntries = clarifyQuestionDetails
+      .map((detail) => [toText(detail?.question), toText(getClarifyQuestionAnswerValue({
+        answers: clarifyAnswers,
+        question: toText(detail?.question),
+        detail,
+      }))])
       .filter(([, answer]) => Boolean(answer));
     if (answeredEntries.length === 0) return;
 
@@ -579,7 +647,7 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
         updated_vibe_length: clarifiedVibe.length,
       },
     });
-  }, [clarifyAnswers, clarifyLoopTurn, clarifyQuestions, result, vibe]);
+  }, [clarifyAnswers, clarifyLoopTurn, clarifyQuestionDetails, result, vibe]);
 
   useEffect(() => {
     initializeSpecState();
@@ -675,7 +743,11 @@ export function useAppController({ runtimeConfig = null, personaConfig = null } 
         questions: clarifyQuestions,
         questionDetails: clarifyQuestionDetails,
         answers: clarifyAnswers,
-        canSubmit: clarifyQuestions.some((question) => Boolean(toText(clarifyAnswers[question]))),
+        canSubmit: clarifyQuestionDetails.some((detail) => Boolean(toText(getClarifyQuestionAnswerValue({
+          answers: clarifyAnswers,
+          question: toText(detail?.question),
+          detail,
+        })))),
         loopTurn: clarifyLoopTurn,
       },
     },
