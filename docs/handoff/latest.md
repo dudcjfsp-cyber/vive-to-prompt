@@ -1,6 +1,6 @@
 # Session Handoff (Latest)
 
-- Updated: 2026-03-24
+- Updated: 2026-03-31
 - Repo: `C:\Users\dudcj\OneDrive\바탕 화면\바이브투프롬프트-engine`
 - Branch: `main`
 - Scope: prompt-first product transition, reusable engine extraction, PRD-aligned active-surface refinement
@@ -99,6 +99,7 @@ The current discussion also clarified a stronger long-term reading:
   - surfacing one reusable next-time phrasing pattern in `ready_to_use` states
   - surfacing `why_this_question` and `prompt_improvement` directly inside the active review question flow
   - removing review-question provenance chips that exposed internal validation/source labels on the active coaching surface
+  - removing one remaining source-derived `coaching_focus` sentence from the active review question cards so the visible card keeps coaching guidance without echoing internal provenance phrasing
   - keeping deeper trace content collapsed as secondary detail
 - focused source/helper tests were updated for that surface contract
 - build verification also passed after the PRD-aligned surface changes
@@ -118,7 +119,7 @@ The current discussion also clarified a stronger long-term reading:
 - prompt review signals can now drive follow-up clarification questions through prompt-native validation metadata
 - prompt-first validation consumption is now centralized behind one app-side adapter instead of split between raw `prompt_output.validation` and raw `validation_report` reads
 - the active prompt-first explanation cards now read more naturally in Korean without changing engine behavior
-- the active review question cards now keep prompt-improvement coaching visible without surfacing internal provenance labels such as validation source names
+- the active review question cards now keep prompt-improvement coaching visible without surfacing internal provenance labels or source-derived coaching sentences such as validation-source phrasing
 - the broader success-state result hierarchy is now better defined as:
   - final prompt first
   - use/review judgment next
@@ -290,7 +291,7 @@ Current repo assumptions:
 - The previous thread also compacted short/common `ready_to_use` final prompt bodies so empty scaffold sections and meta workflow blocks no longer dominate the copyable result.
 - The previous thread also removed `Original request:` from compact success-state prompt copy and rewrote some spec-like email constraints into more writing-friendly prompt constraints.
 - The previous thread also added a PRD and aligned the active `ExperiencedWorkspace` with it by surfacing one reusable next-time pattern and by turning review questions into prompt-native coaching instead of bare textareas.
-- The latest thin review-surface fix also removed internal review-question provenance labels from the active coaching cards while preserving `why_this_question`, `prompt_improvement`, and the visible prompt-improvement axis.
+- The latest thin review-surface fixes removed internal review-question provenance labels and one remaining source-derived `coaching_focus` sentence from the active coaching cards while preserving `why_this_question`, `prompt_improvement`, and the visible prompt-improvement axis.
 - Spec renderer and spec-shaped normalization still remain as compatibility paths, but they are not the main product direction.
 - The previous thread already exposed rewrite rationale summary and validation summary on the main result surface.
 - The previous thread also centralized app-side validation consumption behind one prompt-first adapter, so do not reopen that boundary unless you find a real regression.

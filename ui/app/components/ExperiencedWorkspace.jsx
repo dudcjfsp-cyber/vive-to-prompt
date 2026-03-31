@@ -635,7 +635,6 @@ export default function ExperiencedWorkspace({
                     <div className="form-group">
                       {validationQuestions.map((question) => {
                         const detail = clarifyQuestionDetailByText.get(question);
-                        const coachingFocus = typeof detail?.coaching_focus === 'string' ? detail.coaching_focus.trim() : '';
                         const intentLabel = typeof detail?.intent_label === 'string' ? detail.intent_label.trim() : '';
                         const whyThisQuestion = typeof detail?.why_this_question === 'string' ? detail.why_this_question.trim() : '';
                         const promptImprovement = typeof detail?.prompt_improvement === 'string' ? detail.prompt_improvement.trim() : '';
@@ -643,7 +642,6 @@ export default function ExperiencedWorkspace({
                         return (
                           <div key={question} className="form-group">
                             <label>{question}</label>
-                            {coachingFocus && <p className="small-muted">{coachingFocus}</p>}
                             {intentLabel && (
                               <div className="signal-pills">
                                 <span className="pill">보강 포인트: {intentLabel}</span>
