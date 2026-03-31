@@ -364,8 +364,9 @@ test('prompt renderer keeps short summary prompts compact without email-style ou
       },
       delivery: {
         must_haves: [
-          '회의록 3줄 요약 프롬프트 생성',
-          '생성된 프롬프트 복사 기능',
+          '회의록 텍스트 필드 정보를 반영한다.',
+          '"3줄 요약 프롬프트" 버튼 형태로 작성한다.',
+          '생성된 프롬프트를 복사할 수 있는 기능 형태로 작성한다.',
         ],
         nice_to_haves: [],
       },
@@ -389,14 +390,16 @@ test('prompt renderer keeps short summary prompts compact without email-style ou
   assert.equal(result.validation.status, 'ready');
   assert.match(result.final_prompt, /회의록을 핵심만 3줄로 요약하는 프롬프트를 만들어줘/);
   assert.match(result.final_prompt, /조건:/);
-  assert.match(result.final_prompt, /회의록의 핵심만 3줄로 압축하게 한다/);
+  assert.match(result.final_prompt, /회의록 내용을 반영한다/);
+  assert.match(result.final_prompt, /3줄 요약 프롬프트로 정리한다/);
+  assert.match(result.final_prompt, /바로 사용할 수 있게 프롬프트를 정리한다/);
   assert.doesNotMatch(result.final_prompt, /Original request:/);
   assert.doesNotMatch(result.final_prompt, /Suggested workflow:/);
   assert.doesNotMatch(result.final_prompt, /Before finalizing:/);
   assert.doesNotMatch(result.final_prompt, /출력 형식:/);
   assert.doesNotMatch(result.final_prompt, /제목:/);
   assert.doesNotMatch(result.final_prompt, /본문:/);
-  assert.doesNotMatch(result.final_prompt, /복사 기능/);
+  assert.doesNotMatch(result.final_prompt, /필드|버튼|복사 기능|기능 형태/);
 });
 
 test('prompt renderer keeps short planning prompts compact but routes generic travel slots into review', () => {
@@ -1030,6 +1033,66 @@ test('prompt validation reviews maintenance prompts when CRUD and publication wo
     '점검 일시와 예상 소요 시간은 어떻게 되나요?',
     '어떤 기능이나 서비스가 영향을 받는지 구체적으로 적어줄 수 있나요?',
   ]);
+});
+
+test('prompt validation does not treat non-maintenance announcements as maintenance just because management wording remains', () => {
+  const sourceVibe = '카페 오픈 안내문 써줘. 이번 주 토요일 오전 10시에 오픈하고 선착순 이벤트도 같이 알려줘';
+  const finalPrompt = `${sourceVibe}
+
+조건:
+- 수정/삭제가 가능한 공지 관리 흐름을 반영한다.
+- 게시 시점과 공개 여부가 분명히 드러나게 작성한다.`;
+
+  const result = buildPromptValidation({
+    sourceVibe,
+    finalPrompt,
+    rewriteMode: 'light_refine',
+    appliedTechniques: [{ id: 'constraint_expansion' }],
+    refinementMaterialized: true,
+    sharedRuntimeHandoff: createSharedRuntimeHandoff({
+      sourceVibe,
+      validationReport: {
+        severity: 'low',
+        needs_clarification: false,
+        warning_count: 0,
+        blocking_issue_count: 0,
+      },
+      intentIr: {
+        summary: sourceVibe,
+        intent: {
+          target_user: '',
+          usage_moment: '',
+          user_job: '',
+          problem_context: '',
+          success_signal: '',
+        },
+        delivery: {
+          must_haves: [],
+          nice_to_haves: [],
+        },
+        analysis: {
+          risks: [],
+          missing_information: [],
+          clarification_questions: [],
+        },
+        signals: {
+          confidence: 'medium',
+          needs_clarification: false,
+          severity: 'low',
+          warning_count: 0,
+          blocking_issue_count: 0,
+        },
+      },
+    }),
+  });
+
+  assert.equal(result.status, 'ready');
+  assert.equal(result.summary_code, 'ready_to_use');
+  assert.deepEqual(result.reason_codes, [
+    'preserves_source_vibe',
+    'rewrite_trace_recorded',
+  ]);
+  assert.deepEqual(result.suggested_questions, []);
 });
 
 test('prompt renderer does not re-ask maintenance schedule or impact once they are already grounded in the source vibe', () => {

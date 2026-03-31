@@ -188,8 +188,9 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
         roles: [],
         features: {
           must: [
-            '회의록 3줄 요약 프롬프트 생성',
-            '생성된 프롬프트 복사 기능',
+            '회의록 텍스트 필드 정보를 반영한다.',
+            '"3줄 요약 프롬프트" 버튼 형태로 작성한다.',
+            '생성된 프롬프트를 복사할 수 있는 기능 형태로 작성한다.',
           ],
           nice: [],
         },
@@ -199,7 +200,9 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
         risks: [],
       },
       expectedLines: [
-        '회의록의 핵심만 3줄로 간결하게 쓴다.',
+        '회의록 내용을 반영한다.',
+        '3줄 요약 프롬프트로 정리한다.',
+        '바로 사용할 수 있게 프롬프트를 정리한다.',
       ],
     },
     {
@@ -313,7 +316,7 @@ test('buildPromptTransmuteResult keeps live-ready prompt output prompt-native ac
       ],
     },
   ];
-  const bannedPattern = /(입력 필드|버튼|미리보기|create\/edit\/share\/copy|복사|공유|목록\s*\/\s*상세|list\s*\/\s*detail|publish|unpublish|게시|발행)/i;
+  const bannedPattern = /(입력 필드|텍스트 필드|필드 정보|버튼|버튼 형태|기능 형태|미리보기|create\/edit\/share\/copy|복사|공유|목록\s*\/\s*상세|list\s*\/\s*detail|publish|unpublish|게시|발행|관리\s*(기능|흐름)|조회\s*및\s*수정|저장\s*및\s*불러오기|공개\s*여부)/i;
 
   cases.forEach(({ label, sourceVibe, spec, expectedLines, expectedStatus, expectedQuestions = [] }) => {
     const { result } = buildPromptTransmuteResult({

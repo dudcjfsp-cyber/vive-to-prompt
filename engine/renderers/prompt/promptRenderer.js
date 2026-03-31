@@ -312,7 +312,7 @@ function buildPlaceholderDrivenClarificationQuestionDetails({
     pushSuggestedQuestionDetail(details, buildSuggestedQuestionDetail(detail), matcher);
   };
 
-  const maintenancePromptPattern = /(\uC810\uAC80|\uC548\uB0B4\uBB38)/i;
+  const maintenancePromptPattern = /(\uC810\uAC80)/i;
   const maintenanceTypePattern = /(\uC810\uAC80\s*\uC720\uD615|\uC815\uAE30\/\uAE34\uAE09|\uC815\uAE30\s*\uC810\uAC80|\uAE34\uAE09\s*\uC810\uAC80)/i;
   const maintenanceSchedulePattern = /(\uC77C\uC2DC|\uC2DC\uC791\/\uC885\uB8CC\s*(\uC77C\uC2DC|\uC2DC\uAC04)?|\uC608\uC0C1\s*\uC18C\uC694\s*\uC2DC\uAC04)/i;
   const maintenanceImpactPattern = /(\uC601\uD5A5\s*\uBC94\uC704|\uC601\uD5A5\uBC1B\uB294\s*\uAE30\uB2A5|\uC601\uD5A5\s*\uAE30\uB2A5)/i;
@@ -880,14 +880,45 @@ function normalizeConstraintLine(line = '') {
     .trim();
 }
 
+function normalizePromptSurfaceLine(line = '') {
+  const normalized = toText(line);
+  if (!normalized) return '';
+
+  if (/(조회\s*및\s*수정|저장\s*및\s*불러오기|에디터\s*기능)/i.test(normalized)) {
+    return '';
+  }
+
+  return normalized
+    .replace(/텍스트\s*필드(\s*정보)?/gi, '내용')
+    .replace(/입력\s*필드(\s*정보)?/gi, '내용')
+    .replace(/필드\s*정보/gi, '내용')
+    .replace(/정보\s*필드\s*제공\s*정보/gi, '정보')
+    .replace(/필드\s*제공\s*정보/gi, '정보')
+    .replace(/필드\s*제공/gi, '정보')
+    .replace(/정보\s*및\s*관리\s*기능\s*정보/gi, '내용')
+    .replace(/관리\s*(기능|흐름)/gi, '')
+    .replace(/기능\s*형태/gi, '')
+    .replace(/버튼\s*형태/gi, '')
+    .replace(/게시\s*시점과\s*공개\s*여부/gi, '언제 공개되는지')
+    .replace(/내용를/gi, '내용을')
+    .replace(/[“”"]/g, '')
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+\./g, '.')
+    .trim();
+}
+
 function rewriteCompactConstraintLine(sourceVibe = '', line = '') {
   const normalizedSource = toText(sourceVibe);
-  const normalizedLine = normalizeConstraintLine(line);
+  const normalizedLine = normalizePromptSurfaceLine(normalizeConstraintLine(line));
   if (!normalizedLine) return '';
 
-  if (/(복사 기능|복사 버튼|copy feature|copy button)/i.test(normalizedLine)) {
+  if (/(복사\s*(기능|버튼)|복사할\s*수\s*있(?:는|게)|copy feature|copy button)/i.test(normalizedLine)) {
     if (/(문구)/i.test(normalizedLine)) {
       return '- 바로 복사해 쓸 수 있는 완성형 문구로 제안한다.';
+    }
+    if (/(프롬프트)/i.test(normalizedLine)) {
+      return '- 바로 사용할 수 있게 프롬프트를 정리한다.';
     }
     return '';
   }
@@ -936,12 +967,24 @@ function rewriteCompactConstraintLine(sourceVibe = '', line = '') {
     return '- 관광지, 맛집, 쇼핑 장소를 균형 있게 섞어 추천한다.';
   }
 
+  if (/(게시\s*\/\s*해제|게시|발행\s*\/\s*해제|발행|publish|unpublish|언제 공개되는지)/i.test(normalizedLine)) {
+    return '- 언제 공개되는지 분명하게 적는다.';
+  }
+
+  if (/(표시)$/i.test(normalizedLine)) {
+    return `- ${normalizedLine.replace(/\s*표시$/i, '').trim()}이 드러나게 적는다.`;
+  }
+
   if (/(입력)/i.test(normalizedLine)) {
     return `- ${normalizedLine.replace(/\s*입력\b/i, '').trim()} 정보를 반영한다.`;
   }
 
   if (/(선택)/i.test(normalizedLine)) {
     return `- ${normalizedLine.replace(/\s*선택\b/i, '').trim()} 내용을 분명히 반영한다.`;
+  }
+
+  if (/(프롬프트|문구|안내문|일정)\s*(로)?\s*작성한다\.?$/i.test(normalizedLine)) {
+    return `- ${normalizedLine.replace(/\s*(로)?\s*작성한다\.?$/i, '').trim()}로 정리한다.`;
   }
 
   if (/(생성)/i.test(normalizedLine) && /(프롬프트|문구|안내문|일정)/i.test(normalizedLine)) {

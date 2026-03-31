@@ -118,3 +118,49 @@ test('buildIntentIrFromSpec rewrites spec-shaped must-haves into prompt-native w
   ]);
   assert.doesNotMatch(intentIr.delivery.must_haves.join('\n'), /(복사|버튼|입력|선택|생성)/);
 });
+
+test('buildIntentIrFromSpec rewrites ready-state UI wording into prompt-native wording for prompt requests', () => {
+  const intentIr = buildIntentIrFromSpec({
+    sourceVibe: '회의록 핵심만 3줄로 요약해주는 프롬프트 만들어줘',
+    spec: {
+      summary: '회의록 핵심만 3줄로 요약해주는 프롬프트',
+      problem_frame: {
+        who: '',
+        when: '',
+        what: '',
+        why: '',
+        success: '',
+      },
+      roles: [],
+      features: {
+        must: [
+          '회의록 텍스트 필드 정보를 반영한다.',
+          '"3줄 요약 프롬프트" 버튼 형태로 작성한다.',
+          '생성된 프롬프트를 복사할 수 있는 기능 형태로 작성한다.',
+        ],
+        nice: [],
+      },
+      input_fields: [],
+      permissions: [],
+      ambiguities: {
+        missing: [],
+        questions: [],
+      },
+      risks: [],
+    },
+    validationReport: {
+      needs_clarification: false,
+      severity: 'low',
+      warning_count: 0,
+      blocking_issue_count: 0,
+    },
+    fields: fieldMap,
+  });
+
+  assert.deepEqual(intentIr.delivery.must_haves, [
+    '회의록 내용을 반영한다.',
+    '3줄 요약 프롬프트로 정리한다.',
+    '바로 사용할 수 있게 프롬프트를 정리한다.',
+  ]);
+  assert.doesNotMatch(intentIr.delivery.must_haves.join('\n'), /(필드|버튼|기능 형태|복사할 수 있는 기능|복사 버튼)/);
+});
