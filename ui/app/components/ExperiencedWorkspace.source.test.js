@@ -31,20 +31,24 @@ test('ExperiencedWorkspace still exposes prompt rationale and prompt validation 
 
 test('ExperiencedWorkspace orders the success-state cards around prompt-first primary information', () => {
   const promptIndex = source.indexOf('<h3>최종 프롬프트</h3>');
+  const reviewFocusIndex = source.indexOf('<h3>지금 먼저 볼 보완 포인트</h3>');
   const trustIndex = source.indexOf('<h3>{getPromptValidationTrustTitle(promptValidation.status)}</h3>');
   const rationaleIndex = source.indexOf('<h3>이번엔 이렇게 다듬었어요</h3>');
   const reusablePatternIndex = source.indexOf('<h3>직접 써볼 표현 패턴</h3>');
   const representativeTechniqueIndex = source.indexOf('<h3>대표 구조화 기법</h3>');
-  const questionsIndex = source.indexOf('<h3>추가 확인이 필요한 질문</h3>');
+  const questionsIndex = source.indexOf('<h3>질문에 답하고 바로 반영</h3>');
   const detailsIndex = source.indexOf('상세 구조화 메모 보기');
 
   assert.ok(promptIndex !== -1);
+  assert.ok(reviewFocusIndex !== -1);
   assert.ok(trustIndex !== -1);
   assert.ok(rationaleIndex !== -1);
   assert.ok(reusablePatternIndex !== -1);
   assert.ok(representativeTechniqueIndex !== -1);
   assert.ok(questionsIndex !== -1);
   assert.ok(detailsIndex !== -1);
+  assert.ok(promptIndex < reviewFocusIndex);
+  assert.ok(reviewFocusIndex < trustIndex);
   assert.ok(promptIndex < representativeTechniqueIndex);
   assert.ok(trustIndex < detailsIndex);
   assert.ok(rationaleIndex < representativeTechniqueIndex);
@@ -61,9 +65,16 @@ test('ExperiencedWorkspace keeps ready-to-use supporting trace collapsed for fir
     source.includes('원래 표현은 살리고, AI가 더 안정적으로 이해할 수 있도록 바뀐 점만 먼저 짚어줍니다.'),
   );
   assert.ok(source.includes('성공 상태에서 먼저 읽으면 되는 핵심 기법만 3개까지 남겼습니다.'));
+  assert.ok(source.includes('바로 복사보다 아래 보완 포인트를 먼저 보는 편이 안전합니다.'));
+  assert.ok(source.includes('<h3>지금 먼저 볼 보완 포인트</h3>'));
+  assert.ok(source.includes('<strong>1. 지금 빠진 정보</strong>'));
+  assert.ok(source.includes('<strong>2. 먼저 답할 질문</strong>'));
+  assert.ok(source.includes('<strong>3. 다음 입력에서 줄이는 법</strong>'));
   assert.ok(source.includes('왜 이 질문이 필요한가: {whyThisQuestion}'));
   assert.ok(source.includes('답하면 프롬프트가 이렇게 좋아집니다: {promptImprovement}'));
   assert.ok(source.includes('보강 포인트: {intentLabel}'));
+  assert.ok(source.includes('<span className="experienced-question-step">질문 {index + 1}</span>'));
+  assert.ok(source.includes('답변을 반영하면 현재 입력에 붙고, 다시 생성했을 때 보완된 정보가 함께 사용됩니다.'));
   assert.ok(source.includes('actions.setClarifyAnswer(detail, event.target.value)'));
   assert.ok(source.includes('value={getClarifyAnswerValue(clarifyAnswers, detail)}'));
   assert.ok(!source.includes('{coachingFocus && <p className="small-muted">{coachingFocus}</p>}'));

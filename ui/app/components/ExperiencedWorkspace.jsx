@@ -227,6 +227,64 @@ function buildPromptChangeHighlights({ appliedTechniques = [], rewriteReasons = 
   return Array.from(new Set(highlights)).slice(0, 3);
 }
 
+function buildReviewFocusPoints({
+  questionDetails = [],
+  warnings = [],
+  validationReasons = [],
+} = {}) {
+  const focusPoints = [];
+
+  questionDetails.forEach((detail) => {
+    const intentLabel = String(detail?.intent_label || '').trim();
+    const whyThisQuestion = String(detail?.why_this_question || '').trim();
+    const promptImprovement = String(detail?.prompt_improvement || '').trim();
+    const question = String(detail?.question || '').trim();
+
+    if (intentLabel && promptImprovement) {
+      focusPoints.push(`${intentLabel}: ${promptImprovement}`);
+      return;
+    }
+
+    if (intentLabel && whyThisQuestion) {
+      focusPoints.push(`${intentLabel}: ${whyThisQuestion}`);
+      return;
+    }
+
+    if (promptImprovement) {
+      focusPoints.push(promptImprovement);
+      return;
+    }
+
+    if (whyThisQuestion) {
+      focusPoints.push(whyThisQuestion);
+      return;
+    }
+
+    if (question) {
+      focusPoints.push(question);
+    }
+  });
+
+  validationReasons.forEach((reason) => {
+    const normalized = String(reason || '').trim();
+    if (normalized) focusPoints.push(normalized);
+  });
+
+  warnings.forEach((warning) => {
+    const normalized = String(warning || '').trim();
+    if (normalized) focusPoints.push(normalized);
+  });
+
+  return Array.from(new Set(focusPoints)).slice(0, 3);
+}
+
+function buildClarifyQuestionPreviewItems(questionDetails = []) {
+  return questionDetails
+    .map((detail) => String(detail?.question || '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 function getClarifyAnswerValue(answers, detail = {}) {
   const questionId = typeof detail?.question_id === 'string' ? detail.question_id.trim() : '';
   const question = typeof detail?.question === 'string' ? detail.question.trim() : '';
@@ -399,6 +457,17 @@ export default function ExperiencedWorkspace({
     appliedTechniques: isReadyToUseSuccessState ? representativeTechniques : localizedAppliedTechniques,
     rewriteReasons: rewriteRationaleReasons.length > 0 ? rewriteRationaleReasons : validationReasons,
   });
+  const reviewFocusPoints = buildReviewFocusPoints({
+    questionDetails: visibleClarifyQuestionDetails,
+    warnings: validationWarnings.length > 0 ? validationWarnings : topWarnings,
+    validationReasons: validationReasons.length > 0 ? validationReasons : fallbackValidationReasons,
+  });
+  const clarifyQuestionPreviewItems = buildClarifyQuestionPreviewItems(visibleClarifyQuestionDetails);
+  const shouldShowReviewFocusCard = (
+    promptValidation.status === 'review'
+    || reviewFocusPoints.length > 0
+    || clarifyQuestionPreviewItems.length > 0
+  );
   const hasValidationMemo = (
     validationReasons.length > 0
     || fallbackValidationReasons.length > 0
@@ -546,12 +615,20 @@ export default function ExperiencedWorkspace({
                       <h3>최종 프롬프트</h3>
                     </div>
                     <button type="button" className="btn btn-secondary" onClick={handleCopyExperiencedPrompt}>
-                      프롬프트 복사
+                      {promptValidation.status === 'review' ? '검토 후 복사' : '프롬프트 복사'}
                     </button>
                   </div>
                   <p className="small-muted">
                     생성이 끝나면 이 프롬프트를 먼저 읽고, 바로 사용할지 이어서 판단합니다.
                   </p>
+                  {promptValidation.status === 'review' && (
+                    <div className="experienced-inline-alert">
+                      <strong>복사 전에 먼저 보완 포인트를 확인하세요.</strong>
+                      <p className="small-muted">
+                        현재 프롬프트는 바로 사용하기보다, 아래 보완 포인트와 질문을 먼저 확인한 뒤 복사하는 편이 안전합니다.
+                      </p>
+                    </div>
+                  )}
                   {(rewriteMode || appliedTechniqueCount > 0) && (
                     <div className="signal-pills compact-delivery-meta">
                       {rewriteMode && (
@@ -567,6 +644,47 @@ export default function ExperiencedWorkspace({
                   </pre>
                   <p className="small-muted compact-delivery-status">{promptCopyStatus || '아직 복사 전'}</p>
                 </section>
+
+                {shouldShowReviewFocusCard && (
+                  <section className="experienced-summary-card experienced-priority-card experienced-review-focus-card">
+                    <p className="experienced-card-kicker experienced-card-kicker-warning">한눈에 보기</p>
+                    <h3>지금 먼저 볼 보완 포인트</h3>
+                    <p className="small-muted">
+                      최종 프롬프트를 읽고 바로 복사하기보다, 아래 세 칸만 먼저 보면 무엇이 빠졌고 어디부터 답해야 하는지 빠르게 잡을 수 있습니다.
+                    </p>
+                    <div className="experienced-review-focus-grid">
+                      <article className="experienced-review-focus-block">
+                        <strong>1. 지금 빠진 정보</strong>
+                        <ul className="experienced-summary-list">
+                          {(reviewFocusPoints.length > 0
+                            ? reviewFocusPoints
+                            : ['현재 review 판단의 핵심 이유는 아래 질문과 검토 메모에 함께 반영되어 있습니다.'])
+                            .map((item, idx) => <li key={String(item) + '-focus-' + String(idx)}>{item}</li>)}
+                        </ul>
+                      </article>
+
+                      <article className="experienced-review-focus-block">
+                        <strong>2. 먼저 답할 질문</strong>
+                        {clarifyQuestionPreviewItems.length > 0 ? (
+                          <ol className="experienced-question-preview-list">
+                            {clarifyQuestionPreviewItems.map((item, idx) => (
+                              <li key={String(item) + '-preview-' + String(idx)}>{item}</li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="small-muted">별도 질문이 없다면 오른쪽 검토 메모부터 확인하세요.</p>
+                        )}
+                      </article>
+
+                      <article className="experienced-review-focus-block">
+                        <strong>3. 다음 입력에서 줄이는 법</strong>
+                        <p className="small-muted">
+                          다음엔 위 보강 포인트를 처음 입력에 함께 적으면, 단순 생성기처럼 한 번 더 헤매지 않고 바로 사용할 수 있는 결과에 더 빨리 가까워집니다.
+                        </p>
+                      </article>
+                    </div>
+                  </section>
+                )}
 
                 <div className="experienced-priority-grid">
                   <section className="experienced-summary-card experienced-priority-card">
@@ -649,9 +767,9 @@ export default function ExperiencedWorkspace({
                 {visibleClarifyQuestionDetails.length > 0 && (
                   <section className="experienced-summary-card experienced-priority-card">
                     <p className="experienced-card-kicker experienced-card-kicker-warning">바로 보완</p>
-                    <h3>추가 확인이 필요한 질문</h3>
+                    <h3>질문에 답하고 바로 반영</h3>
                     <p className="small-muted">
-                      review 상태라면 아래 질문부터 짧게 보완한 뒤 다시 결과를 확인하는 것이 가장 빠릅니다.
+                      review 상태라면 아래 질문 순서대로 짧게 답한 뒤 입력에 반영하는 것이 가장 빠릅니다.
                     </p>
                     <div className="stack-actions">
                       <span className="pill">보완 차수: {clarifyLoopTurn}</span>
@@ -665,8 +783,11 @@ export default function ExperiencedWorkspace({
                         const promptImprovement = typeof detail?.prompt_improvement === 'string' ? detail.prompt_improvement.trim() : '';
 
                         return (
-                          <div key={String(detail?.question_id || question || index)} className="form-group">
-                            <label>{question}</label>
+                          <div key={String(detail?.question_id || question || index)} className="experienced-question-card">
+                            <div className="experienced-question-head">
+                              <span className="experienced-question-step">질문 {index + 1}</span>
+                              <label>{question}</label>
+                            </div>
                             {intentLabel && (
                               <div className="signal-pills">
                                 <span className="pill">보강 포인트: {intentLabel}</span>
@@ -686,13 +807,16 @@ export default function ExperiencedWorkspace({
                       })}
                     </div>
                     <div className="stack-actions">
+                      <p className="small-muted experienced-question-apply-hint">
+                        답변을 반영하면 현재 입력에 붙고, 다시 생성했을 때 보완된 정보가 함께 사용됩니다.
+                      </p>
                       <button
                         type="button"
                         className="btn btn-secondary"
                         onClick={actions.handleApplyClarifications}
                         disabled={state.status === 'processing' || !canSubmitClarification}
                       >
-                        입력에 반영
+                        답변을 입력에 반영
                       </button>
                     </div>
                   </section>

@@ -442,6 +442,38 @@ body::after {
   box-shadow: 0 10px 24px rgba(29, 78, 216, 0.1);
 }
 
+.experienced-review-focus-card {
+  border-color: rgba(234, 88, 12, 0.28);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.experienced-review-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.experienced-review-focus-block {
+  min-width: 0;
+  border: 1px solid #f3d4b2;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 12px;
+}
+
+.experienced-review-focus-block strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #9a3412;
+}
+
+.experienced-question-preview-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
 .experienced-primary-card {
   border-color: rgba(130, 168, 255, 0.32);
   background: linear-gradient(180deg, rgba(6, 22, 46, 0.86), rgba(4, 18, 40, 0.72));
@@ -481,6 +513,77 @@ body::after {
   padding-left: 18px;
   display: grid;
   gap: 6px;
+}
+
+.experienced-inline-alert {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #f2c38a;
+  border-radius: 12px;
+  background: #fff7ed;
+}
+
+.experienced-inline-alert strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #9a3412;
+}
+
+.experienced-inline-alert p {
+  margin: 0;
+}
+
+.experienced-question-card {
+  margin-top: 10px;
+  border: 1px solid #d6e2f0;
+  border-radius: 12px;
+  background: #fcfdff;
+  padding: 12px;
+}
+
+.experienced-question-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.experienced-question-card .experienced-question-head label {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #11395f;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.45;
+}
+
+.experienced-question-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4e89;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.experienced-question-apply-hint {
+  margin: 0;
+  flex: 1 1 280px;
+}
+
+.experienced-question-card .small-muted {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.experienced-question-card textarea {
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 .experienced-empty-state,
@@ -1709,6 +1812,7 @@ body::after {
 
   .experienced-focus-grid,
   .experienced-priority-grid,
+  .experienced-review-focus-grid,
   .major-review-grid,
   .major-readiness-grid {
     grid-template-columns: 1fr;
